@@ -203,7 +203,9 @@ Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal
       cover automático por tipo con exoneración, resumen de ganancia + informe del principal. Verificado en navegador real
       (Chrome) + e2e con jsdom (clics reales). Personas/Ajustes mínimos tras el engranaje como prerrequisito.
 - [ ] UI Tab Historial: primadas pasadas con totales, ganancias y deudas; registro de abonos.
-- [ ] Directorio de personas en UI (pantalla propia tras el engranaje): alta, cambio de estado, `breB`. *(versión mínima ya cableada en PASO 2.)*
+- [x] Directorio de personas en UI (pantalla propia tras el engranaje): alta, edición de nombre, cambio de estado
+      ahorrador↔invitado (vigente, sin reescribir snapshots), llave `breB`, y nº de primadas donde aparece.
+      Verificado en navegador real (INVARIANTE #1: misma persona, dos primadas, dos snapshots distintos).
 - [ ] Tab "Próximamente" (placeholder). *(Resumen y Fondo ya muestran placeholder en PASO 2.)*
 - [ ] **Futuro:** módulo de **Ahorro/Tesorería** (aportes mensuales, retiros, préstamos, inversiones, actividades extra).
 - [ ] **Futuro:** cierre de año / liquidación por persona (aún NO; el año es solo etiqueta).

@@ -76,9 +76,10 @@
       }
       case 'remove-abono': A.removerAbono(prm, pid, b.dataset.abono); break;
 
-      // ----- overlays (engranaje) -----
+      // ----- pantallas del engranaje (Personas / Ajustes) -----
       case 'open-personas':  ui.overlay = 'personas'; rerender(); return;
       case 'open-ajustes':   ui.overlay = 'ajustes';  rerender(); return;
+      case 'overlay-tab':    ui.overlay = b.dataset.overlay; rerender(); return;
       case 'close-overlay':  ui.overlay = null;       rerender(); return;
       case 'add-persona': {
         const n = document.getElementById('np-nombre');
@@ -89,11 +90,8 @@
         View.toast('Persona agregada al directorio');
         break;
       }
-      case 'toggle-estado-persona': {
-        const per = Store.select.persona(pid);
-        if (per) A.setEstadoPersona(pid, per.estado === 'ahorrador' ? 'invitado' : 'ahorrador');
-        break;
-      }
+      // INVARIANTE #1: solo cambia el estado VIGENTE; NUNCA toca estadoEnEseMomento de asistencias pasadas.
+      case 'set-estado-persona': A.setEstadoPersona(pid, b.dataset.estado); break;
       default: break;
     }
   }

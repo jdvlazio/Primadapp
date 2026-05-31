@@ -78,8 +78,8 @@ eq('localStorage limpio → 0 personas', st().personas.length, 0);
 
 /* ---------- 1. Directorio de personas (overlay del engranaje) ---------- */
 section('Personas: alta desde el overlay del engranaje');
-click('#gearBtn');                                   // abre overlay Personas
-check('Overlay Personas visible', !q('#overlay').hidden && /Agregar persona/.test(q('#overlay').innerHTML));
+click('#gearBtn');                                   // abre la pantalla Personas
+check('Pantalla Personas visible', !q('#overlay').hidden && /Nueva persona/.test(q('#overlay').innerHTML));
 setVal('#np-nombre', 'Ana'); setVal('#np-estado', 'ahorrador'); click('[data-act="add-persona"]');
 setVal('#np-nombre', 'Beto'); setVal('#np-estado', 'invitado'); click('[data-act="add-persona"]');
 eq('2 personas en el directorio', st().personas.length, 2);
@@ -177,6 +177,23 @@ click(`[data-act="remove-abono"][data-pid="${beto.id}"][data-abono="${abId}"]`);
 eq('Abono eliminado (abonado = 0)', Store.select.abonadoDe(betoAsis()), 0);
 setVal(`#abono-${beto.id}`, '3000');   // dejarlo registrado para la persistencia
 click(`[data-act="abonar"][data-pid="${beto.id}"]`);
+
+/* ---------- 8c. Directorio: cambiar estado NO reescribe snapshots (INVARIANTE #1) vía UI ---------- */
+section('Directorio: cambiar estado vigente conserva la historia (INV#1)');
+eq('Snapshot de Beto en la asistencia = invitado', betoAsis().estadoEnEseMomento, 'invitado');
+click('#gearBtn');                                   // abre la pantalla Personas
+check('Beto aparece en 1 primada (historia)', Store.select.aparicionesDe(beto.id) === 1);
+click(`[data-act="set-estado-persona"][data-pid="${beto.id}"][data-estado="ahorrador"]`);
+eq('Estado VIGENTE de Beto ahora = ahorrador', Store.select.persona(beto.id).estado, 'ahorrador');
+eq('Snapshot histórico INTACTO (sigue invitado)', betoAsis().estadoEnEseMomento, 'invitado');
+check('Reparto no cambió: Beto sigue sin contar como ahorradora (snapshot)',
+  Store.select.asistenciasAhorradoras(prm()).every(a => a.personaId !== beto.id));
+// Editar la llave Bre-B desde el directorio
+click('[data-act="overlay-tab"][data-overlay="ajustes"]');
+check('Seg-nav cambia a Ajustes (cover)', /Cover vigente/.test(q('#overlay').innerHTML));
+click('[data-act="overlay-tab"][data-overlay="personas"]');
+click('[data-act="close-overlay"]');
+check('Pantalla cerrada', q('#overlay').hidden);
 
 /* ---------- 9. Navegación de tabs ---------- */
 section('Navegación: tabs Resumen/Fondo (Próximamente)');

@@ -168,12 +168,20 @@
   .sheet{background:var(--paper);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;border:2px solid var(--line);border-bottom:none;padding:14px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -16px 40px -18px rgba(0,0,0,.5)}
   .sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
   .sheet-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:22px}
+  .sheet.full{min-height:86vh}
   .sheet-body{display:block}
-  .plist-people{display:flex;flex-direction:column;gap:8px}
-  .prow{display:grid;grid-template-columns:1fr auto;grid-template-areas:"name estado" "breb breb";gap:6px 8px;align-items:center;background:var(--paper-2);border:2px solid var(--line);border-radius:11px;padding:9px 10px}
-  .prow .ti{grid-area:name}
-  .prow .mini{grid-area:estado}
-  .prow .breb{grid-area:breb;font-size:12px}
+
+  /* seg-nav (segmented control) — Personas|Ajustes y estado ahorrador|invitado */
+  .seg-nav{display:inline-flex;gap:0;background:var(--paper-2);border:2px solid var(--line);border-radius:11px;padding:2px}
+  .seg{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--ink-soft);padding:7px 14px;border-radius:8px}
+  .seg.on{background:var(--ink);color:var(--paper)}
+  .seg-nav.sm .seg{font-size:12px;padding:6px 11px}
+
+  /* directorio de personas */
+  .people{display:flex;flex-direction:column;gap:10px}
+  .pcard{display:flex;flex-direction:column;gap:8px;background:var(--paper-2);border:2px solid var(--line);border-radius:12px;padding:11px 12px}
+  .pcard-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .pcard .breb{font-size:12px}
 
   [hidden]{display:none !important}
 </style>

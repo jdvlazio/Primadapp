@@ -250,6 +250,9 @@
     personasOrdenadas: () => (state ? state.personas.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, CONFIG.locale)) : []),
     ahorradores: () => (state ? state.personas.filter(p => p.estado === 'ahorrador') : []),
     invitados: () => (state ? state.personas.filter(p => p.estado === 'invitado') : []),
+    // En cuántas primadas aparece la persona (refuerza que su historia se conserva al cambiar de estado).
+    aparicionesDe: (personaId) => (state ? state.primadas.reduce((n, p) =>
+      n + (p.asistencias.some(a => a.personaId === personaId) ? 1 : 0), 0) : 0),
 
     margenProducto: (prod) => (Number(prod.precioVenta) || 0) - (Number(prod.costoNeto) || 0),
     esOrganizador: (a) => a.rol === 'principal' || a.rol === 'organizador',

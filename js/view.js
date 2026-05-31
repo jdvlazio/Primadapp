@@ -267,20 +267,30 @@
   }
 
   /* ============================================================
-     OVERLAYS (detrás del engranaje): Personas y Ajustes
+     PANTALLAS detrás del engranaje: Personas (directorio) y Ajustes
      ============================================================ */
-  function overlayPersonas(state) {
+  // Tarjeta de una persona: nombre editable, estado VIGENTE (segmentado), llave Bre-B,
+  // y cuántas primadas la incluyen (su historia se conserva al cambiar de estado — INVARIANTE #1).
+  function personaCard(per) {
+    const ap = S().aparicionesDe(per.id);
+    const seg = est => `<button class="seg ${per.estado === est ? 'on' : ''}" data-act="set-estado-persona" data-pid="${per.id}" data-estado="${est}">${est}</button>`;
+    return `<div class="pcard">
+      <input class="ti" data-ch="rename-persona" data-pid="${per.id}" value="${e(per.nombre)}" maxlength="40" aria-label="Nombre">
+      <div class="pcard-row">
+        <div class="seg-nav sm">${seg('ahorrador')}${seg('invitado')}</div>
+        <span class="muted small">${ap ? 'en ' + ap + ' primada' + (ap > 1 ? 's' : '') : 'sin primadas aún'}</span>
+      </div>
+      <input class="ti breb" data-ch="breb-persona" data-pid="${per.id}" value="${per.breB ? e(per.breB) : ''}" placeholder="Llave Bre-B / QR" aria-label="Llave Bre-B / QR">
+    </div>`;
+  }
+
+  function personasBody(state) {
     const personas = S().personasOrdenadas();
-    const filas = personas.length
-      ? personas.map(per => `<div class="prow">
-          <input class="ti" data-ch="rename-persona" data-pid="${per.id}" value="${e(per.nombre)}" maxlength="40" aria-label="Nombre">
-          <button class="mini ${per.estado === 'ahorrador' ? 'on' : ''}" data-act="toggle-estado-persona" data-pid="${per.id}">${per.estado}</button>
-          <input class="ti breb" data-ch="breb-persona" data-pid="${per.id}" value="${per.breB ? e(per.breB) : ''}" placeholder="Llave Bre-B" aria-label="Llave Bre-B">
-        </div>`).join('')
-      : '<div class="muted small">Directorio vacío. Agrega la primera persona abajo.</div>';
-    return overlayShell('Personas', `
-      <div class="plist-people">${filas}</div>
-      <div class="sub">Agregar persona</div>
+    const cuerpo = personas.length
+      ? `<div class="people">${personas.map(personaCard).join('')}</div>`
+      : '<div class="empty">Directorio vacío. Crea la primera persona abajo.</div>';
+    return `${cuerpo}
+      <div class="sub">Nueva persona</div>
       <div class="addbar">
         <input class="ti" id="np-nombre" placeholder="Nombre" maxlength="40">
         <select class="sel" id="np-estado">
@@ -289,28 +299,28 @@
         </select>
         <button class="mini" data-act="add-persona">+ Agregar</button>
       </div>
-      <div class="muted small" style="margin-top:8px">El <b>estado</b> es vigente y puede cambiar sin reescribir la historia: las asistencias ya creadas conservan su snapshot.</div>
-    `);
+      <div class="muted small" style="margin-top:10px">Cambiar el estado aplica <b>de aquí en adelante</b>: las asistencias ya registradas conservan su snapshot — la historia no se reescribe.</div>`;
   }
 
-  function overlayAjustes(state) {
+  function ajustesBody(state) {
     const c = state.settings.cover;
-    return overlayShell('Ajustes', `
-      <div class="sub">Cover vigente (aplica a primadas NUEVAS)</div>
+    return `<div class="sub">Cover vigente (aplica a primadas NUEVAS)</div>
       <div class="grid2">
         <label class="fld"><span>Ahorrador</span>
           <input class="ti" type="number" min="0" step="500" data-ch="cover-ahorrador" value="${c.ahorrador}"></label>
         <label class="fld"><span>Invitado</span>
           <input class="ti" type="number" min="0" step="500" data-ch="cover-invitado" value="${c.invitado}"></label>
       </div>
-      <div class="muted small" style="margin-top:8px">Editar el cover NO reescribe el snapshot de primadas ya creadas.</div>
-    `);
+      <div class="muted small" style="margin-top:8px">Editar el cover NO reescribe el snapshot de primadas ya creadas.</div>`;
   }
 
-  function overlayShell(titulo, body) {
-    return `<div class="sheet">
+  // Sheet a pantalla completa con seg-nav Personas | Ajustes.
+  function overlaySheet(active, state) {
+    const seg = (key, label) => `<button class="seg ${active === key ? 'on' : ''}" data-act="overlay-tab" data-overlay="${key}">${label}</button>`;
+    const body = active === 'ajustes' ? ajustesBody(state) : personasBody(state);
+    return `<div class="sheet full">
       <div class="sheet-head">
-        <div class="sheet-title">${e(titulo)}</div>
+        <div class="seg-nav">${seg('personas', 'Personas')}${seg('ajustes', 'Ajustes')}</div>
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">✕</button>
       </div>
       <div class="sheet-body">${body}</div>
@@ -336,10 +346,9 @@
     else                           html = tabPrimadas(state);
     els.screen.innerHTML = html;
 
-    // 3) overlay (detrás del engranaje)
-    if (ui.overlay === 'personas')      els.overlay.innerHTML = overlayPersonas(state);
-    else if (ui.overlay === 'ajustes')  els.overlay.innerHTML = overlayAjustes(state);
-    else                                els.overlay.innerHTML = '';
+    // 3) overlay/pantalla detrás del engranaje (Personas / Ajustes)
+    if (ui.overlay === 'personas' || ui.overlay === 'ajustes') els.overlay.innerHTML = overlaySheet(ui.overlay, state);
+    else                                                        els.overlay.innerHTML = '';
     els.overlay.hidden = !ui.overlay;
   }
 
