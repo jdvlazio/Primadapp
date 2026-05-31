@@ -162,6 +162,22 @@ check('Steppers deshabilitados al cerrar', !!plus && plus.disabled === true);
 if (plus) click(plus);   // aunque hagamos click, la acción debe ignorarlo
 eq('Consumo congelado tras cerrar', betoAsis().items.cerveza, before);
 
+/* ---------- 8b. Abonos vía UI con la cuenta CERRADA (INVARIANTE #4) ---------- */
+section('Abonos: registrar/eliminar pago con la primada cerrada');
+// Beto exonerado, 2 cervezas → total 7.000, saldo 7.000
+eq('Saldo de Beto antes de abonar = 7.000', Store.select.saldoDe(prm(), betoAsis()), 7000);
+setVal(`#abono-${beto.id}`, '3000');
+click(`[data-act="abonar"][data-pid="${beto.id}"]`);
+eq('Abono registrado (abonado = 3.000)', Store.select.abonadoDe(betoAsis()), 3000);
+eq('Saldo de Beto baja a 4.000', Store.select.saldoDe(prm(), betoAsis()), 4000);
+eq('Informe: recaudado real = 3.000', Store.select.informePrincipal(prm()).recaudadoReal, 3000);
+eq('Informe: saldo pendiente = 4.000', Store.select.informePrincipal(prm()).saldoPendiente, 4000);
+const abId = betoAsis().abonos[0].id;
+click(`[data-act="remove-abono"][data-pid="${beto.id}"][data-abono="${abId}"]`);
+eq('Abono eliminado (abonado = 0)', Store.select.abonadoDe(betoAsis()), 0);
+setVal(`#abono-${beto.id}`, '3000');   // dejarlo registrado para la persistencia
+click(`[data-act="abonar"][data-pid="${beto.id}"]`);
+
 /* ---------- 9. Navegación de tabs ---------- */
 section('Navegación: tabs Resumen/Fondo (Próximamente)');
 click('[data-tab="fondo"]');

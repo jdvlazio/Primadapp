@@ -125,6 +125,29 @@
         ${esPrin ? `<span class="muted">auto-saldado (principal)</span>`
                  : `<span>Saldo <b class="${saldo > 0 ? 'owe' : ''}">${$peso(saldo)}</b></span>`}
       </div>
+      ${abonosBlock(p, a)}
+    </div>`;
+  }
+
+  // Abonos/pagos por asistencia. SIGUE activo aunque la primada esté cerrada (INVARIANTE #4):
+  // la cuenta se cierra, pero los pagos llegan después. El principal está auto-saldado → sin abonos.
+  function abonosBlock(p, a) {
+    if (S().esPrincipal(p, a)) return '';
+    const total = S().totalAsistencia(p, a);
+    const abonos = a.abonos || [];
+    if (total <= 0 && abonos.length === 0) return '';
+    const abonado = S().abonadoDe(a);
+    const lista = abonos.length
+      ? `<div class="abonos">${abonos.map(b =>
+          `<div class="abono"><span>${e(b.fecha)}</span><b>${$peso(b.monto)}</b><button class="xmini" data-act="remove-abono" data-pid="${a.personaId}" data-abono="${b.id}" aria-label="quitar abono">✕</button></div>`).join('')}</div>`
+      : '';
+    return `<div class="pay">
+      <div class="pay-form">
+        <input class="ti" id="abono-${a.personaId}" type="number" min="0" step="1000" inputmode="numeric" placeholder="Registrar abono…" aria-label="Monto del abono">
+        <button class="mini" data-act="abonar" data-pid="${a.personaId}">Abonar</button>
+      </div>
+      ${abonado ? `<div class="pay-sum muted small">Abonado: <b>${$peso(abonado)}</b></div>` : ''}
+      ${lista}
     </div>`;
   }
 

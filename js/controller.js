@@ -65,6 +65,17 @@
       case 'item-plus':         A.changeItem(prm, pid, b.dataset.prod, +1); break;
       case 'item-minus':        A.changeItem(prm, pid, b.dataset.prod, -1); break;
 
+      // ----- abonos/pagos (válidos AUNQUE la primada esté cerrada) -----
+      case 'abonar': {
+        const inp = document.getElementById('abono-' + pid);
+        const monto = inp ? Number(inp.value) : 0;
+        if (!monto || monto <= 0) { View.toast('Escribe un monto mayor a 0'); return; }
+        A.registrarAbono(prm, pid, monto);
+        View.toast('Abono registrado');
+        break;
+      }
+      case 'remove-abono': A.removerAbono(prm, pid, b.dataset.abono); break;
+
       // ----- overlays (engranaje) -----
       case 'open-personas':  ui.overlay = 'personas'; rerender(); return;
       case 'open-ajustes':   ui.overlay = 'ajustes';  rerender(); return;
