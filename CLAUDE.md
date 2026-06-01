@@ -71,6 +71,8 @@ saldoPendiente     = recaudadoTeorico − recaudadoReal         // = Σ saldos d
 - **Multi-archivo servido tal cual por GitHub Pages.** `index.html` es solo shell + CSS embebido +
   `<script src>` de cada módulo. Pages sirve esto sin ningún cambio de configuración. **El deploy del frontend NO cambia.**
 - Fuentes desde CDN de Google (Instrument Sans). CSS embebido en `index.html`.
+- **SOLO mobile (390px de referencia).** Sin estilos ni adaptaciones desktop. **Sin breakpoints.** El ancho máximo
+  es `--content-max` (480px). La app vive en una única columna mobile (ver `DESIGN.md` › Espaciado y layout).
 - **Persistencia: migración CONFIRMADA de localStorage → Supabase** (backend en la nube). Ver
   **"Arquitectura de backend — Supabase (CONFIRMADA)"**. El SDK de Supabase entra **por CDN**
   (no npm en producción), igual que las fuentes. *(Implementación en sesión dedicada; hoy aún corre sobre localStorage.)*
@@ -251,9 +253,16 @@ Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal
 - Flujo MVC (cuando haya UI): test e2e con `jsdom` por clics reales, re-consultando nodos tras cada render.
 
 ## Despliegue
-- El deployable es `index.html` + `js/*.js`. GitHub Pages (rama `main`, root) publica solo.
+- El deployable es `index.html` + `js/*.js` + `manifest.json` + `sw.js` + `icons/`. GitHub Pages (rama `main`, root) publica solo.
 - Tras push, Pages actualiza en ~1 min. Si no se ve el cambio, es caché: forzar recarga o `?v=N` en los `<script src>`.
 - Token de deploy es del usuario; pedirlo solo cuando se necesite y nunca guardarlo en el repo.
+
+### PWA (instalable, mobile)
+- `manifest.json` (Primadapp, standalone, portrait, theme `#0d1716`, acento `#2DD4BF`) + íconos `icons/` (192, 512, maskable).
+- **Service Worker `sw.js` — network-first** (red primero; caché de respaldo offline). No intercepta CDN/Supabase (van directo a la red).
+- **`CACHE_VERSION` auto-versionado:** el hook git `pre-commit` corre `node scripts/stamp-sw.js`, que sella `CACHE_VERSION`
+  con `fecha-hash` y re-stagea `sw.js`. Así **cada commit invalida el caché viejo** y el celular ve la versión nueva sin borrar caché.
+  ⚠️ El hook vive en `.git/hooks/` (no se versiona): tras un clon nuevo, recrearlo o correr `node scripts/stamp-sw.js` antes de commitear.
 
 ## Roadmap
 - [x] Paso 0: arquitectura MVC + migraciones, verificada con tests.
