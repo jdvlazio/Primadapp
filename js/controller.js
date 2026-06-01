@@ -14,7 +14,11 @@
   const Store = root.Store;
   const View  = root.View;
 
-  const ui = { tab: 'primadas', overlay: null };
+  // ui = estado EFÍMERO (no dominio, no se persiste):
+  // - abiertos: Set de personaId con tarjeta-acordeón expandida (multiabierto)
+  // - pickProd: personaId con el chip-picker "+ Agregar" abierto (uno a la vez)
+  // - panelProductos: sección "Productos del evento" desplegada
+  const ui = { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, panelProductos: false };
 
   function rerender() { View.render(Store.select.state(), ui); }
 
@@ -60,10 +64,42 @@
         if (seln && seln.value) A.addAsistencia(prm, seln.value);
         break;
       }
-      case 'remove-asistencia': A.removeAsistencia(prm, pid); break;
+      case 'remove-asistencia': A.removeAsistencia(prm, pid); ui.abiertos.delete(pid); break;
       case 'toggle-exonerado':  A.toggleCoverExonerado(prm, pid); break;
       case 'item-plus':         A.changeItem(prm, pid, b.dataset.prod, +1); break;
       case 'item-minus':        A.changeItem(prm, pid, b.dataset.prod, -1); break;
+
+      // ----- acordeón de asistencias (estado efímero de UI) -----
+      case 'toggle-asis': {
+        if (ui.abiertos.has(pid)) { ui.abiertos.delete(pid); if (ui.pickProd === pid) ui.pickProd = null; }
+        else ui.abiertos.add(pid);
+        rerender(); return;
+      }
+      // ----- chip-picker "+ Agregar" producto al asistente -----
+      case 'open-pickprod':  ui.pickProd = pid; rerender(); return;
+      case 'close-pickprod': if (ui.pickProd === pid) ui.pickProd = null; rerender(); return;
+      case 'add-item': {
+        A.changeItem(prm, pid, b.dataset.prod, +1);   // 0→1: aparece con stepper
+        // si ya no quedan productos por agregar, cerramos el picker
+        const p = Store.select.activePrimada();
+        const a = p && p.asistencias.find(x => x.personaId === pid);
+        if (a && Store.select.disponiblesPara(p, a).length === 0) ui.pickProd = null;
+        break;
+      }
+
+      // ----- gestión de productos del evento -----
+      case 'toggle-panel-productos': ui.panelProductos = !ui.panelProductos; rerender(); return;
+      case 'remove-producto': A.removeProducto(prm, id); break;
+      case 'add-producto': {
+        const emoji = (document.getElementById('pn-emoji') || {}).value || '';
+        const nombre = ((document.getElementById('pn-nombre') || {}).value || '').trim();
+        const costoNeto = Number((document.getElementById('pn-costo') || {}).value) || 0;
+        const precioVenta = Number((document.getElementById('pn-venta') || {}).value) || 0;
+        if (!nombre) { View.toast('Escribe el nombre del producto'); return; }
+        A.addProducto(prm, { nombre, emoji: emoji || '•', costoNeto, precioVenta });
+        View.toast('Producto agregado a esta primada');
+        break;
+      }
 
       // ----- abonos/pagos (válidos AUNQUE la primada esté cerrada) -----
       case 'abonar': {
@@ -116,6 +152,9 @@
       case 'breb-persona':   A.setBreBPersona(pid, v); break;
       case 'cover-ahorrador': A.setCover({ ahorrador: v }); break;
       case 'cover-invitado':  A.setCover({ invitado: v }); break;
+      // Precios de producto de la primada → commitQuiet en el Store (sin re-render, no pierde foco).
+      case 'costo-producto':  A.setPreciosProducto(prm, id, { costoNeto: v }); break;
+      case 'venta-producto':  A.setPreciosProducto(prm, id, { precioVenta: v }); break;
       default: break;
     }
   }

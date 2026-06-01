@@ -54,12 +54,15 @@
     </div>`;
   }
 
-  function productosStepper(p, a) {
+  // Progressive disclosure: SOLO lo consumido (cantidad>0) con stepper. Bajar a 0 lo quita
+  // (vuelve a estar disponible en el chip picker). Vacío → mensaje, no tarjeta en blanco.
+  function consumoBloque(p, a, ui) {
     const cerrada = p.estado === 'cerrada';
-    return p.productos.map(prod => {
+    const dis = cerrada ? 'disabled' : '';
+    const consumidos = S().consumidosDe(p, a);
+    const filas = consumidos.map(prod => {
       const q = a.items[prod.id] || 0;
-      const dis = cerrada ? 'disabled' : '';
-      return `<div class="prod ${q ? 'has' : ''}">
+      return `<div class="prod has">
         <span class="prod-name">${e(prod.emoji)} ${e(prod.nombre)} <i>${$peso(prod.precioVenta)}</i></span>
         <span class="stepper">
           <button class="step" data-act="item-minus" data-pid="${a.personaId}" data-prod="${prod.id}" ${dis} aria-label="menos">−</button>
@@ -68,6 +71,29 @@
         </span>
       </div>`;
     }).join('');
+    const cuerpo = consumidos.length ? `<div class="prods">${filas}</div>`
+      : `<div class="muted small consumo-vacio">Aún no ha consumido nada.</div>`;
+    return `${cuerpo}${pickProductos(p, a, ui)}`;
+  }
+
+  // "+ Agregar": chips del catálogo de ESA primada que aún no consume. Tap = changeItem(+1) → pasa a stepper.
+  // Sin "+ Agregar" si la primada está cerrada (solo-lectura) o si ya agregó todo.
+  function pickProductos(p, a, ui) {
+    if (p.estado === 'cerrada') return '';
+    const disponibles = S().disponiblesPara(p, a);
+    if (!disponibles.length) return '';
+    const abierto = ui && ui.pickProd === a.personaId;
+    if (!abierto) {
+      return `<button class="mini ghost addprod" data-act="open-pickprod" data-pid="${a.personaId}">+ Agregar</button>`;
+    }
+    const chips = disponibles.map(prod =>
+      `<button class="chip" data-act="add-item" data-pid="${a.personaId}" data-prod="${prod.id}">${e(prod.emoji)} ${e(prod.nombre)} <i>${$peso(prod.precioVenta)}</i></button>`
+    ).join('');
+    return `<div class="prodpick">
+      <div class="prodpick-head"><span class="muted small">¿Qué pidió?</span>
+        <button class="xmini" data-act="close-pickprod" data-pid="${a.personaId}" aria-label="cerrar">✕</button></div>
+      <div class="chips">${chips}</div>
+    </div>`;
   }
 
   function coverLinea(p, a) {
@@ -101,31 +127,47 @@
     </select>`;
   }
 
-  function asistenciaCard(p, a) {
-    const cerrada = p.estado === 'cerrada';
+  // ACORDEÓN del asistente. Cerrado (default): una línea resumen (nombre + total, y saldo si debe).
+  // Abierto (ui.abiertos tiene su id): detalle completo — rol, cover, consumo (progressive disclosure), abonos.
+  function asistenciaCard(p, a, ui) {
     const total = S().totalAsistencia(p, a);
     const esPrin = S().esPrincipal(p, a);
     const saldo = S().saldoDe(p, a);
+    const abierto = ui && ui.abiertos && ui.abiertos.has(a.personaId);
     const snapBadge = badge(a.estadoEnEseMomento, a.estadoEnEseMomento === 'ahorrador' ? 'good' : '');
-    return `<div class="asis ${esPrin ? 'is-principal' : ''}">
-      <div class="asis-head">
-        <div class="asis-id">
-          <b>${e(nombrePersona(a.personaId))}</b> ${snapBadge}
-          ${esPrin ? badge('principal', 'red') : ''}
-        </div>
+
+    // Cabecera-resumen: es el botón que togglea el acordeón (toda la fila es tappable).
+    const debe = !esPrin && saldo > 0;
+    const resumenDer = esPrin
+      ? `<span class="acc-amt">${$peso(total)}</span>`
+      : (debe ? `<span class="acc-amt"><b class="owe">${$peso(saldo)}</b><i class="muted">de ${$peso(total)}</i></span>`
+              : `<span class="acc-amt">${$peso(total)}</span>`);
+    const cabecera = `<button class="acc-head" data-act="toggle-asis" data-pid="${a.personaId}" aria-expanded="${abierto ? 'true' : 'false'}">
+        <span class="acc-caret ${abierto ? 'open' : ''}">▸</span>
+        <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b> ${snapBadge}${esPrin ? ' ' + badge('principal', 'red') : ''}</span>
+        ${resumenDer}
+      </button>`;
+
+    if (!abierto) return `<div class="asis ${esPrin ? 'is-principal' : ''} ${debe ? 'debe' : ''}">${cabecera}</div>`;
+
+    const cerrada = p.estado === 'cerrada';
+    return `<div class="asis open ${esPrin ? 'is-principal' : ''}">
+      ${cabecera}
+      <div class="acc-body">
         <div class="asis-ctl">
           ${rolSelect(p, a)}
-          <button class="mini danger" data-act="remove-asistencia" data-pid="${a.personaId}" ${cerrada ? 'disabled' : ''} aria-label="quitar">✕</button>
+          <button class="mini danger" data-act="remove-asistencia" data-pid="${a.personaId}" ${cerrada ? 'disabled' : ''} aria-label="quitar">Quitar</button>
         </div>
+        ${coverLinea(p, a)}
+        <div class="sub">Consumo</div>
+        ${consumoBloque(p, a, ui)}
+        <div class="asis-foot">
+          <span>Total <b>${$peso(total)}</b></span>
+          ${esPrin ? `<span class="muted">auto-saldado (principal)</span>`
+                   : `<span>Saldo <b class="${saldo > 0 ? 'owe' : ''}">${$peso(saldo)}</b></span>`}
+        </div>
+        ${abonosBlock(p, a)}
       </div>
-      ${coverLinea(p, a)}
-      <div class="prods">${productosStepper(p, a)}</div>
-      <div class="asis-foot">
-        <span>Total <b>${$peso(total)}</b></span>
-        ${esPrin ? `<span class="muted">auto-saldado (principal)</span>`
-                 : `<span>Saldo <b class="${saldo > 0 ? 'owe' : ''}">${$peso(saldo)}</b></span>`}
-      </div>
-      ${abonosBlock(p, a)}
     </div>`;
   }
 
@@ -218,17 +260,51 @@
     </div>`;
   }
 
-  function primadaDetalle(p) {
+  function primadaDetalle(p, ui) {
     return `${primadaCabecera(p)}
       <h2 class="h2">Asistencias <span class="muted">(${p.asistencias.length})</span></h2>
       ${pickerAsistentes(p)}
       <div class="asis-list">
         ${p.asistencias.length
-          ? p.asistencias.map(a => asistenciaCard(p, a)).join('')
+          ? p.asistencias.map(a => asistenciaCard(p, a, ui)).join('')
           : '<div class="empty">Aún no hay asistencias. Agrega personas del directorio.</div>'}
       </div>
+      ${productosEvento(p, ui)}
       ${reparto(p)}
       ${informe(p)}`;
+  }
+
+  // Gestión de productos PROPIOS de la primada (sección plegable). Editar precio / quitar / añadir.
+  // Opera sobre el snapshot de ESTA primada: no toca defaultProducts ni otras primadas.
+  // Precio en vivo → setPreciosProducto usa commitQuiet (sin re-render, no pierde foco).
+  function productosEvento(p, ui) {
+    const cerrada = p.estado === 'cerrada';
+    const abierto = ui && ui.panelProductos;
+    const head = `<button class="h2 acc-h2" data-act="toggle-panel-productos" aria-expanded="${abierto ? 'true' : 'false'}">
+      <span class="acc-caret ${abierto ? 'open' : ''}">▸</span> Productos del evento <span class="muted">(${p.productos.length})</span></button>`;
+    if (!abierto) return head;
+    const ro = cerrada ? 'disabled' : '';
+    const filas = p.productos.map(prod => `<div class="prodrow">
+      <span class="prodrow-name">${e(prod.emoji)} ${e(prod.nombre)}</span>
+      <label class="prodrow-f"><span>costo</span>
+        <input class="ti num" type="number" min="0" step="500" inputmode="numeric" value="${prod.costoNeto}" data-ch="costo-producto" data-id="${prod.id}" ${ro}></label>
+      <label class="prodrow-f"><span>venta</span>
+        <input class="ti num" type="number" min="0" step="500" inputmode="numeric" value="${prod.precioVenta}" data-ch="venta-producto" data-id="${prod.id}" ${ro}></label>
+      <button class="xmini" data-act="remove-producto" data-id="${prod.id}" ${ro} aria-label="quitar producto">✕</button>
+    </div>`).join('');
+    const alta = cerrada ? '' : `<div class="prodnew">
+      <input class="ti" id="pn-emoji" maxlength="2" placeholder="🍹" aria-label="Emoji" style="width:48px;text-align:center">
+      <input class="ti" id="pn-nombre" maxlength="40" placeholder="Nombre (ej. Cóctel)" aria-label="Nombre">
+      <input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" placeholder="costo" aria-label="Costo neto">
+      <input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" placeholder="venta" aria-label="Precio de venta">
+      <button class="mini" data-act="add-producto">+ Producto</button>
+    </div>`;
+    return `${head}
+      <div class="card prodmgmt">
+        ${p.productos.length ? filas : '<div class="muted small">Esta primada no tiene productos. Agrega abajo.</div>'}
+        ${alta}
+        <div class="muted small" style="margin-top:8px">Editar precios o productos aquí afecta SOLO a esta primada — no toca el catálogo por defecto ni las primadas pasadas.</div>
+      </div>`;
   }
 
   // Ítem del historial. Las cifras salen de los SNAPSHOTS de esa primada (cover y precios
@@ -249,7 +325,7 @@
     </button>`;
   }
 
-  function tabPrimadas(state) {
+  function tabPrimadas(state, ui) {
     const activa = S().activePrimada();
     // Historial: todas menos la activa, más recientes arriba (por fecha).
     const otras = state.primadas
@@ -260,7 +336,7 @@
       <div class="bar">
         <button class="btn" data-act="new-primada">+ Nueva primada</button>
       </div>
-      ${activa ? primadaDetalle(activa)
+      ${activa ? primadaDetalle(activa, ui)
                : '<div class="empty">No hay primada activa.<br>Crea una con “+ Nueva primada”.</div>'}
       ${otras.length ? `<h2 class="h2">Historial <span class="muted">(${otras.length})</span></h2>
         <div class="muted small" style="margin:-4px 2px 8px">Toca una para abrirla. Cada una muestra sus valores congelados (cover y precios de cuando se creó).</div>
@@ -346,7 +422,7 @@
      (consumos, roles, abonos, navegación) sí re-renderizan.
      ============================================================ */
   function render(state, ui) {
-    ui = ui || { tab: 'primadas', overlay: null };
+    ui = ui || { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, panelProductos: false };
 
     // 1) tabbar: marcar el activo
     if (els.tabbar) {
@@ -358,7 +434,7 @@
     let html;
     if (ui.tab === 'resumen')      html = placeholder('Resumen', 'El dashboard del fondo (totales y estado) se construye luego de Primadas.');
     else if (ui.tab === 'fondo')   html = placeholder('Fondo', 'Tesorería: aportes, retiros, préstamos y actividades extra.');
-    else                           html = tabPrimadas(state);
+    else                           html = tabPrimadas(state, ui);
     els.screen.innerHTML = html;
 
     // 3) overlay/pantalla detrás del engranaje (Personas / Ajustes)

@@ -97,7 +97,7 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
 - Flujo único e inviolable: **evento → acción → commit (guarda) → notifica → render**.
 - La Vista se suscribe a Store y **re-renderiza la sección completa** en cada cambio (deliberado).
 - **Excepción `commitQuiet` (fluidez de inputs):** las ediciones de **texto en vivo** (`renombrarPrimada`, `setFecha`,
-  `setMesContable`, `renombrarPersona`, `setBreBPersona`, `setCover`) persisten **sin notificar** (`commitQuiet`),
+  `setMesContable`, `renombrarPersona`, `setBreBPersona`, `setCover`, `setPreciosProducto`) persisten **sin notificar** (`commitQuiet`),
   por lo que **no** disparan re-render. Motivo: el re-render completo reconstruiría el `<input>` en plena escritura y
   rompería foco y cursor; el campo ya muestra lo tecleado y el próximo render estructural reflejará lo derivado.
   Todo lo demás (consumos ±, roles, abonos, alta/baja, navegación) usa `commit` normal (persiste **y** re-renderiza).
@@ -244,6 +244,13 @@ Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal
 - Las **decisiones de producto/arquitectura** se toman fuera de código (chat PM) y se reflejan aquí.
 - El **trabajo de código** lo hace Claude Code: implementa el roadmap respetando esta guía, corre pruebas y commitea.
 - Ante una decisión de producto ambigua, **preguntar** antes de inventar; no cambiar el alcance por cuenta propia.
+- **Secuencial en operaciones sensibles, no en paralelo.** Para cualquier paso que toque **git** (commits, reset,
+  reordenar historial) o **edición encadenada de un mismo archivo**, ejecutar **un paso a la vez** y verificar el
+  resultado antes del siguiente. El trabajo en paralelo aquí ya causó historial duplicado que hubo que reescribir y
+  un bug que se coló entre ediciones (la Vista dejó de recibir `ui` y el acordeón no abría). Lento y ordenado > rápido y a reparar.
+- **Nunca confiar en un preview reusado sin recarga limpia.** El servidor de Preview reutiliza el proceso y puede servir
+  el **bundle viejo**, dando verificaciones falsas. Antes de verificar en navegador: forzar recarga / reiniciar el server,
+  y confirmar que el código nuevo está cargado (p. ej. una señal del DOM que solo exista con el cambio) **antes** de dar fe del resultado.
 
 ## Resumen copiable (regla de comunicación)
 El usuario trabaja con Claude Code por **Remote Control en el celular**, donde no se puede seleccionar y copiar

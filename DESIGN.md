@@ -3,9 +3,9 @@
 Este archivo es la **constitución visual** del proyecto: el equivalente del `CLAUDE.md` (dominio + arquitectura),
 pero para lo visual. Toda decisión de apariencia sale de aquí.
 
-> **Estado:** este documento crece **una decisión a la vez**. Hoy define **Tipografía** y **Color**.
-> Faltan (pasadas posteriores): **espaciado**, **componentes** y **patrones de interacción** (p. ej. el acordeón
-> de las tarjetas). Mientras una sección no exista aquí, **no es una decisión tomada**.
+> **Estado:** este documento crece **una decisión a la vez**. Hoy define **Tipografía**, **Color** y
+> **Patrones** (acordeón). Faltan (pasadas posteriores): **espaciado** y más **componentes**.
+> Mientras una sección no exista aquí, **no es una decisión tomada**.
 
 ## Tipografía
 
@@ -79,3 +79,33 @@ Toda referencia de color en el CSS pasa por estas variables (`:root` en `index.h
 - **Nada de color hardcodeado suelto.** Todo color en el CSS referencia estas variables. Agregar/cambiar un color =
   editar **este documento primero** y luego `:root` en `index.html`.
 - Los tintes translúcidos de estados (badges, hovers) se derivan de estos tonos; al sumar componentes se formalizan aquí.
+
+## Patrones
+
+### Acordeón (progressive disclosure)
+Patrón **reutilizable** para listas largas donde cada ítem tiene un resumen y un detalle accionable.
+Su primer uso es la **tarjeta de asistente** del tab Primadas (una primada puede tener 15–17 personas).
+
+**Principio:** **cerrado por defecto**. En reposo cada ítem es **una línea-resumen** legible de un vistazo; el
+**detalle y los controles** aparecen solo al **expandir**. Así una lista larga se lee sin un muro de controles.
+
+**Anatomía**
+- **Cabecera (`.acc-head`)** — es el disparador (todo el renglón es tappable). Contiene:
+  - **caret** (`.acc-caret`, rota 90° al abrir, transición suave),
+  - **identidad** (nombre + badges),
+  - **cifra-resumen** a la derecha (`.acc-amt`): el dato que importa cerrado (total; y si **debe**, el saldo en `--alert`).
+- **Cuerpo (`.acc-body`)** — solo se renderiza si el ítem está abierto; entra con una animación corta (`accIn`, ~180 ms).
+
+**Comportamiento**
+- **Multiabierto:** varios ítems pueden estar abiertos a la vez (útil para registrar a varias personas seguidas).
+- El estado abierto/cerrado es **UI efímero**, vive en el **Controller** (`ui.abiertos = Set`), **NO** en el Store
+  (no es dominio, no se persiste). La Vista es pura sobre `(estado, ui)`.
+- **a11y:** la cabecera es un `<button>` con `aria-expanded`.
+
+**Cuándo usarlo:** listas de entidades con resumen + detalle (asistentes; a futuro, deudores o aportantes).
+**Cuándo NO:** contenido que siempre debe estar visible, o listas de 2–3 ítems donde plegar estorba.
+
+**Progressive disclosure anidado (consumo).** Dentro de la tarjeta abierta, el consumo aplica el mismo principio:
+se muestran **solo los productos consumidos** (cantidad > 0) con su stepper; un **chip-picker "+ Agregar"** revela el
+catálogo de esa primada para sumar lo que falte; bajar a 0 lo retira. Vacío → mensaje ("Aún no ha consumido nada"),
+nunca un bloque en blanco.

@@ -129,9 +129,20 @@
   /* asistencias */
   .addbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
   .addbar .sel{flex:1;min-width:0}
-  .asis-list{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
-  .asis{background:var(--paper-2);border:2px solid var(--line);border-radius:13px;padding:12px}
+  .asis-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+  .asis{background:var(--paper-2);border:2px solid var(--line);border-radius:13px;overflow:hidden}
   .asis.is-principal{border-color:var(--red)}
+  .asis.debe{border-color:var(--alert)}
+  /* ---- Patrón ACORDEÓN (ver DESIGN.md › Patrones) ---- */
+  .acc-head{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:12px}
+  .acc-caret{color:var(--ink-soft);font-size:12px;transition:transform .18s ease;flex:none}
+  .acc-caret.open{transform:rotate(90deg)}
+  .acc-id{flex:1;min-width:0;font-size:15px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .acc-amt{flex:none;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
+  .acc-amt i{font-style:normal;font-weight:400;font-size:11px}
+  .acc-body{padding:0 12px 12px;animation:accIn .18s ease}
+  @keyframes accIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .acc-h2{display:flex;align-items:center;gap:8px;background:transparent;border:none;cursor:pointer;color:var(--ink-soft);font-family:inherit;width:100%;text-align:left}
   .asis-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
   .asis-id{font-size:15px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .asis-ctl{display:flex;align-items:center;gap:6px}
@@ -149,6 +160,26 @@
   .qty{min-width:16px;text-align:center;font-size:14px}
   .asis-foot{display:flex;justify-content:space-between;gap:10px;margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px}
   .asis-foot b{font-weight:700}
+  .consumo-vacio{padding:4px 0 2px}
+  /* chip-picker "+ Agregar" */
+  .addprod{margin-top:8px}
+  .prodpick{margin-top:8px;background:var(--paper);border:2px dashed var(--line);border-radius:11px;padding:9px}
+  .prodpick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--line);background:var(--paper-2);color:var(--ink);border-radius:20px;padding:7px 12px}
+  .chip:active{transform:scale(.95)}
+  .chip:hover{border-color:var(--accent)}
+  .chip i{color:var(--ink-soft);font-style:normal;font-weight:400;font-size:11px}
+  /* gestión de productos del evento */
+  .prodmgmt{padding:12px}
+  .prodrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--line)}
+  .prodrow:first-child{border-top:none}
+  .prodrow-name{flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prodrow-f{display:flex;flex-direction:column;gap:2px;font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
+  .ti.num{width:74px;padding:7px 8px;font-size:13px}
+  .prodnew{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .prodnew .ti:not(.num):not(#pn-emoji){flex:1;min-width:120px}
+  .prodrow .xmini,.prodpick-head .xmini{border:2px solid var(--line);background:var(--paper);color:var(--alert);border-radius:8px;width:30px;height:30px;font-weight:700;flex:none}
 
   /* abonos / pagos (siguen activos con la cuenta cerrada) */
   .pay{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}

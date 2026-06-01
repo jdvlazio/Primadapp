@@ -264,6 +264,10 @@
     aplicaCover: (a) => a.rol === 'asistente' && !a.coverExonerado,
     coverDe(primada, a) { return select.aplicaCover(a) ? (primada.cover[a.estadoEnEseMomento] || 0) : 0; },
     consumoDe(primada, a) { return primada.productos.reduce((sum, prod) => sum + (prod.precioVenta || 0) * (a.items[prod.id] || 0), 0); },
+    // Progressive disclosure del consumo: lo consumido (cantidad>0) vs lo disponible para agregar (cantidad=0).
+    // Puros y en orden del catálogo de la primada. consumidosDe.length + disponiblesPara.length === productos.length.
+    consumidosDe(primada, a) { return primada.productos.filter(prod => (a.items[prod.id] || 0) > 0); },
+    disponiblesPara(primada, a) { return primada.productos.filter(prod => (a.items[prod.id] || 0) === 0); },
     totalAsistencia(primada, a) { return select.coverDe(primada, a) + select.consumoDe(primada, a); },
     abonadoDe(a) { return (a.abonos || []).reduce((sum, b) => sum + (Number(b.monto) || 0), 0); },
     esPrincipal(primada, a) { return a.personaId != null && a.personaId === primada.organizadorPrincipalId; },
@@ -411,7 +415,7 @@
       const prod = p.productos.find(x => x.id === prodId); if (!prod) return;
       if (costoNeto != null) prod.costoNeto = Number(costoNeto) || 0;
       if (precioVenta != null) prod.precioVenta = Number(precioVenta) || 0;
-      commit();
+      commitQuiet();   // edición de texto en vivo (precio): no re-render para no perder foco
     },
     setAportadoPor(primadaId, prodId, personaId) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
