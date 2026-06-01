@@ -1,277 +1,356 @@
-# La Primada — Constitución visual (DESIGN.md)
+# DESIGN.md — Contrato normativo de diseño · La Primada
 
-Este archivo es la **constitución visual** del proyecto: el equivalente del `CLAUDE.md` (dominio + arquitectura),
-pero para lo visual. Toda decisión de apariencia sale de aquí.
+> Fuente de verdad **visual** de la app. Es a los cambios de CSS lo que `CLAUDE.md`
+> es a la arquitectura. **Antes de cualquier cambio de CSS, leer este documento.**
+>
+> Mantenido a mano (no autogenerado). Cada decisión canónica nueva la aprueba el
+> Product Owner (Juan) antes de implementarse.
+>
+> Identidad de La Primada: **dark teal**, **Instrument Sans**, una sola columna mobile
+> (referencia 390px, sin breakpoints). Liviandad radical: **el espacio y la jerarquía
+> tipográfica organizan, no las cajas.**
 
-> **Estado:** este documento crece **una decisión a la vez**. Hoy define **Tipografía**, **Color**,
-> **Iconografía**, **Densidad y peso visual**, **Espaciado y layout**, **Patrones** (acordeón) y **Voz y tono**. Faltan (pasadas posteriores):
-> más **componentes**. Mientras una sección no exista aquí, **no es una decisión tomada**.
+---
 
-## Tipografía
+## 0 · Regla de uso (LEER PRIMERO)
 
-**Fuente principal: Instrument Sans.** Una sola familia para **toda la interfaz** — títulos, cuerpo, nombres y números.
-No hay fuente secundaria.
+> **El documento manda sobre el código. Si difieren, el código está mal.**
+> Cualquier valor que no esté aquí (color, tamaño, peso, espaciado, radio) requiere
+> **decisión explícita del Product Owner** antes de implementarse.
 
-### De dónde se carga
-Desde el **CDN de Google Fonts**, con un `<link>` en `index.html` (igual que las fuentes anteriores). Definición canónica:
+Corolarios:
+- **Cero valores raw** fuera de tokens: todo color/espaciado/radio/altura va por `var(--…)`
+  del `:root` de `index.html`. Un literal suelto (`padding:14px`, `#1a2c2a`, `gap:10px`)
+  es un bug. Las excepciones existentes están en §5.
+- No introducir colores/tamaños/pesos nuevos para datos ya tipados aquí (nombre, rol,
+  monto, sección, estado). Una desviación es **excepción** y va a §5 con su razón, aprobada.
+- Este documento describe el **canónico aprobado**, no el estado histórico del CSS. Hay
+  **componentes duplicados de dos épocas** (caja pesada vs fila liviana); §2 declara cuál
+  es el canónico y marca el otro como **LEGADO a eliminar**. Mientras una sección no exista
+  aquí, **no es una decisión tomada**.
 
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-```
+---
 
-### Escala de pesos
-Una escala simple; usar solo estos tres:
+## 1 · Tokens del sistema
 
-| Peso | Valor | Uso típico |
-|------|-------|------------|
-| Regular | **400** | cuerpo, texto general, metadatos |
-| Medium  | **500** | énfasis suave, etiquetas, números destacados |
-| Bold    | **700** | títulos, nombres, montos, botones |
+Valores resueltos, extraídos de `:root` en `index.html`. **Son la única fuente de valores.**
 
-> Si más adelante hace falta otro peso (p. ej. 600), se agrega **aquí primero** y luego al `<link>` y al CSS — nunca al revés.
+### Color — superficies
+| Token | Valor | Rol |
+|---|---|---|
+| `--paper` | `#0d1716` | Fondo profundo (lienzo de la app) |
+| `--paper-2` | `#13201f` | Superficie de tarjeta / paneles / inputs activos |
+| `--paper-3` | `#1a2c2a` | Superficie elevada (chips de estado, indicadores) |
 
-### Stack CSS canónico
-La familia se referencia siempre así (con fallbacks del sistema por si el CDN no carga):
+### Color — texto
+| Token | Valor | Rol |
+|---|---|---|
+| `--ink` | `#e2eeec` | **Primario** — nombres, montos, títulos |
+| `--ink-soft` | `#8aa3a0` | **Secundario / terciario** — rol, meta, etiquetas, sección |
 
-```css
-font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-```
-
-### Reglas (tipografía)
-- **La tipografía sale SIEMPRE de esta definición.** Nada de familias hardcodeadas sueltas en el código.
-- Una sola familia (**Instrument Sans**) para todo: la jerarquía se logra con **peso y tamaño**, no cambiando de fuente.
-- Cambiar la tipografía = editar **este documento primero**, y luego reflejarlo en `index.html`.
-
-## Color
-
-**Dark-first, paleta verde-azul (teal) sobre oscuro.** La app es oscura por defecto; no hay tema claro por ahora.
-Toda referencia de color en el CSS pasa por estas variables (`:root` en `index.html`); **nada de hex/rgba sueltos** en reglas.
-
-### Tokens (fuente de verdad)
-
-| Token (CSS var) | Valor | Rol |
-|-----------------|-------|-----|
-| `--paper`   | `#0d1716` | **Fondo profundo** (lienzo de la app) |
-| `--paper-2` | `#13201f` | **Superficie de tarjeta** / paneles |
-| `--paper-3` | `#1a2c2a` | Superficie elevada (derivado) |
-| `--ink`     | `#e2eeec` | **Tinta principal** (texto) |
-| `--ink-soft`| `#8aa3a0` | Texto secundario / atenuado (derivado) |
-| `--line`    | `#25403d` | Bordes / divisores (derivado) |
-| `--accent`  | `#2DD4BF` | **Acento principal** (botones, foco, activos, ganancia) |
-| `--accent-ink` | `#0d1716` | **Texto sobre el acento** = el fondo profundo (**nunca blanco**) |
-| `--pos`     | `#4DD9A0` | "Pagó / positivo" — texto |
-| `--pos-bg`  | `#103028` | "Pagó / positivo" — fondo |
-| `--alert`   | `#F08C8C` | "Debe / alerta" — texto |
-| `--alert-bg`| `#3a1818` | "Debe / alerta" — fondo |
-| `--shadow`  | sombras a negro | Profundidad sobre oscuro |
-
-**Alias de compatibilidad** (nombres heredados del CSS que apuntan a la paleta semántica, para no reescribir cada regla):
-`--red` → `--accent` (`#2DD4BF`); `--red-deep` → `#14b8a6` (teal de énfasis/hover); `--green` → `--pos` (`#4DD9A0`);
-`--amber` → `#e0b341` (avisos/warn).
-
-### Reglas (color)
-- **Dark-first:** el fondo es `--paper` (oscuro); las superficies suben con `--paper-2`/`--paper-3`.
-- **Texto sobre el acento** usa `--accent-ink` (el fondo profundo), **nunca blanco** — el teal es claro y el blanco no contrasta.
-- **Semántica de saldos:** "pagó/positivo" usa el par `--pos` / `--pos-bg`; "debe/alerta" usa `--alert` / `--alert-bg`.
-  Un saldo en deuda **siempre** se ve en `--alert`; nunca en el acento (no confundir deuda con algo positivo).
-- **Nada de color hardcodeado suelto.** Todo color en el CSS referencia estas variables. Agregar/cambiar un color =
-  editar **este documento primero** y luego `:root` en `index.html`.
-- Los tintes translúcidos de estados (badges, hovers) se derivan de estos tonos; al sumar componentes se formalizan aquí.
-
-## Densidad y peso visual
-
-**Liviandad radical: el espacio y la jerarquía tipográfica organizan — no las cajas.** La app encerraba todo en
-recuadros con borde y separaba con divisores; bordes dentro de bordes cansan el ojo. El peso visual baja al mínimo.
-
-### Reglas
-- **Un solo botón sólido por pantalla:** la **acción principal** (teal, ancho completo). Todo lo demás es **texto o
-  ícono tocable, sin caja** (sin relleno, sin borde).
-- **Las secciones se separan con ESPACIO** (`--space-5` / `--space-6`), **nunca** con bordes ni divisores
-  (`border-bottom`, líneas punteadas).
-- **Las cajas con borde se reservan SOLO para una tarjeta de datos genuina** — contenido que es una unidad (un
-  asistente con su consumo). **Nunca** para agrupar secciones, ni para estados vacíos, ni para barras de control.
-- **La jerarquía la sostienen el tamaño y el peso tipográfico + el aire**, no las cajas. Al quitar recuadros, los
-  títulos de sección se definen por **peso/tamaño** (no por estar encajonados), para que la pantalla no quede plana.
-- **Estados vacíos:** solo texto centrado con aire — sin caja punteada.
-- **Estado (abierta/cerrada, etc.):** **punto de color discreto** (·) o color del texto, no un badge con borde.
-- **Cuidado con pasarse:** liviano pero **claro y con vida**. No esconder acciones esenciales ni dejar la pantalla
-  fría/confusa. El aire organiza; la acción principal siempre visible.
-
-## Espaciado y layout
-
-**Principio: liviandad y minimalismo.** Densidad **baja**, aire **generoso**. Una cosa a la vez, con espacio para
-respirar. La app es **solo mobile** (referencia **390px**, iPhone estándar); **no hay adaptación desktop ni breakpoints**.
-
-### Escala de espaciado (tokens CSS)
-Una escala fija; **todo valor de espaciado sale de aquí**. Nada de números sueltos en el CSS.
-
+### Color — líneas
 | Token | Valor | Uso |
-|-------|-------|-----|
-| `--space-1` | `4px`  | gaps mínimos (ícono↔texto, badge interno) |
-| `--space-2` | `8px`  | gap corto entre elementos contiguos |
-| `--space-3` | `12px` | gap medio (filas, controles) |
-| `--space-4` | `20px` | **padding estándar de tarjetas** (todos los lados) |
-| `--space-5` | `28px` | **separación entre secciones** de una misma pantalla |
-| `--space-6` | `40px` | margen mayor entre bloques |
-| `--space-safe` | `86px` | **padding inferior** del contenido (deja espacio a la tabbar fija) |
+|---|---|---|
+| `--line` | `#25403d` | Borde de **controles** (input, chip, botón borde). **No** para separar secciones |
+| `rgba(255,255,255,.06)` | línea tenue | **Separador de filas** dentro de una lista (canónico, ver §2). Pendiente de tokenizar (§5) |
 
-### Alturas mínimas de toque (tokens CSS)
-Mobile-first, **pulgar cómodo**. Todo elemento interactivo respeta su mínimo (vía `min-height`):
+### Color — acento y semántica de estado
+| Token | Valor | Rol |
+|---|---|---|
+| `--accent` (alias `--red`) | `#2DD4BF` | **Acento** — botón primario, foco, activo, ganancia, punto del principal |
+| `--accent-ink` | `#0d1716` | Texto **sobre** el acento (nunca blanco) |
+| `--red-deep` | `#14b8a6` | Teal de énfasis (hover, monto de ganancia) |
+| `--pos` (alias `--green`) | `#4DD9A0` | **Pagó / positivo** — texto (check de abono) |
+| `--pos-bg` | `#103028` | Pagó / positivo — fondo |
+| `--alert` | `#F08C8C` | **Debe / destructivo** — texto del saldo, botón borrar |
+| `--alert-bg` | `#3a1818` | Debe / alerta — fondo |
+| `--amber` | `#e0b341` | Aviso / "incompleta" / "Próximamente" |
 
+### Espaciado (escala fija)
+| Token | Valor | Uso |
+|---|---|---|
+| `--space-1` | 4px | gap mínimo (ícono↔texto, dot↔palabra) |
+| `--space-2` | 8px | gap corto entre elementos contiguos |
+| `--space-3` | 12px | gap medio / padding de fila |
+| `--space-4` | 20px | padding de tarjeta genuina (todos los lados) |
+| `--space-5` | 28px | **separación entre secciones** de una pantalla |
+| `--space-6` | 40px | margen mayor entre bloques |
+| `--space-safe` | 86px | padding inferior del contenido (deja sitio a la tabbar fija) |
+
+### Tipografía — pesos (Instrument Sans, única familia)
+| Peso | Valor | Uso |
+|---|---|---|
+| Regular | 400 | **secundario** (rol, meta, cover, unidad) — peso base |
+| Medium | 500 | énfasis suave (poco usado) |
+| Bold | 700 | **primario** (nombre, monto, título), botones |
+| Display | 800 | wordmark, títulos de sheet/wizard |
+
+Stack canónico: `font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;`
+Carga: Google Fonts vía `<link>` (`wght@400;500;700`). Una sola familia para todo; la
+jerarquía se logra con **peso y tamaño**, nunca cambiando de fuente.
+
+### Radios
+| Token | Valor | Uso |
+|---|---|---|
+| `--radius-sm` | 8px | chips, badges, abonos |
+| `--radius-md` | 12px | inputs, botones |
+| `--radius-lg` | 20px | tarjeta genuina |
+| `--radius-xl` | 28px | sheet / wizard / toast |
+
+### Alturas mínimas de toque
 | Token | Valor | Elemento |
-|-------|-------|----------|
-| `--tap-btn`   | `52px` | Botón principal |
-| `--tap-sec`   | `40px` | Botón secundario / chip |
-| `--tap-row`   | `56px` | Fila de lista |
-| `--tap-input` | `52px` | Input |
-
-### Radios de borde (tokens CSS)
-| Token | Valor | Uso |
-|-------|-------|-----|
-| `--radius-sm` | `8px`  | chips, badges |
-| `--radius-md` | `12px` | inputs, botones |
-| `--radius-lg` | `20px` | tarjetas |
-| `--radius-xl` | `28px` | modales, wizard |
+|---|---|---|
+| `--tap-btn` | 52px | botón primario |
+| `--tap-sec` | 40px | botón secundario / chip / ícono tocable |
+| `--tap-row` | 56px | fila de lista (cabecera de acordeón) |
+| `--tap-input` | 52px | input |
 
 ### Layout
-- **Ancho máximo de contenido: `--content-max` (`480px`), centrado.** **Sin** breakpoints desktop — la app vive
-  en una columna mobile.
-- **Padding interno de tarjeta:** `--space-4` (20px) en **todos** los lados.
-- **Gap entre secciones** de la misma pantalla: `--space-5` (28px).
-
 | Token | Valor | Uso |
-|-------|-------|-----|
-| `--content-max` | `480px` | ancho máximo del contenido (`.wrap`, sheets), centrado |
+|---|---|---|
+| `--content-max` | 480px | ancho máximo del contenido (`.wrap`, `.sheet`), centrado |
 
-### Reglas
-- **Todo valor de espaciado sale de estas variables.** Nunca valores sueltos en el CSS (ni `padding:14px`, ni `gap:10px`).
-- **Botones principales ocupan el ancho completo** del contenedor en mobile.
-- **Altura mínima de toque respetada** en todos los elementos interactivos (botones, chips, filas, inputs).
-- Densidad baja: cuando dudes entre apretar o airear, **airea**. Una acción/idea principal por bloque.
-- Agregar/cambiar un token = editar **este documento primero**, y luego reflejarlo en `:root` de `index.html`.
+Sin breakpoints desktop. Safe areas iOS: `viewport-fit=cover` + `env(safe-area-inset-*)`
+con piso `max(env(...),20px)` (detalle en §6).
 
-### Safe areas (iOS / Dynamic Island)
-La app corre como **PWA standalone** en iPhone; debe respetar las áreas seguras (notch / Dynamic Island arriba,
-barra de gestos abajo). El patrón, en cuatro partes:
-1. **`viewport-fit=cover`** en el `<meta viewport>` — **requisito**: sin esto, `env(safe-area-inset-*)` devuelve `0` y
-   nada más funciona.
-2. **Header bajo el Island:** `padding-top: env(safe-area-inset-top)` en `.topbar`, **dentro de
-   `@supports (padding-top: env(safe-area-inset-top))`** — así solo aplica donde el inset existe (standalone/nativo) y
-   no agrega espacio de más en Safari normal.
-3. **Fondo hasta el borde:** el contenedor de fondo (`body`) usa **`min-height: 100dvh`** (dynamic viewport height,
-   **no `vh`**) — el background llega al borde físico inferior, sin la línea de corte antes de la barra de gestos.
-   Fallback `100vh` para navegadores sin `dvh`.
-4. **Mínimo inferior:** navs fijas y contenido inferior (`.tabbar`, `.sheet`, padding del `body`) usan
-   **`max(env(safe-area-inset-bottom), 20px)`** (no `env(...)` solo) — garantiza ≥20px en dispositivos sin barra de
-   gestos y usa el inset real cuando es mayor. Se ve bien en 15 Pro y en modelos viejos por igual.
+---
 
-> **Estado:** estos tokens **ya están aplicados** en el `:root` de `index.html` (espaciado, radios, alturas de toque
-> y `--content-max`), con todos los valores de espaciado del CSS referenciando las variables. El patrón de safe areas
-> está aplicado en `body`, `.topbar`, `.tabbar` y `.sheet`.
+## 2 · Componentes canónicos
 
-## Patrones
+Cada componente se describe por su **clase + propiedades exactas**. Donde hay duplicado
+histórico, se marca **✅ CANÓNICO** o **❌ LEGADO (eliminar)**.
+
+### 2.1 · Fila de asistente — **el componente crítico** (✅ CANÓNICO)
+
+Muestra una persona en la lista de una primada. Es el corazón del tab Primadas y fija el
+lenguaje de **todas** las filas de la app (directorio, deudores, productos).
+
+**Principio:** **sin caja con borde.** Separación entre filas por **línea tenue**
+(`rgba(255,255,255,.06)`) o por **espacio** — nunca un recuadro. El peso visual baja al mínimo;
+el dato manda, no el contenedor.
+
+**Anatomía (cabecera del acordeón, estado cerrado):**
+
+| Elemento | Valor canónico |
+|---|---|
+| **Contenedor de fila** | `display:flex; align-items:center; gap:var(--space-3); min-height:var(--tap-row)`. **Sin** `background`, **sin** `border` de caja, **sin** `border-radius` de tarjeta. Separación con la siguiente fila vía `border-bottom:1px solid rgba(255,255,255,.06)` (o sólo espacio) |
+| **Caret** (`.acc-caret`) | `chevron-down`, `color:var(--ink-soft)`; cerrado `rotate(-90deg)`, abierto `rotate(0)`; transición .18s; ícono 18px |
+| **Identidad** (`.acc-id`) | `flex:1; min-width:0; display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap` |
+| · **Nombre** | **primario**: `color:var(--ink); font-weight:700; font-size:15px` |
+| · **Rol** (Ahorrador / Invitado) | **etiqueta tenue en texto**, junto al nombre: `color:var(--ink-soft); font-weight:400; font-size:12px`. **NO** badge con borde |
+| · **Principal** | **punto teal** (`.dot`, `8px`, `background:var(--accent)`) **+ la palabra "Principal"** como etiqueta tenue (`--ink-soft`, 400). **NO** badge rojo, **NO** borde en la fila |
+| **Cifra-resumen** (`.acc-amt`) | total a la derecha: número **primario** `color:var(--ink); font-weight:700; font-size:14px`. Unidad/etiqueta pequeña (`i`, `font-size:11px; color:var(--ink-soft)`) |
+| · **Debe** | el saldo se marca con **el color en el NÚMERO**: `color:var(--alert)`. **Nunca** borde rojo en la fila ni fondo |
+
+**Cuerpo (`.acc-body`, sólo si abierto):** controles de consumo, cover, abonos. Entra con
+`accIn` (~.18s). Su contenido sigue los componentes de §2.3–§2.6. Los divisores internos del
+cuerpo usan **espacio o línea tenue**, no `dashed`.
+
+**Markers — resumen de la regla:**
+- Rol → **palabra tenue** (no badge).
+- Principal → **dot teal + palabra** (no badge, no borde de fila).
+- Debe → **color en el número** (no borde, no fondo).
+
+### 2.1.L · Caja de asistente pesada (❌ LEGADO — eliminar)
+
+Implementación actual a reemplazar por 2.1:
+
+| Clase | Estado |
+|---|---|
+| `.asis` | `background:var(--paper-2); border:2px solid var(--line); border-radius:var(--radius-lg)` → **eliminar la caja**; volver fila liviana |
+| `.asis.is-principal` | `border-color:var(--red)` → **eliminar**; principal = dot + palabra |
+| `.asis.debe` | `border-color:var(--alert)` → **eliminar** (además **muerto**: `view.js` nunca lo aplica) |
+| `badge('principal','red')` en `.acc-id` | badge rojo con borde → **reemplazar** por dot + "Principal" |
+| `badge(estado,'good')` en `.acc-id` | badge con borde → **reemplazar** por etiqueta de rol tenue |
+| `.asis-foot` | `border-top:1px dashed var(--line)` → **espacio o línea tenue sólida** |
+
+> La fila liviana **`.pitem`** (directorio de personas: `background:transparent; border:none`)
+> ya es el modelo correcto. `.asis` debe **converger a ese lenguaje**.
+
+### 2.2 · Sección (✅ CANÓNICO)
+
+Título de sección + acción en la misma línea, separada del resto por **espacio**, nunca por borde.
+
+| Clase | Propiedades canónicas |
+|---|---|
+| `.sec-head` | `display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); margin-bottom:var(--space-3)` |
+| `.h2` (título) | **terciario**: `font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-soft)`. Patrón de texto: sustantivo + conteo — `Asistentes (3)` |
+| `.add-link` (acción texto) | `color:var(--accent); font-weight:700; font-size:14px; background:transparent; border:none; min-height:var(--tap-sec)` + ícono `plus-circle` |
+| `.icon-btn` (acción ícono) | `width/height:var(--tap-sec); background:transparent; border:none; color:var(--ink-soft)`; hover → `--accent` |
+| Separación entre secciones | **`--space-5`** (margin). **Nunca** `border-bottom` ni `dashed` |
+
+**❌ LEGADO:** `.sub` (`border-top:1px dashed var(--line)`) como separador de sub-bloque →
+reemplazar por espacio.
+
+### 2.3 · Input / campo (✅ CANÓNICO)
+
+El input **sí** lleva borde: es la affordance del control, no una caja decorativa.
+
+| Clase | Propiedades canónicas |
+|---|---|
+| `.ti` (texto) | `font-size:14px; min-height:var(--tap-input); padding:var(--space-3); border:2px solid var(--line); border-radius:var(--radius-md); background:var(--paper); color:var(--ink); width:100%` |
+| `.ti:focus` | `border-color:var(--accent)` (foco = acento) |
+| `.ti.name` | variante título: `font-weight:700; font-size:18px` |
+| `.sel` (select) | igual al `.ti` con `padding:var(--space-2) var(--space-3); font-size:13px` |
+| `.fld` (etiqueta de campo) | `font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft)` + gap al control |
+| `.stepper` / `.step` (±) | botón `var(--tap-sec)` cuadrado, `border:2px solid var(--line)`, `background:var(--paper)` |
+
+### 2.4 · Botones — tres roles (✅ CANÓNICO)
+
+**Un solo botón primario sólido por pantalla.** Todo lo demás es secundario o destructivo.
+
+| Rol | Clase | Propiedades canónicas |
+|---|---|---|
+| **Primario** (sólido teal, único/pantalla) | `.btn` | `background:var(--accent); color:var(--accent-ink); min-height:var(--tap-btn); border:none; border-radius:var(--radius-md); font-weight:700; width:100%`. Hover → `--red-deep` |
+| **Secundario** (texto o borde sutil) | `.btn.ghost` · `.mini` · `.add-link` · `.icon-btn` | `.btn.ghost`: `background:var(--paper-2); border:2px solid var(--line); color:var(--ink)`. `.mini`: chico, `border:2px solid var(--line)`. `.add-link`/`.icon-btn`: texto/ícono sin caja |
+| **Destructivo** (rojo, escondido + confirmación) | `.mini.danger` · `.xmini` | `color:var(--alert)`; ícono `trash-2`. **Siempre** tras confirmación (`¿Borrar la primada?`). No es nunca el botón primario de la pantalla |
+
+### 2.5 · Overlay / sheet (✅ CANÓNICO)
+
+Pantallas secundarias (Personas, Ajustes, wizard) entran como sheet desde abajo.
+
+| Clase | Propiedades canónicas |
+|---|---|
+| `.overlay` | `position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:50; display:flex; justify-content:center; align-items:flex-end` |
+| `.sheet` | `background:var(--paper); width:100%; max-width:var(--content-max); max-height:92vh; border-radius:var(--radius-xl); border:2px solid var(--line); padding-bottom:calc(var(--space-5) + max(env(safe-area-inset-bottom),20px))` |
+| `.sheet-head` | título (`.sheet-title`, 800/22px) + cerrar (`x`); `margin-bottom:var(--space-5)` |
+
+### 2.6 · Estado vacío (✅ CANÓNICO)
+
+| Clase | Propiedades canónicas |
+|---|---|
+| `.empty-soft` | **sin caja**: `text-align:center; color:var(--ink-soft); font-size:14px; padding:var(--space-5) var(--space-3)`. Variante `.big` con más aire. Texto: `Sin <cosa>` |
+
+**❌ LEGADO:** `.empty` (`border:2px dashed var(--line); border-radius:var(--radius-lg)`) →
+reemplazar por `.empty-soft`.
+
+### 2.7 · Estado (abierta / cerrada) (✅ CANÓNICO)
+
+Estado de una primada = **punto de color** (`.dot` / `.dot.closed`) o color del texto
+(`.state` / `.state.closed`). **No** un badge con borde. Abierta → `--pos`; cerrada → `--ink-soft`.
+
+---
+
+## 3 · Jerarquía tipográfica por roles
+
+Toda string de dato cae en un rol con **color + peso + tamaño fijos**. La jerarquía la
+sostienen el peso/tamaño/aire, no las cajas.
+
+| Rol | Color | Peso | Tamaño | Dónde |
+|---|---|---|---|---|
+| **Primario** | `--ink` (#e2eeec) | 700 | 15px fila · 22px título primada · 14px monto | nombre de persona, monto/total, nombre de primada |
+| **Secundario** | `--ink-soft` (#8aa3a0) | 400 | 11–13px | rol (Ahorrador/Invitado), meta (fecha, mes), cover, unidad del monto |
+| **Terciario** (sección) | `--ink-soft` | 700 | 13px + `uppercase` + `letter-spacing:.1em` | títulos `.h2` (ASISTENTES, PRODUCTOS) |
+| **Display** | `--ink` | 800 | 22–40px | wordmark, `.sheet-title`, `.wz-title` |
+
+Roles **semánticos** (sobreescriben el color, no el peso/tamaño):
+- **Debe / saldo pendiente** → `--alert`, en el **número** (`.owe`). Nunca borde/fondo de fila.
+- **Pagó / positivo** → `--pos` (check de abono, "Pagó").
+- **Ganancia / acento** → `--accent` / `--red-deep` (montos de ganancia, foco, activo).
+
+Reglas universales:
+- **Primario** siempre `--ink` / 700.
+- **Secundario** siempre `--ink-soft` / 400, peso **declarado explícito** (no heredar el del browser).
+- **Texto sobre el acento** → `--accent-ink` (nunca blanco).
+
+---
+
+## 4 · Capitalización por rol
+
+La capitalización se decide por **ROL del texto**, no por capricho. Cuatro categorías:
+
+| Categoría | Regla | Cuándo | Ejemplos |
+|---|---|---|---|
+| **MAYÚSCULA** (vía CSS `text-transform`) | TODO MAYÚSCULAS | títulos de sección (`.h2`, `.fld`), etiquetas de campo | ASISTENTES · PRODUCTOS · AHORRADOR (campo) |
+| **Title Case** | Cada Palabra | nombres propios y términos del glosario, tabs, nombres de persona/primada | Resumen · Primadas · Fondo · Principal · Cover · Tesorero · Primada Juan |
+| **Sentence case** | Solo la primera | acciones/botones, estados vacíos, toasts, confirmaciones, hints | Crear primada · Agregar · Sin asistentes · Primada creada · ¿Borrar la primada? |
+| **minúscula** | todo minúscula | fragmentos que se concatenan en una oración | · del principal · sin principal |
+
+Reglas de borde:
+- **Etiqueta de rol del asistente** (Ahorrador / Invitado / Principal) → **Title Case**, una
+  palabra. Render como **etiqueta tenue en texto** (§2.1), la string conserva su capitalización.
+- **Títulos de sección** se guardan en Sentence/Title en la string; el **`uppercase` lo aplica
+  el CSS** (`.h2`). No escribir la string en mayúsculas a mano.
+- **Glosario** (§7) → siempre el mismo término, en Title Case cuando es nombre propio del dominio.
+- **Sin emoji** en texto de estado: el estado se comunica con color/dot, no con 🟢/🔒.
+
+---
+
+## 5 · Excepciones documentadas
+
+Desviaciones **intencionales** del canónico, con razón. Aprobadas por el PO.
+
+| Componente | Desviación | Razón |
+|---|---|---|
+| `rgba(255,255,255,.06)` (separador de filas) | valor raw, aún sin token | Línea tenue de separación de listas. **Pendiente de tokenizar** (`--line-soft`) cuando se aplique 2.1 — aprobar nombre con el PO |
+| `.chip` (picker "+ Agregar") | `border:2px solid var(--line)` | Es un **control interactivo** (chip-picker de productos), no una caja decorativa. El borde es la affordance, como en inputs |
+| `.ti` / `.sel` / `.step` | `border:2px solid var(--line)` | Inputs y steppers: el borde es affordance de control, permitido (§2.3) |
+| `.tab.active` | `background:rgba(45,212,191,.16)` (raw) | Pill de acento del tab activo; alpha del acento. Replicado del patrón iOS probado (Otrofestiv) |
+| `.toast` opacidad/blur raw | sombras y alphas a negro | Componentes flotantes (toast, sync-indicator); profundidad sobre oscuro |
+
+**Badges con borde** (`.badge.warn/.good/.red`): **legado**. Permitidos **sólo** de forma
+transitoria en avisos de sistema (`incompleta`, `Próximamente`) hasta migrarlos a etiqueta
+tenue / dot. **Prohibidos** en la identidad de fila (§2.1). Decisión final pendiente del PO.
+
+---
+
+## 6 · Densidad, safe areas y patrones (heredado)
+
+### Densidad y peso visual
+- **Un solo botón sólido por pantalla** (la acción principal). El resto, texto/ícono sin caja.
+- **Secciones separadas por ESPACIO** (`--space-5`/`--space-6`), nunca por borde/divisor.
+- **Cajas con borde sólo** para inputs/controles y, transitoriamente, la tarjeta de datos
+  genuina. **Nunca** para agrupar secciones, estados vacíos, ni barras de control.
+- Liviano pero **claro y con vida**: no esconder acciones esenciales; la principal siempre visible.
+
+### Safe areas (iOS / PWA standalone)
+1. `viewport-fit=cover` en el `<meta viewport>` (requisito; sin esto `env(...)` = 0).
+2. Header bajo el Island: `padding-top:env(safe-area-inset-top)` dentro de `@supports`.
+3. Fondo al borde: `body { min-height:100dvh }` (no `vh`).
+4. Mínimo inferior: navs/sheets/padding usan **`max(env(safe-area-inset-bottom),20px)`**
+   **directo** (no anidado en `calc(var()+max(...))`). Patrón de tabbar probado en iPhone
+   (réplica de Otrofestiv): `position:fixed; bottom:0; top:auto`, fondo semi-transparente para
+   que el `backdrop-filter` lea, activo en acento.
 
 ### Acordeón (progressive disclosure)
-Patrón **reutilizable** para listas largas donde cada ítem tiene un resumen y un detalle accionable.
-Su primer uso es la **tarjeta de asistente** del tab Primadas (una primada puede tener 15–17 personas).
+Cerrado por defecto: cada ítem es una **línea-resumen**; el detalle aparece al expandir.
+Multiabierto. El estado abierto/cerrado es **UI efímero** (vive en el Controller, `ui.abiertos`),
+**no** en el Store. Cabecera = `<button>` con `aria-expanded`. Anatomía en §2.1.
 
-**Principio:** **cerrado por defecto**. En reposo cada ítem es **una línea-resumen** legible de un vistazo; el
-**detalle y los controles** aparecen solo al **expandir**. Así una lista larga se lee sin un muro de controles.
+### Iconografía
+**Lucide** como SVG inline (sin CDN ni npm): paths copiados a `ICON_PATHS` en `js/view.js`.
+Estilo canónico: `viewBox="0 0 24 24"; fill="none"; stroke="currentColor"; stroke-width="1.75";
+linecap/linejoin:round`. El color sale del contexto (`currentColor`): teal por defecto,
+`--alert` en destructivos, `--pos` en el check. Tamaños: 20px base, 18px en botón con texto,
+16px `.sm`/`.xmini`. Semántica fija: `plus-circle`=agregar, `trash-2`=destruir, `x`=cerrar,
+`check`=pagado, `chevron-down`=caret del acordeón.
 
-**Anatomía**
-- **Cabecera (`.acc-head`)** — es el disparador (todo el renglón es tappable). Contiene:
-  - **caret** (`.acc-caret`, rota 90° al abrir, transición suave),
-  - **identidad** (nombre + badges),
-  - **cifra-resumen** a la derecha (`.acc-amt`): el dato que importa cerrado (total; y si **debe**, el saldo en `--alert`).
-- **Cuerpo (`.acc-body`)** — solo se renderiza si el ítem está abierto; entra con una animación corta (`accIn`, ~180 ms).
+---
 
-**Comportamiento**
-- **Multiabierto:** varios ítems pueden estar abiertos a la vez (útil para registrar a varias personas seguidas).
-- El estado abierto/cerrado es **UI efímero**, vive en el **Controller** (`ui.abiertos = Set`), **NO** en el Store
-  (no es dominio, no se persiste). La Vista es pura sobre `(estado, ui)`.
-- **a11y:** la cabecera es un `<button>` con `aria-expanded`.
+## 7 · Voz y tono (heredado)
 
-**Cuándo usarlo:** listas de entidades con resumen + detalle (asistentes; a futuro, deudores o aportantes).
-**Cuándo NO:** contenido que siempre debe estar visible, o listas de 2–3 ítems donde plegar estorba.
+**Neutro y funcional. La interfaz etiqueta, no explica.** Las reglas del dominio las aplica
+el código; **no se narran en pantalla** (regla de oro: si un texto explica una regla del
+sistema, **bórralo**).
 
-**Progressive disclosure anidado (consumo).** Dentro de la tarjeta abierta, el consumo aplica el mismo principio:
-se muestran **solo los productos consumidos** (cantidad > 0) con su stepper; un **chip-picker "+ Agregar"** revela el
-catálogo de esa primada para sumar lo que falte; bajar a 0 lo retira. Vacío → mensaje ("Aún no ha consumido nada"),
-nunca un bloque en blanco.
+- **Acciones:** verbo en infinitivo, sin artículos (`Agregar`, `Crear primada`, `Borrar`).
+- **Estados vacíos:** `Sin <cosa>` (`Sin asistentes`, `Sin productos`). Nada de "Aún no hay…".
+- **Títulos de sección:** sustantivo + conteo (`Asistentes (0)`, `Productos (4)`).
+- **Toasts:** confirmación corta en pasado/sustantivo (`Primada creada`, `Abono registrado`).
+- **Confirmaciones:** pregunta de una idea (`¿Borrar la primada?`), sin explicar consecuencias.
+- **Una idea por texto.** Sin emoji decorativo en estado.
 
-## Iconografía
+**Glosario (una palabra por concepto, igual en toda la app):** Primada · Principal ·
+Organizador · Co-organizador · Cover · Consumo · Ganancia · Fondo · Debe · Pagó · Asistente ·
+Persona · Producto · **Tesorero** (único término para quien recibe la ganancia).
 
-**Librería: [Lucide](https://lucide.dev) (licencia ISC), como SVG inline.** **Sin CDN ni paquete npm:** se copian
-**solo los `<path>`/`<line>`/`<circle>` de cada ícono** a un mapa de constantes en `js/view.js` (`ICON_PATHS`), y un
-helper `icon(name, cls?)` arma el `<svg>`. Para el header, que es markup estático, el SVG va inline en `index.html`
-con los mismos atributos. Es la misma filosofía que las fuentes: dependencia externa adoptada, pero servida por
-nosotros sin librería en runtime.
+---
 
-### Estilo canónico (todos los íconos)
-- **`viewBox="0 0 24 24"`**, **`fill="none"`**, **`stroke="currentColor"`**, **`stroke-width="1.75"`**,
-  `stroke-linecap="round"`, `stroke-linejoin="round"`.
-- **`stroke = currentColor`** → el ícono **hereda el color del botón**: **teal `#2DD4BF`** por defecto (botones de header,
-  acciones), **`--alert`** en botones destructivos (`.mini.danger`), **`--pos`** para el check de "pagado". **Nunca `fill`.**
-- Tamaño base **20×20** (clase `.icon`); **18px** dentro de botones con texto (`.mini`, `.btn`); **16px** para `.xmini`
-  y la variante `.icon.sm`. Coherente con los botones existentes (44px de caja en el header).
+## 8 · Relación con CLAUDE.md
 
-### Íconos en uso y su regla
-| Ícono Lucide | Dónde | Regla de uso |
-|--------------|-------|--------------|
-| `settings-2` | botón ⚙ del header | Personas y Ajustes (engranaje). |
-| `user` / `log-in` / `log-out` | botón de cuenta (header, a la derecha del settings) | **Refleja el estado de auth:** `user` = placeholder (backend off); `log-in` = backend on sin sesión; `log-out` = autenticado. |
-| `plus-circle` | "Nueva primada", "Asistente", "Producto", "Agregar" (persona/consumo) | **Toda acción de AGREGAR/crear.** |
-| `trash-2` | "Borrar" primada, "Quitar" asistencia, quitar producto/abono | **Toda acción DESTRUCTIVA.** Va en botón `.danger` (color `--alert`). |
-| `x` | cerrar chip-picker, cerrar overlay | **Cerrar/descartar** un panel (no destructivo). |
-| `check` | ítem de abono registrado | **Pagado/positivo** (color `--pos`). |
-| `chevron-down` | caret del acordeón (asistencias, productos del evento) | Cerrado = rotado −90° (apunta a la derecha); abierto = 0° (apunta abajo). |
+- `CLAUDE.md` → contrato de **arquitectura** (capas MVC, modelo de datos, proceso).
+- `DESIGN.md` (este) → contrato **visual** (tokens, anatomía de componentes, jerarquía,
+  capitalización).
 
-### Reglas
-- **Agregar un ícono nuevo:** copiar sus paths de lucide.dev a `ICON_PATHS`, **respetando el estilo canónico**
-  (stroke `currentColor`, sin fill, 1.75). Documentarlo en la tabla de arriba con su regla de uso.
-- **Semántica consistente:** `plus-circle` = agregar, `trash-2` = destruir, `x` = cerrar. No mezclar (`x` no se usa
-  para borrar datos; `trash-2` no se usa para cerrar paneles).
-- **El color sale del contexto** (`currentColor`), no se hardcodea en el SVG: así un mismo ícono sirve en teal o en alert
-  según el botón que lo contiene.
-
-## Voz y tono
-
-**Neutro y funcional.** La interfaz **etiqueta, no explica**. Las reglas del sistema las aplica el código; no se narran
-en pantalla. Texto mínimo, una idea por elemento.
-
-### Las tres reglas
-1. **Etiquetar, no explicar.** La interfaz **nombra**; no enseña. Lo que el sistema garantiza (el principal es ahorrador,
-   los organizadores no pagan cover, etc.) lo aplica el código — **no se cuenta en pantalla**.
-2. **Tono neutro y funcional.** Acciones en **infinitivo** (Agregar, Crear, Cerrar, Borrar). Estados en **forma corta y
-   neutra** (Sin asistentes, Sin productos). Segunda persona **solo si hace falta**. Nada de frases que enseñan.
-3. **Una idea por texto.** Si un texto une dos ideas con coma, **pártelo o bórralo**.
-
-### Glosario (una palabra por concepto, igual en toda la app)
-**Primada · Principal · Organizador · Co-organizador · Cover · Consumo · Ganancia · Fondo · Debe · Pagó · Asistente ·
-Persona · Producto · Tesorero.**
-Usar siempre el mismo término; no mezclar sinónimos (p. ej. "asistencia" en UI → **Asistente**; "comprador/aportante" → según el rol).
-
-### Patrones
-- **Botones de acción:** verbo en infinitivo, sin artículos (`Agregar`, `Crear primada`, `Borrar`). El ícono acompaña, no sustituye.
-- **Estados vacíos:** `Sin <cosa>` (`Sin asistentes`, `Sin productos`, `Sin ahorradores`). Nada de "Aún no hay…".
-- **Títulos de sección:** el sustantivo + conteo entre paréntesis (`Asistentes (0)`, `Productos (4)`). Sin adjetivos ni contexto.
-- **Toasts:** confirmación corta en pasado o sustantivo (`Primada creada`, `Abono registrado`, `Persona agregada`). Una línea.
-- **Confirmaciones (destructivas):** pregunta corta de una idea (`¿Borrar la primada?`). Sin explicar consecuencias en la pregunta.
-- **Placeholders:** ejemplo o nombre del campo (`tu@correo.com`, `Nombre`). No instrucciones.
-- **Números:** el dígito ya es visual; no narrar el total ("paso 2 de 3" → el stepper visual basta).
-- **Sin emoji decorativo en texto de estado** (los estados usan color/badge, no 🟢/🔒 en copy nuevo).
-
-### Antiejemplos → corrección (muestra del criterio)
-| Antes | Después |
-|-------|---------|
-| `ORGANIZADOR PRINCIPAL (AHORRADOR)` | `Principal` |
-| `CO-ORGANIZADORES (OPCIONAL)` + párrafo | `Co-organizadores` |
-| `Aún no hay asistencias. Agrega personas del directorio.` | `Sin asistentes` |
-| `ASISTENCIAS (0)` | `Asistentes (0)` |
-| `PRODUCTOS DEL EVENTO (4)` | `Productos (4)` |
-| `No hay ahorradores en el directorio. Crea uno desde el engranaje ⚙ › Personas.` | `Sin ahorradores. Agregar en Personas.` |
-| `Entran como organizadores: sin cover, consumen normal. Su margen sí va al fondo.` | *(borrar — es regla del sistema)* |
-
-> **Regla de oro:** ante un texto que explica una regla del dominio, **bórralo** — el código ya la hace cumplir.
+Ambos son fuente de verdad. Ante un cambio **visual**, manda este documento; ante uno
+**estructural**, manda `CLAUDE.md`.
