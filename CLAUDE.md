@@ -69,9 +69,61 @@ saldoPendiente     = recaudadoTeorico − recaudadoReal         // = Σ saldos d
 ## Stack y restricciones (no negociables)
 - **Vanilla JS**, sin librerías de frontend (no React/Vue). Sin build, sin bundler, sin npm en producción.
 - **Multi-archivo servido tal cual por GitHub Pages.** `index.html` es solo shell + CSS embebido +
-  `<script src>` de cada módulo. Pages sirve esto sin ningún cambio de configuración.
-- Fuentes desde CDN de Google (Bricolage Grotesque + Space Mono). CSS embebido en `index.html`.
+  `<script src>` de cada módulo. Pages sirve esto sin ningún cambio de configuración. **El deploy del frontend NO cambia.**
+- Fuentes desde CDN de Google (Instrument Sans). CSS embebido en `index.html`.
+- **Persistencia: migración CONFIRMADA de localStorage → Supabase** (backend en la nube). Ver
+  **"Arquitectura de backend — Supabase (CONFIRMADA)"**. El SDK de Supabase entra **por CDN**
+  (no npm en producción), igual que las fuentes. *(Implementación en sesión dedicada; hoy aún corre sobre localStorage.)*
 - Moneda y formato: pesos colombianos, locale `es-CO`.
+
+## Arquitectura de backend — Supabase (CONFIRMADA)
+> **CONFIRMADA (producto + técnica).** No "en revisión": estas son las decisiones definitivas.
+> 🚧 **La implementación de Supabase arranca en sesión dedicada — no mezclar con otros cambios.**
+> Hasta entonces el código sigue corriendo sobre localStorage; esta sección es el plano a ejecutar.
+
+**Por qué.** Los datos deben **persistir entre dispositivos y navegadores**; localStorage no alcanza. **Arrancamos limpio
+en Supabase — NO se migra localStorage** (los datos de prueba no tienen valor real).
+
+**Stack.** **Supabase** (PostgreSQL + Auth + RLS), tier gratis. **SDK por CDN** (no npm en producción), igual que las fuentes.
+**GitHub Pages sigue sirviendo el frontend sin cambios.** Free tier durmiente es **aceptable**: La Primada se usa intensamente
+alrededor de cada primada mensual, no a diario.
+
+**Autenticación — magic link, sin registro.**
+- Supabase Auth con **magic link por email (passwordless)**. **Nadie se registra:** el **admin siembra los emails** de los
+  ahorradores. Al entrar, Supabase manda un link al correo → clic → adentro. **No hay formulario de registro.**
+- La app exige **estar autenticado antes de mostrar datos** (auth gate en el bootstrap).
+
+**Roles y permisos.**
+- **admin** = email designado, **sembrado a mano** en Supabase. **Todos los demás** = acceso **completo de lectura y escritura**
+  de los datos de primadas. **Transparencia total — todos ven todo** (confianza familiar).
+- **RLS = frontera real de seguridad** (no el frontend):
+  - `SELECT`: **todos** los autenticados.
+  - `INSERT / UPDATE / DELETE` de **datos de primadas**: **todos** los autenticados.
+  - **settings globales y `personas`** (directorio): control **adicional del admin**.
+- **`breB` visible para todos:** es la llave para **RECIBIR** pagos (pensada para compartirse), **no es dato sensible**.
+- La `anon key` pública en el bundle es **por diseño** (como las fuentes); **NUNCA** exponer la `service_role key`. RLS protege.
+
+**Esquema — Opción C (híbrido relacional + JSONB).**
+- `personas` **relacional** (directorio mutable, referenciado por muchas primadas; sede de la INVARIANTE #1).
+- `primadas` con **columnas indexables** (`fecha`, `mes_contable`, `estado`, `organizador_principal_id`) **+ `data jsonb`**
+  para los **snapshots congelados** (`pago`, `cover`, `productos[]`, `asistencias[]`).
+- `settings` singleton (`jsonb`), `profiles` (`user_id → role`).
+- **IDs de texto actuales se conservan** (PK `text`, p. ej. `'per…'`, `'prm…'`) — **sin migrar a uuid** → cero cambios al modelo.
+- Granularidad **por fila**: editar la primada A no pisa la B ni el directorio; dentro de una primada, last-write-wins es aceptable.
+
+**Store — qué cambia y qué NO.**
+- **NO cambian:** `select` (derivados), `actions` (mutaciones + invariantes), `migrate()` (normalizador tolerante), ni la forma
+  del `AppState` en memoria. El **MVC se respeta**: el Store sigue siendo el **único dueño del estado**, síncrono para la Vista.
+- **SÍ cambia:** `load()`/`persist()` (localStorage) se reemplazan por un **adaptador `js/api.js`** que **aísla todo Supabase**
+  (igual que antes `persist()` escondía localStorage; el Store nunca habla con el SDK directo).
+  - `load()` se vuelve **async**: hidrata el `AppState` desde Supabase (reusa el normalizador) → primer render tras el auth gate.
+  - **`commit(target)`** recibe un **descriptor `{kind:'primada'|'persona'|'settings', id}`** para **upserts granulares** por entidad.
+  - **`commitQuiet`** (edición de texto en vivo) pasa a **debounced** para no escribir por tecla.
+- **Render optimista:** las acciones **mutan en memoria → render inmediato** y disparan el **upsert async en background**.
+  Si el upsert **falla, el usuario lo ve** (manejo de error visible: toast / reintento). *El cómo es del implementador.*
+- **Caché offline = solo LECTURA:** localStorage espeja el último estado para **ver datos sin conexión** y arranque en frío.
+  **La fuente de verdad es Supabase. Nunca se escribe lógica de dominio a localStorage** (solo el espejo de lectura).
+- **View pura intacta** (sin cambios). **Controller** solo cambia el **bootstrap** (auth gate + carga async).
 
 ## Estructura de archivos
 ```
@@ -220,6 +272,8 @@ Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal
 - [x] Directorio de personas en UI (pantalla propia tras el engranaje): alta, edición de nombre, cambio de estado
       ahorrador↔invitado (vigente, sin reescribir snapshots), llave `breB`, y nº de primadas donde aparece.
       Verificado en navegador real (INVARIANTE #1: misma persona, dos primadas, dos snapshots distintos).
+- [ ] **PRÓXIMO (sesión dedicada) — Migración a backend Supabase** (localStorage → nube; magic link, RLS, híbrido, arranque limpio).
+      Arquitectura **CONFIRMADA** (ver "Arquitectura de backend — Supabase"). **No mezclar con otros cambios.**
 - [ ] Tab "Próximamente" (placeholder). *(Resumen y Fondo ya muestran placeholder en PASO 2.)*
 - [ ] **Futuro:** módulo de **Ahorro/Tesorería** (aportes mensuales, retiros, préstamos, inversiones, actividades extra).
 - [ ] **Futuro:** cierre de año / liquidación por persona (aún NO; el año es solo etiqueta).
@@ -239,6 +293,12 @@ Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal
   sugerido inicial **$15.000 / $10.000** (solo default de instalación nueva — **no se reescribe** el snapshot de primadas viejas).
 - **"Cerrada"** congela la cuenta del evento pero **sigue aceptando abonos**.
 - **Tesorería** (ahorro, préstamos, actividades extra) es **módulo futuro**; va como tab **"Próximamente"**.
+- **Backend Supabase (CONFIRMADO, implementación en sesión dedicada):** datos en la nube para persistir entre dispositivos.
+  **Auth magic link sin registro** (el admin siembra los emails). **Transparencia total — todos ven todo y todos editan**
+  los datos de primadas; el **admin** controla además **settings globales y `personas`** (vía **RLS**). **`breB` no es sensible**
+  (llave para recibir pagos). **Arranque limpio** (no se migra localStorage). **Caché offline solo lectura** (verdad = Supabase).
+  **Render optimista** con error visible si el upsert falla. GitHub Pages sigue; **modelo v4 y MVC intactos** — solo cambia la
+  capa de persistencia del Store (`load`/`persist` → adaptador `js/api.js`; `commit(target)` para upserts granulares).
 
 ## Cómo trabajamos
 - Las **decisiones de producto/arquitectura** se toman fuera de código (chat PM) y se reflejan aquí.
