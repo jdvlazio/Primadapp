@@ -81,6 +81,10 @@
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:11px 18px;border-radius:30px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:60;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* Indicador de sincronización con la nube (lo crea View.renderSync). Discreto, esquina superior. */
+  .sync-indicator{position:fixed;top:8px;right:8px;z-index:70;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;background:var(--paper-3);color:var(--ink-soft);border:1px solid var(--line);box-shadow:0 6px 18px -10px rgba(0,0,0,.6)}
+  .sync-indicator.err{background:var(--alert-bg);color:var(--alert);border-color:var(--alert)}
+
   /* ============================================================
      PASO 2 — componentes del tab Primadas + overlays
      ============================================================ */
@@ -247,9 +251,13 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- Orden de carga: config → util → store → view → controller -->
+  <!-- SDK de Supabase por CDN (UMD → window.supabase), igual que las fuentes: sin npm en producción. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Orden de carga: config → util → api → store → view → controller -->
   <script src="js/config.js"></script>
   <script src="js/util.js"></script>
+  <script src="js/api.js"></script>
   <script src="js/store.js"></script>
   <script src="js/view.js"></script>
   <script src="js/controller.js"></script>

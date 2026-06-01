@@ -18,9 +18,11 @@
 
   const CONFIG = root.CONFIG || (typeof require !== 'undefined' ? require('./config.js').CONFIG : {});
   const Util   = root.Util   || (typeof require !== 'undefined' ? require('./util.js').Util   : {});
+  const Api    = root.Api    || (typeof require !== 'undefined' ? require('./api.js').Api     : null);
 
   let state = null;
   const listeners = [];
+  const syncListeners = [];     // observadores del estado de sincronización (para el indicador "sin sincronizar")
 
   /* ---------- Estado por defecto ---------- */
   function defaultState() {
@@ -226,20 +228,93 @@
     return s;
   }
 
-  /* ---------- Persistencia ---------- */
-  function load() {
+  /* ---------- Persistencia (vía adaptador Api: localStorage en tests/offline, Supabase en prod) ----------
+     El Store NO habla con el SDK: todo pasa por Api. Render OPTIMISTA: la acción ya mutó el estado
+     en memoria; commit() notifica de inmediato (render) y dispara el upsert async en background.
+     Si el upsert falla, NO se revierte (no perder lo tecleado): se marca "sin sincronizar", se avisa
+     (toast) y se reintenta. activePrimadaId es LOCAL por dispositivo: no se sincroniza. */
+
+  // --- estado de sincronización (alimenta el indicador "sin sincronizar" del header) ---
+  const sync = { pendientes: 0, error: null };
+  function emitSync() { const snap = { pendientes: sync.pendientes, error: sync.error }; syncListeners.forEach(fn => fn(snap)); }
+  function subscribeSync(fn) { syncListeners.push(fn); }
+  function syncState() { return { pendientes: sync.pendientes, error: sync.error }; }
+
+  // Espejo local del activePrimadaId (decisión: local por dispositivo, no viaja a Supabase).
+  function loadLocalActiveId() {
     try {
-      const raw = (typeof localStorage !== 'undefined') ? JSON.parse(localStorage.getItem(CONFIG.storageKey)) : null;
+      if (typeof localStorage === 'undefined') return null;
+      const raw = JSON.parse(localStorage.getItem(CONFIG.storageKey));
+      return raw && raw.activePrimadaId || null;
+    } catch (e) { return null; }
+  }
+
+  // Dispara el upsert async de un target con reintento acotado. Optimista: no bloquea el render.
+  function pushUpsert(target, intento) {
+    if (!Api || !target) return;
+    intento = intento || 0;
+    sync.pendientes++; emitSync();
+    Promise.resolve(Api.commit(state, target))
+      .then(() => { sync.pendientes = Math.max(0, sync.pendientes - 1); sync.error = null; emitSync(); })
+      .catch((err) => {
+        sync.pendientes = Math.max(0, sync.pendientes - 1);
+        if (intento < 3) {
+          const espera = 800 * (intento + 1);
+          sync.error = 'Reintentando guardar… (' + (intento + 1) + '/3)'; emitSync();
+          setTimeout(() => pushUpsert(target, intento + 1), espera);
+        } else {
+          sync.error = (err && err.message) ? err.message : 'No se pudo guardar en la nube';
+          emitSync();
+        }
+      });
+  }
+
+  // load() ASYNC: hidrata el AppState desde Api (Supabase o espejo local) y le aplica migrate()
+  // (reusa el normalizador tolerante). Superpone el activePrimadaId local. Nunca rompe al cargar.
+  async function load() {
+    try {
+      const raw = Api ? await Api.load() : null;
       state = migrate(raw);
     } catch (e) { state = defaultState(); }
+    const localActive = loadLocalActiveId();
+    if (localActive && state.primadas.some(p => p.id === localActive)) state.activePrimadaId = localActive;
+    return state;
   }
-  function persist() { try { if (typeof localStorage !== 'undefined') localStorage.setItem(CONFIG.storageKey, JSON.stringify(state)); } catch (e) {} }
+
   function notify() { listeners.forEach(fn => fn(state)); }
-  function commit() { persist(); notify(); }
-  // Persiste SIN notificar (sin re-render). Para ediciones de texto en vivo (nombre, cover,
-  // fecha, breB): el input ya muestra lo tecleado; reconstruir el DOM en plena edición rompería
-  // el foco y el cursor. El próximo render estructural reflejará lo derivado.
-  function commitQuiet() { persist(); }
+
+  // Refresca el espejo local (caché de lectura) sin tocar la red. Para cambios LOCALES
+  // (p.ej. activePrimadaId) que igual deben sobrevivir a un refresh en este dispositivo.
+  function mirrorLocal() { if (Api && Api._cacheWrite) Api._cacheWrite(state); }
+
+  // commit(target): render inmediato (optimista) + upsert async en background.
+  // target = { kind:'persona'|'primada'|'settings', id, op? } → upsert remoto + espejo.
+  // target { local:true } o sin target → solo notifica + espeja (cambio local, sin red).
+  function commit(target) {
+    notify();
+    if (target && target.kind) pushUpsert(target);
+    else mirrorLocal();
+  }
+
+  // commitQuiet(target): edición de texto en vivo (no re-render para no romper foco/cursor).
+  // DEBOUNCED ~500ms por target para no escribir a la red por tecla; flushQuiet() fuerza el envío (blur).
+  const quietTimers = {};
+  function quietKey(t) { return t ? (t.kind + ':' + (t.id || '')) : 'none'; }
+  function commitQuiet(target) {
+    if (!Api || !target) return;
+    const k = quietKey(target);
+    if (quietTimers[k]) clearTimeout(quietTimers[k]);
+    quietTimers[k] = setTimeout(() => { delete quietTimers[k]; pushUpsert(target); }, 500);
+  }
+  // Fuerza el envío inmediato de cualquier edición de texto pendiente (llamar en blur).
+  function flushQuiet() {
+    Object.keys(quietTimers).forEach(k => {
+      clearTimeout(quietTimers[k]); delete quietTimers[k];
+      const [kind, id] = k.split(':');
+      pushUpsert({ kind, id: id || undefined });
+    });
+  }
+
   function subscribe(fn) { listeners.push(fn); }
 
   /* ---------- Helpers de derivación ---------- */
@@ -331,26 +406,26 @@
     // ----- personas -----
     addPersona({ nombre, estado, breB } = {}) {
       const per = { id: Util.uid('per'), nombre: String(nombre || 'Persona').slice(0, 40), estado: normEstado(estado), breB: (breB != null && breB !== '') ? String(breB) : null };
-      state.personas.push(per); commit(); return per.id;
+      state.personas.push(per); commit({ kind: 'persona', id: per.id }); return per.id;
     },
     // INVARIANTE #1 (inmutabilidad histórica): solo cambia el estado VIGENTE; NUNCA toca estadoEnEseMomento de asistencias.
-    setEstadoPersona(personaId, estado) { const per = select.persona(personaId); if (!per) return; per.estado = normEstado(estado); commit(); },
-    renombrarPersona(personaId, nombre) { const per = select.persona(personaId); if (!per) return; per.nombre = String(nombre || per.nombre).slice(0, 40); commitQuiet(); },
-    setBreBPersona(personaId, breB) { const per = select.persona(personaId); if (!per) return; per.breB = (breB != null && breB !== '') ? String(breB) : null; commitQuiet(); },
+    setEstadoPersona(personaId, estado) { const per = select.persona(personaId); if (!per) return; per.estado = normEstado(estado); commit({ kind: 'persona', id: personaId }); },
+    renombrarPersona(personaId, nombre) { const per = select.persona(personaId); if (!per) return; per.nombre = String(nombre || per.nombre).slice(0, 40); commitQuiet({ kind: 'persona', id: personaId }); },
+    setBreBPersona(personaId, breB) { const per = select.persona(personaId); if (!per) return; per.breB = (breB != null && breB !== '') ? String(breB) : null; commitQuiet({ kind: 'persona', id: personaId }); },
 
     // ----- settings -----
     setCover({ ahorrador, invitado } = {}) {
       if (ahorrador != null) state.settings.cover.ahorrador = Number(ahorrador) || 0;
       if (invitado != null) state.settings.cover.invitado = Number(invitado) || 0;
-      commitQuiet();
+      commitQuiet({ kind: 'settings' });
     },
     upsertDefaultProducto(prod) {
       const np = normProducts([prod])[0];
       const i = state.settings.defaultProducts.findIndex(p => p.id === np.id);
       if (i >= 0) state.settings.defaultProducts[i] = np; else state.settings.defaultProducts.push(np);
-      commit();
+      commit({ kind: 'settings' });
     },
-    removeDefaultProducto(id) { state.settings.defaultProducts = state.settings.defaultProducts.filter(p => p.id !== id); commit(); },
+    removeDefaultProducto(id) { state.settings.defaultProducts = state.settings.defaultProducts.filter(p => p.id !== id); commit({ kind: 'settings' }); },
 
     // ----- ciclo de primada -----
     createPrimada({ fecha, mesContable, organizadores, principalId, nombre } = {}) {
@@ -389,18 +464,19 @@
       };
       state.primadas.unshift(prm);
       state.activePrimadaId = prm.id;
-      commit(); return prm.id;
+      commit({ kind: 'primada', id: prm.id }); return prm.id;
     },
-    seleccionarPrimada(id) { if (findPrimada(id)) { state.activePrimadaId = id; commit(); } },
-    renombrarPrimada(id, nombre) { const p = findPrimada(id); if (!p) return; p.nombre = String(nombre || p.nombre).slice(0, 40); commitQuiet(); },
-    setFecha(id, fecha) { const p = findPrimada(id); if (!p) return; p.fecha = normFecha(fecha); commitQuiet(); },
-    setMesContable(id, mes) { const p = findPrimada(id); if (!p) return; if (/^\d{4}-\d{2}$/.test(String(mes))) { p.mesContable = mes; commitQuiet(); } },
-    cerrarPrimada(id) { const p = findPrimada(id); if (!p) return; p.estado = 'cerrada'; commit(); },
-    reabrirPrimada(id) { const p = findPrimada(id); if (!p) return; p.estado = 'abierta'; commit(); },
+    // activePrimadaId es LOCAL por dispositivo → no se sincroniza; solo se espeja local.
+    seleccionarPrimada(id) { if (findPrimada(id)) { state.activePrimadaId = id; commit({ local: true }); } },
+    renombrarPrimada(id, nombre) { const p = findPrimada(id); if (!p) return; p.nombre = String(nombre || p.nombre).slice(0, 40); commitQuiet({ kind: 'primada', id }); },
+    setFecha(id, fecha) { const p = findPrimada(id); if (!p) return; p.fecha = normFecha(fecha); commitQuiet({ kind: 'primada', id }); },
+    setMesContable(id, mes) { const p = findPrimada(id); if (!p) return; if (/^\d{4}-\d{2}$/.test(String(mes))) { p.mesContable = mes; commitQuiet({ kind: 'primada', id }); } },
+    cerrarPrimada(id) { const p = findPrimada(id); if (!p) return; p.estado = 'cerrada'; commit({ kind: 'primada', id }); },
+    reabrirPrimada(id) { const p = findPrimada(id); if (!p) return; p.estado = 'abierta'; commit({ kind: 'primada', id }); },
     borrarPrimada(id) {
       state.primadas = state.primadas.filter(p => p.id !== id);
       if (state.activePrimadaId === id) state.activePrimadaId = state.primadas[0] ? state.primadas[0].id : null;
-      commit();
+      commit({ kind: 'primada', id, op: 'delete' });
     },
 
     // ----- productos de la primada (INVARIANTE #4: bloqueado si cerrada) -----
@@ -408,25 +484,25 @@
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const np = normProducts([prod])[0]; if (!np.aportadoPor) np.aportadoPor = p.organizadorPrincipalId || null;
       p.productos.push(np); p.asistencias.forEach(a => { if (a.items[np.id] == null) a.items[np.id] = 0; });
-      commit();
+      commit({ kind: 'primada', id: primadaId });
     },
     setPreciosProducto(primadaId, prodId, { costoNeto, precioVenta } = {}) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const prod = p.productos.find(x => x.id === prodId); if (!prod) return;
       if (costoNeto != null) prod.costoNeto = Number(costoNeto) || 0;
       if (precioVenta != null) prod.precioVenta = Number(precioVenta) || 0;
-      commitQuiet();   // edición de texto en vivo (precio): no re-render para no perder foco
+      commitQuiet({ kind: 'primada', id: primadaId });   // edición de texto en vivo (precio): no re-render
     },
     setAportadoPor(primadaId, prodId, personaId) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const prod = p.productos.find(x => x.id === prodId); if (!prod) return;
-      prod.aportadoPor = personaId || null; commit();
+      prod.aportadoPor = personaId || null; commit({ kind: 'primada', id: primadaId });
     },
     removeProducto(primadaId, prodId) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       p.productos = p.productos.filter(x => x.id !== prodId);
       p.asistencias.forEach(a => { delete a.items[prodId]; });
-      commit();
+      commit({ kind: 'primada', id: primadaId });
     },
 
     // ----- asistencias (INVARIANTE #4: bloqueado si cerrada) -----
@@ -435,13 +511,13 @@
       if (p.asistencias.some(a => a.personaId === personaId)) return;
       const per = select.persona(personaId); if (!per) return;
       p.asistencias.push({ personaId, estadoEnEseMomento: normEstado(per.estado), rol: 'asistente', coverExonerado: false, items: normItems(p.productos, {}), abonos: [] });
-      commit();
+      commit({ kind: 'primada', id: primadaId });
     },
     removeAsistencia(primadaId, personaId) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       p.asistencias = p.asistencias.filter(a => a.personaId !== personaId);
       if (p.organizadorPrincipalId === personaId) { p.organizadorPrincipalId = null; p.pago = { breB: null }; }
-      commit();
+      commit({ kind: 'primada', id: primadaId });
     },
     setRol(primadaId, personaId, rol) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
@@ -457,17 +533,17 @@
         a.rol = normRol(rol);
         if (p.organizadorPrincipalId === personaId) { p.organizadorPrincipalId = null; p.pago = { breB: null }; }
       }
-      commit();
+      commit({ kind: 'primada', id: primadaId });
     },
     toggleCoverExonerado(primadaId, personaId) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const a = p.asistencias.find(x => x.personaId === personaId); if (!a) return;
-      a.coverExonerado = !a.coverExonerado; commit();
+      a.coverExonerado = !a.coverExonerado; commit({ kind: 'primada', id: primadaId });
     },
     changeItem(primadaId, personaId, prodId, delta) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const a = p.asistencias.find(x => x.personaId === personaId); if (!a) return;
-      a.items[prodId] = Math.max(0, (a.items[prodId] || 0) + delta); commit();
+      a.items[prodId] = Math.max(0, (a.items[prodId] || 0) + delta); commit({ kind: 'primada', id: primadaId });
     },
 
     // ----- abonos (INVARIANTE #4: permitidos AUNQUE la primada esté cerrada) -----
@@ -476,19 +552,21 @@
       const a = p.asistencias.find(x => x.personaId === personaId); if (!a) return;
       const m = Number(monto) || 0; if (m <= 0) return;
       a.abonos.push({ id: Util.uid('ab'), monto: m, fecha: normFecha(fecha || Util.currentDate()) });
-      commit();
+      commit({ kind: 'primada', id: primadaId });
     },
     removerAbono(primadaId, personaId, abonoId) {
       const p = findPrimada(primadaId); if (!p) return;
       const a = p.asistencias.find(x => x.personaId === personaId); if (!a) return;
-      a.abonos = a.abonos.filter(b => b.id !== abonoId); commit();
+      a.abonos = a.abonos.filter(b => b.id !== abonoId); commit({ kind: 'primada', id: primadaId });
     },
 
     // ----- infra -----
-    replaceState(raw) { state = migrate(raw); commit(); },
+    // replaceState reemplaza TODO el estado (restore/import): notifica + espeja local. No intenta
+    // un upsert masivo a Supabase (no hay un target único); la sincronización fina ocurre por acción.
+    replaceState(raw) { state = migrate(raw); commit({ local: true }); },
   };
 
-  const Store = { load, subscribe, select, actions, defaultState, migrate };
+  const Store = { load, subscribe, subscribeSync, syncState, flushQuiet, select, actions, defaultState, migrate };
   root.Store = Store;
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = { Store, defaultState, migrate, select, actions, normProducts };

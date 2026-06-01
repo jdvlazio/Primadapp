@@ -41,13 +41,19 @@ function ready() {
     : new Promise(res => window.addEventListener('load', res));
 }
 
-ready().then(() => {
+ready().then(async () => {
   window.localStorage.clear();   // arrancar de cero (defaultState)
-  ['js/config.js', 'js/util.js', 'js/store.js', 'js/view.js', 'js/controller.js'].forEach(rel => {
+  // Orden real de carga (incluye el adaptador): config → util → api → store → view → controller.
+  ['js/config.js', 'js/util.js', 'js/api.js', 'js/store.js', 'js/view.js', 'js/controller.js'].forEach(rel => {
     const s = document.createElement('script');
     s.textContent = fs.readFileSync(path.join(ROOT, rel), 'utf8');
     document.body.appendChild(s);   // ejecuta sincrónicamente (runScripts:'dangerously')
   });
+  // El bootstrap (controller start) es ASYNC: hidrata vía Api.load() (modo 'local' en jsdom, sin SDK).
+  // Esperamos a que el estado quede listo antes de manejar la app con clics.
+  for (let i = 0; i < 50 && !(window.Store && window.Store.select.state()); i++) {
+    await new Promise(r => setTimeout(r, 10));
+  }
   runTests();
 });
 

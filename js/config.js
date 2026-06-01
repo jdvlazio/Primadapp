@@ -10,6 +10,14 @@
     schemaVersion: 4,
     locale: 'es-CO',
 
+    // Backend Supabase. URL + anon key son PÚBLICAS por diseño (van en el bundle, como las fuentes):
+    // RLS es la frontera real de seguridad. NUNCA poner aquí la service_role key.
+    // Sin SDK/credenciales utilizables, el adaptador (js/api.js) cae a modo 'local' (offline/tests).
+    supabase: {
+      url: 'https://iaxlefbmtgowtusghwkz.supabase.co',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlheGxlZmJtdGdvd3R1c2dod2t6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyOTU2NDgsImV4cCI6MjA5NTg3MTY0OH0.grK-ZTUCTQbo9GMUo1o6U2y6FDODcpwtfjK_7tct95c',
+    },
+
     // Cover "fijo": un único valor VIGENTE (editable hacia adelante). Sugerido SOLO para instalación nueva;
     // las primadas viejas conservan su propio snapshot y NO se reescriben.
     defaultCover: { ahorrador: 15000, invitado: 10000 },

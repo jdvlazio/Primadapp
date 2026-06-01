@@ -162,14 +162,26 @@
   function init() {
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
+    // Al salir de un input de texto en vivo (commitQuiet debounced), forzar el envío pendiente.
+    document.addEventListener('blur', (ev) => {
+      if (ev.target && ev.target.matches && ev.target.matches('[data-ch]') && Store.flushQuiet) Store.flushQuiet();
+    }, true);
   }
 
-  // Bootstrap único: evento → acción → commit → notifica → render
-  function start() {
+  // Bootstrap único (async): auth gate va antes en el PASO 3. Hoy: hidrata desde Api (Supabase/espejo).
+  // evento → acción → commit (render optimista + upsert async) → notifica → render.
+  async function start() {
     View.cache();
-    Store.subscribe(rerender);   // la Vista se re-renderiza completa en cada commit del Store
+    // Inicializa el adaptador con las credenciales públicas. Con SDK presente (CDN) → modo 'supabase';
+    // sin SDK (tests/offline) → modo 'local'. El Store nunca toca el SDK directo.
+    if (root.Api && root.CONFIG && root.CONFIG.supabase) {
+      root.Api.init({ url: root.CONFIG.supabase.url, anonKey: root.CONFIG.supabase.anonKey });
+    }
+    Store.subscribe(rerender);                 // re-render completo en cada commit del Store
+    if (Store.subscribeSync) Store.subscribeSync(s => View.renderSync && View.renderSync(s));
     init();
-    Store.load();                // migra lo que haya en localStorage → v4
+    rerender();                                // primer pintado (estado en blanco / "Cargando…")
+    await Store.load();                        // hidrata el AppState desde Api (async)
     rerender();
   }
 

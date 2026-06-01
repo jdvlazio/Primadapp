@@ -432,7 +432,8 @@
 
     // 2) contenido del tab
     let html;
-    if (ui.tab === 'resumen')      html = placeholder('Resumen', 'El dashboard del fondo (totales y estado) se construye luego de Primadas.');
+    if (!state)                    html = '<div class="empty">Cargando…</div>';   // primer pintado: aún hidratando (load async)
+    else if (ui.tab === 'resumen') html = placeholder('Resumen', 'El dashboard del fondo (totales y estado) se construye luego de Primadas.');
     else if (ui.tab === 'fondo')   html = placeholder('Fondo', 'Tesorería: aportes, retiros, préstamos y actividades extra.');
     else                           html = tabPrimadas(state, ui);
     els.screen.innerHTML = html;
@@ -449,6 +450,20 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2400);
   }
 
-  root.View = { cache, render, toast };
+  // Indicador de sincronización con la nube. Crea/actualiza un chip flotante (no depende del
+  // markup de index.html). { pendientes, error } viene del Store.subscribeSync.
+  function renderSync(s) {
+    if (typeof document === 'undefined') return;
+    let el = document.getElementById('syncIndicator');
+    const hayError = s && s.error;
+    const hayPend = s && s.pendientes > 0;
+    if (!hayError && !hayPend) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'syncIndicator'; el.className = 'sync-indicator'; document.body.appendChild(el); }
+    el.classList.toggle('err', !!hayError);
+    el.textContent = hayError ? ('⚠ ' + s.error) : '⟳ Guardando…';
+    if (hayError) toast(s.error);
+  }
+
+  root.View = { cache, render, renderSync, toast };
   if (typeof module !== 'undefined' && module.exports) module.exports = { View: root.View };
 })(typeof window !== 'undefined' ? window : globalThis);
