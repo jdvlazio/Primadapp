@@ -44,7 +44,8 @@
   // - abiertos: Set de personaId con tarjeta-acordeón expandida (multiabierto)
   // - pickProd: personaId con el chip-picker "+ Agregar" abierto (uno a la vez)
   // - panelProductos: sección "Productos del evento" desplegada
-  const ui = { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, panelProductos: false, wizard: null };
+  // - addAsis: selector de asistente abierto (un solo punto de entrada "+ Agregar")
+  const ui = { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, panelProductos: false, wizard: null, addAsis: false };
 
   function rerender() { View.render(Store.select.state(), ui); }
 
@@ -133,7 +134,7 @@
         } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo crear'); }
         return;
       }
-      case 'select-primada':   A.seleccionarPrimada(id); break;
+      case 'select-primada':   A.seleccionarPrimada(id); ui.addAsis = false; break;
       // Config de la primada (escondida tras el engranaje de la cabecera).
       case 'open-config-primada': ui.overlay = 'config-primada'; rerender(); return;
       // Acciones destructivas: con confirmación (la cuenta cerrada congela consumos).
@@ -150,9 +151,11 @@
         break;
 
       // ----- asistencias -----
+      case 'open-add-asis': ui.addAsis = true; rerender(); return;
       case 'add-asistencia': {
         const seln = document.getElementById('as-pick');
         if (seln && seln.value) A.addAsistencia(prm, seln.value);
+        ui.addAsis = true;   // se queda abierto para agregar varios
         break;
       }
       case 'remove-asistencia': A.removeAsistencia(prm, pid); ui.abiertos.delete(pid); break;

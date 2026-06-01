@@ -4,7 +4,7 @@ Este archivo es la **constitución visual** del proyecto: el equivalente del `CL
 pero para lo visual. Toda decisión de apariencia sale de aquí.
 
 > **Estado:** este documento crece **una decisión a la vez**. Hoy define **Tipografía**, **Color**,
-> **Iconografía**, **Espaciado y layout**, **Patrones** (acordeón) y **Voz y tono**. Faltan (pasadas posteriores):
+> **Iconografía**, **Densidad y peso visual**, **Espaciado y layout**, **Patrones** (acordeón) y **Voz y tono**. Faltan (pasadas posteriores):
 > más **componentes**. Mientras una sección no exista aquí, **no es una decisión tomada**.
 
 ## Tipografía
@@ -79,6 +79,25 @@ Toda referencia de color en el CSS pasa por estas variables (`:root` en `index.h
 - **Nada de color hardcodeado suelto.** Todo color en el CSS referencia estas variables. Agregar/cambiar un color =
   editar **este documento primero** y luego `:root` en `index.html`.
 - Los tintes translúcidos de estados (badges, hovers) se derivan de estos tonos; al sumar componentes se formalizan aquí.
+
+## Densidad y peso visual
+
+**Liviandad radical: el espacio y la jerarquía tipográfica organizan — no las cajas.** La app encerraba todo en
+recuadros con borde y separaba con divisores; bordes dentro de bordes cansan el ojo. El peso visual baja al mínimo.
+
+### Reglas
+- **Un solo botón sólido por pantalla:** la **acción principal** (teal, ancho completo). Todo lo demás es **texto o
+  ícono tocable, sin caja** (sin relleno, sin borde).
+- **Las secciones se separan con ESPACIO** (`--space-5` / `--space-6`), **nunca** con bordes ni divisores
+  (`border-bottom`, líneas punteadas).
+- **Las cajas con borde se reservan SOLO para una tarjeta de datos genuina** — contenido que es una unidad (un
+  asistente con su consumo). **Nunca** para agrupar secciones, ni para estados vacíos, ni para barras de control.
+- **La jerarquía la sostienen el tamaño y el peso tipográfico + el aire**, no las cajas. Al quitar recuadros, los
+  títulos de sección se definen por **peso/tamaño** (no por estar encajonados), para que la pantalla no quede plana.
+- **Estados vacíos:** solo texto centrado con aire — sin caja punteada.
+- **Estado (abierta/cerrada, etc.):** **punto de color discreto** (·) o color del texto, no un badge con borde.
+- **Cuidado con pasarse:** liviano pero **claro y con vida**. No esconder acciones esenciales ni dejar la pantalla
+  fría/confusa. El aire organiza; la acción principal siempre visible.
 
 ## Espaciado y layout
 

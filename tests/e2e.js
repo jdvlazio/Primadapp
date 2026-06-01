@@ -117,6 +117,7 @@ check('Incompleta: sin principal en la UI', /sin principal/.test(q('#screen').in
 
 /* ---------- 3. Agregar asistencias desde el directorio ---------- */
 section('Asistencias desde el directorio');
+click('[data-act="open-add-asis"]');   // abrir el selector (un solo punto de entrada "+ Agregar")
 setVal('#as-pick', ana.id);  click('[data-act="add-asistencia"]');
 setVal('#as-pick', beto.id); click('[data-act="add-asistencia"]');
 eq('2 asistencias', prm().asistencias.length, 2);

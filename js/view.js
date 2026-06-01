@@ -55,13 +55,13 @@
   function primadaCabecera(p) {
     const cerrada = p.estado === 'cerrada';
     const inc = S().primadaIncompleta(p) ? ' ' + badge('sin principal', 'warn') : '';
+    // Estado = punto de color discreto (sin badge con borde). Nombre a la izquierda, config a la derecha. Sin divisor.
     return `<div class="prm-head">
       <div class="prm-head-main">
         <div class="prm-name">${e(p.nombre)}${inc}</div>
-        <div class="prm-meta"><span class="state ${cerrada ? 'closed' : 'open'}">${cerrada ? '🔒 Cerrada' : '🟢 Abierta'}</span>
-          <span class="muted small">${e(Util.monthLabel(p.mesContable))}</span></div>
+        <div class="prm-meta"><span class="dot ${cerrada ? 'closed' : 'open'}"></span>${cerrada ? 'Cerrada' : 'Abierta'} · ${e(Util.monthLabel(p.mesContable))}</div>
       </div>
-      <button class="gear" data-act="open-config-primada" data-id="${p.id}" title="Configurar primada" aria-label="Configurar primada">${icon('settings-2')}</button>
+      <button class="icon-btn" data-act="open-config-primada" data-id="${p.id}" title="Configurar" aria-label="Configurar">${icon('settings-2')}</button>
     </div>`;
   }
 
@@ -233,8 +233,14 @@
     </div>`;
   }
 
-  function pickerAsistentes(p) {
+  // UN solo punto de entrada "+ Agregar" (texto tocable, sin caja). Al tocar abre el selector
+  // del directorio; "Nueva persona" queda como acción de texto al pie del selector abierto.
+  function pickerAsistentes(p, ui) {
     if (p.estado === 'cerrada') return '';
+    const abierto = ui && ui.addAsis;
+    if (!abierto) {
+      return `<button class="add-link" data-act="open-add-asis">${icon('plus-circle')}Agregar</button>`;
+    }
     const dentro = new Set(p.asistencias.map(a => a.personaId));
     const fuera = S().personasOrdenadas().filter(per => !dentro.has(per.id));
     const opts = fuera.length
@@ -245,7 +251,7 @@
         ${fuera.length ? opts : '<option>Sin personas</option>'}
       </select>
       <button class="mini" data-act="add-asistencia" ${fuera.length ? '' : 'disabled'}>${icon('plus-circle')}Asistente</button>
-      <button class="mini ghost" data-act="open-personas">Persona</button>
+      <button class="add-link" data-act="open-personas">Nueva persona</button>
     </div>`;
   }
 
@@ -304,12 +310,14 @@
   // La plata (reparto, informe, quién debe) vive en el tab RESUMEN. La config, tras el engranaje.
   function primadaDetalle(p, ui) {
     return `${primadaCabecera(p)}
-      <h2 class="h2">Asistentes <span class="muted">(${p.asistencias.length})</span></h2>
-      ${pickerAsistentes(p)}
+      <div class="sec-head">
+        <h2 class="h2">Asistentes <span class="muted">${p.asistencias.length}</span></h2>
+        ${pickerAsistentes(p, ui)}
+      </div>
       <div class="asis-list">
         ${p.asistencias.length
           ? p.asistencias.map(a => asistenciaCard(p, a, ui)).join('')
-          : '<div class="empty">Sin asistentes</div>'}
+          : '<div class="empty-soft">Sin asistentes</div>'}
       </div>
       ${productosEvento(p, ui)}`;
   }
@@ -340,8 +348,8 @@
       <button class="mini" data-act="add-producto">${icon('plus-circle')}Agregar</button>
     </div>`;
     return `${head}
-      <div class="card prodmgmt">
-        ${p.productos.length ? filas : '<div class="muted small">Sin productos</div>'}
+      <div class="prodmgmt">
+        ${p.productos.length ? filas : '<div class="empty-soft">Sin productos</div>'}
         ${alta}
       </div>`;
   }
@@ -376,8 +384,8 @@
         <button class="btn" data-act="new-primada">${icon('plus-circle')}Nueva primada</button>
       </div>
       ${activa ? primadaDetalle(activa, ui)
-               : '<div class="empty">Sin primada</div>'}
-      ${otras.length ? `<h2 class="h2">Historial <span class="muted">(${otras.length})</span></h2>
+               : '<div class="empty-soft big">Sin primada</div>'}
+      ${otras.length ? `<h2 class="h2 hist">Historial <span class="muted">${otras.length}</span></h2>
         <div class="plist">${otras.map(p => primadaItem(state, p)).join('')}</div>` : ''}`;
   }
 

@@ -57,7 +57,7 @@
   .wrap{max-width:var(--content-max);margin:0 auto;padding:var(--space-3)}
 
   /* ---------- Encabezado ---------- */
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-1) var(--space-3);border-bottom:2px dashed var(--line);margin-bottom:var(--space-3)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-1) var(--space-3);margin-bottom:var(--space-4)}
   /* Header bajo el Dynamic Island: suma el safe-area-inset-top SOLO donde el inset existe
      (PWA standalone / nativo). El @supports evita agregar espacio de más en Safari normal. */
   @supports (padding-top: env(safe-area-inset-top)){
@@ -98,9 +98,27 @@
   .kv span{color:var(--ink-soft)}
   .kv b{font-weight:700}
 
-  .h2{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:0 var(--space-1) var(--space-2)}
-  .plist{display:flex;flex-direction:column;gap:var(--space-2)}
-  .pitem{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);text-align:left;cursor:pointer;width:100%;background:var(--paper-2);border:2px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-3);font-family:inherit;color:var(--ink)}
+  /* Jerarquía por tipografía (no por cajas): título de sección más definido por peso/tamaño. */
+  .h2{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft);margin:0}
+  .h2 .muted{margin-left:var(--space-1)}
+  /* cabecera de sección: título + acción de texto en la misma línea, con aire arriba */
+  .sec-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
+  /* botón de ícono sin caja (acción secundaria tocable) */
+  .icon-btn{display:flex;align-items:center;justify-content:center;width:var(--tap-sec);height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--ink-soft);border-radius:var(--radius-md)}
+  .icon-btn:active{background:var(--paper-2)}
+  .icon-btn:hover{color:var(--accent)}
+  /* enlace de acción en texto (sin caja): teal, con su ícono */
+  .add-link{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-2)}
+  .add-link:active{opacity:.6}
+  /* punto de estado discreto (sin badge con borde) */
+  .dot{display:inline-block;width:var(--space-2);height:var(--space-2);border-radius:50%;background:var(--pos);margin-right:var(--space-1);vertical-align:middle}
+  .dot.closed{background:var(--ink-soft)}
+  /* estado vacío SIN caja: solo texto centrado con aire */
+  .empty-soft{text-align:center;color:var(--ink-soft);font-size:14px;padding:var(--space-5) var(--space-3)}
+  .empty-soft.big{padding:var(--space-6) var(--space-3);font-size:15px}
+  .plist{display:flex;flex-direction:column;gap:0}
+  .pitem{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);text-align:left;cursor:pointer;width:100%;background:transparent;border:none;border-radius:var(--radius-md);padding:var(--space-2) var(--space-1);font-family:inherit;color:var(--ink)}
+  .pitem:active{background:var(--paper-2)}
   .pitem.active{border-color:var(--red)}
   .pitem-main{flex:1;min-width:0}
   .pitem-name{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -239,7 +257,7 @@
   .chip:hover{border-color:var(--accent)}
   .chip i{color:var(--ink-soft);font-style:normal;font-weight:400;font-size:11px}
   /* gestión de productos del evento */
-  .prodmgmt{padding:var(--space-3)}
+  .prodmgmt{padding-top:var(--space-3)}
   .prodrow{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0;border-top:1px dashed var(--line)}
   .prodrow:first-child{border-top:none}
   .prodrow-name{flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -275,10 +293,10 @@
   .sheet-body{display:block}
 
   /* Cabecera compacta de la primada activa (tab Primadas = operar) + dashboard Resumen */
-  .prm-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-4)}
+  .prm-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-6)}
   .prm-head-main{min-width:0}
   .prm-name{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:22px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .prm-meta{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-1)}
+  .prm-meta{font-size:13px;color:var(--ink-soft);margin-top:var(--space-1)}
   .resumen-head{margin-bottom:var(--space-4)}
   .resumen-head .prm-name{white-space:normal}
   /* "Zona peligrosa" en el sheet de config */
