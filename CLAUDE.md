@@ -9,6 +9,11 @@ Hospedada en GitHub Pages: https://jdvlazio.github.io/la-primada/
 > No hay "natilleras" ni un año-contenedor. La raíz es la app: un directorio de personas y la
 > lista de primadas. El año es solo una **etiqueta** derivada del **mes contable** de cada primada.
 
+> 📐 **Constitución visual → [`DESIGN.md`](DESIGN.md).** Documento hermano de este `CLAUDE.md`: así como aquí vive el
+> **dominio + arquitectura**, en `DESIGN.md` vive el **sistema visual**. **Léelo al arrancar, igual que este archivo.**
+> Hoy define **solo tipografía** (Instrument Sans); paleta, espaciado, componentes y patrones se sumarán en pasadas
+> futuras. Toda decisión visual sale de ahí — **nada de fuentes/estilos hardcodeados sueltos** en el código.
+
 ## Dominio
 **Personas (directorio en la raíz, persisten para siempre).**
 - `personas[]` con `estado: 'ahorrador' | 'invitado'` (estado **vigente**, puede cambiar con el tiempo).

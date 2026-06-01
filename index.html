@@ -6,7 +6,7 @@
 <title>La Primada</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   /* ============================================================
      Estilo BASE limpio y funcional (PASO 1). El diseño fino se
@@ -20,7 +20,7 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{
-    font-family:"Space Mono",ui-monospace,monospace;color:var(--ink);background:var(--paper);
+    font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--paper);
     background-image:radial-gradient(circle at 1px 1px, rgba(43,33,24,.05) 1px, transparent 0);
     background-size:14px 14px;line-height:1.4;-webkit-font-smoothing:antialiased;
     padding:0 0 calc(70px + env(safe-area-inset-bottom));
@@ -30,7 +30,7 @@
   /* ---------- Encabezado ---------- */
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 2px 14px;border-bottom:2px dashed var(--line);margin-bottom:14px}
   .brand .kicker{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--red-deep);font-weight:700}
-  .brand h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:34px;line-height:.95;letter-spacing:-.02em}
+  .brand h1{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:34px;line-height:.95;letter-spacing:-.02em}
   .gear{background:var(--paper-2);border:2px solid var(--line);border-radius:12px;width:44px;height:44px;font-size:20px;cursor:pointer;color:var(--ink)}
   .gear:active{transform:scale(.94)}
 
@@ -38,20 +38,20 @@
   .status{font-size:12px;color:var(--ink-soft);background:var(--paper-2);border:2px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:12px}
   .status b{color:var(--green)}
   .bar{display:flex;gap:8px;margin-bottom:14px}
-  .btn{flex:1;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;border:none;cursor:pointer;border-radius:12px;background:var(--red);color:#fff8ee;padding:13px;font-size:15px;transition:transform .08s ease, background .15s}
+  .btn{flex:1;font-family:"Instrument Sans",sans-serif;font-weight:700;border:none;cursor:pointer;border-radius:12px;background:var(--red);color:#fff8ee;padding:13px;font-size:15px;transition:transform .08s ease, background .15s}
   .btn:active{transform:scale(.96)}
   .btn:hover{background:var(--red-deep)}
   .btn.ghost{background:var(--paper-2);color:var(--ink);border:2px solid var(--line)}
   .btn.ghost:hover{border-color:var(--red);background:var(--paper-2)}
 
   .panel{background:var(--ink);color:var(--paper);border-radius:14px;padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow)}
-  .panel-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:20px;margin-bottom:8px}
+  .panel-title{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:20px;margin-bottom:8px}
   .kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:13px;border-top:1px dashed rgba(255,255,255,.14)}
   .kv:first-of-type{border-top:none}
   .kv span{color:#c9b896}
   .kv b{font-weight:700}
 
-  .h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:0 2px 8px}
+  .h2{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:0 2px 8px}
   .plist{display:flex;flex-direction:column;gap:8px}
   .pitem{display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;width:100%;background:var(--paper-2);border:2px solid var(--line);border-radius:12px;padding:11px 13px;font-family:inherit;color:var(--ink)}
   .pitem.active{border-color:var(--red)}
@@ -71,7 +71,7 @@
 
   /* ---------- Barra de tabs (placeholder de navegación, se cablea en PASO 2) ---------- */
   .tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:4px;background:var(--ink);padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px -20px rgba(0,0,0,.6);z-index:40}
-  .tab{flex:1;max-width:160px;background:transparent;border:none;cursor:pointer;color:#c9b896;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:13px;padding:9px 6px;border-radius:10px}
+  .tab{flex:1;max-width:160px;background:transparent;border:none;cursor:pointer;color:#c9b896;font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;padding:9px 6px;border-radius:10px}
   .tab.active{background:rgba(255,255,255,.10);color:var(--paper)}
 
   .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:30px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:60;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
@@ -89,7 +89,7 @@
   /* inputs base */
   .ti{font-family:inherit;font-size:14px;padding:10px 11px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);width:100%}
   .ti:focus{outline:none;border-color:var(--red)}
-  .ti.name{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:18px}
+  .ti.name{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:18px}
   .ti:disabled{opacity:.6}
   .sel{font-family:inherit;font-size:13px;padding:9px 10px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
   .sel:disabled{opacity:.6}
@@ -112,7 +112,7 @@
   .card.dark .kv span{color:#c9b896}
   .card.dark .sub{color:#c9b896;border-color:rgba(255,255,255,.14)}
   .card-head{display:flex;align-items:center;gap:8px}
-  .card-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:16px;margin-bottom:8px}
+  .card-title{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:16px;margin-bottom:8px}
   .state{font-size:12px;font-weight:700}
   .state.closed{color:var(--ink-soft)}
   .kv.total{border-top:2px solid var(--line);margin-top:3px;padding-top:7px;font-weight:700}
@@ -162,19 +162,19 @@
   .xmini:active{transform:scale(.85)}
 
   .empty.big{padding:48px 20px}
-  .ph-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:24px;color:var(--ink);margin-bottom:6px}
+  .ph-title{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:24px;color:var(--ink);margin-bottom:6px}
 
   /* overlay (sheet detrás del engranaje) */
   .overlay{position:fixed;inset:0;background:rgba(43,33,24,.45);z-index:50;display:flex;justify-content:center;align-items:flex-end;padding:0}
   .sheet{background:var(--paper);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;border:2px solid var(--line);border-bottom:none;padding:14px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -16px 40px -18px rgba(0,0,0,.5)}
   .sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .sheet-title{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:22px}
+  .sheet-title{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:22px}
   .sheet.full{min-height:86vh}
   .sheet-body{display:block}
 
   /* seg-nav (segmented control) — Personas|Ajustes y estado ahorrador|invitado */
   .seg-nav{display:inline-flex;gap:0;background:var(--paper-2);border:2px solid var(--line);border-radius:11px;padding:2px}
-  .seg{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--ink-soft);padding:7px 14px;border-radius:8px}
+  .seg{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--ink-soft);padding:7px 14px;border-radius:8px}
   .seg.on{background:var(--ink);color:var(--paper)}
   .seg-nav.sm .seg{font-size:12px;padding:6px 11px}
 
