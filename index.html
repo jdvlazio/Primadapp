@@ -13,15 +13,16 @@
      define como paso aparte cuando el tab Primadas funcione.
      ============================================================ */
   :root{
-    --paper:#f3e7cf; --paper-2:#efe0c2; --ink:#2b2118; --ink-soft:#7a6a55;
-    --line:#d8c5a0; --red:#c8472f; --red-deep:#a3331e; --green:#3f7a52; --amber:#b9791f;
-    --shadow:0 1px 0 rgba(0,0,0,.04), 0 12px 30px -18px rgba(43,33,24,.5);
+    --paper:#0d1716; --paper-2:#13201f; --paper-3:#1a2c2a; --ink:#e2eeec; --ink-soft:#8aa3a0;
+    --line:#25403d; --red:#2DD4BF; --red-deep:#14b8a6; --green:#4DD9A0; --amber:#e0b341;
+    --accent:#2DD4BF; --accent-ink:#0d1716; --pos:#4DD9A0; --pos-bg:#103028; --alert:#F08C8C; --alert-bg:#3a1818;
+    --shadow:0 1px 0 rgba(0,0,0,.2), 0 14px 32px -18px rgba(0,0,0,.75);
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   html,body{height:100%}
   body{
     font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--paper);
-    background-image:radial-gradient(circle at 1px 1px, rgba(43,33,24,.05) 1px, transparent 0);
+    background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,.04) 1px, transparent 0);
     background-size:14px 14px;line-height:1.4;-webkit-font-smoothing:antialiased;
     padding:0 0 calc(70px + env(safe-area-inset-bottom));
   }
@@ -38,17 +39,17 @@
   .status{font-size:12px;color:var(--ink-soft);background:var(--paper-2);border:2px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:12px}
   .status b{color:var(--green)}
   .bar{display:flex;gap:8px;margin-bottom:14px}
-  .btn{flex:1;font-family:"Instrument Sans",sans-serif;font-weight:700;border:none;cursor:pointer;border-radius:12px;background:var(--red);color:#fff8ee;padding:13px;font-size:15px;transition:transform .08s ease, background .15s}
+  .btn{flex:1;font-family:"Instrument Sans",sans-serif;font-weight:700;border:none;cursor:pointer;border-radius:12px;background:var(--red);color:#0d1716;padding:13px;font-size:15px;transition:transform .08s ease, background .15s}
   .btn:active{transform:scale(.96)}
   .btn:hover{background:var(--red-deep)}
   .btn.ghost{background:var(--paper-2);color:var(--ink);border:2px solid var(--line)}
   .btn.ghost:hover{border-color:var(--red);background:var(--paper-2)}
 
-  .panel{background:var(--ink);color:var(--paper);border-radius:14px;padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow)}
+  .panel{background:var(--paper-2);color:var(--ink);border-radius:14px;padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow)}
   .panel-title{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:20px;margin-bottom:8px}
   .kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:13px;border-top:1px dashed rgba(255,255,255,.14)}
   .kv:first-of-type{border-top:none}
-  .kv span{color:#c9b896}
+  .kv span{color:#8aa3a0}
   .kv b{font-weight:700}
 
   .h2{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:0 2px 8px}
@@ -64,27 +65,27 @@
   .pitem-num b.g{color:var(--red-deep)}
 
   .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:20px;vertical-align:middle}
-  .badge.warn{background:rgba(185,121,31,.16);color:var(--amber);border:1px solid rgba(185,121,31,.4)}
+  .badge.warn{background:rgba(224,179,65,.16);color:var(--amber);border:1px solid rgba(224,179,65,.42)}
 
   .empty{text-align:center;color:var(--ink-soft);font-size:13px;padding:26px 16px;border:2px dashed var(--line);border-radius:14px}
   .note{margin-top:18px;font-size:11px;color:var(--ink-soft);text-align:center;line-height:1.5}
 
   /* ---------- Barra de tabs (placeholder de navegación, se cablea en PASO 2) ---------- */
-  .tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:4px;background:var(--ink);padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px -20px rgba(0,0,0,.6);z-index:40}
-  .tab{flex:1;max-width:160px;background:transparent;border:none;cursor:pointer;color:#c9b896;font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;padding:9px 6px;border-radius:10px}
-  .tab.active{background:rgba(255,255,255,.10);color:var(--paper)}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:4px;background:var(--paper-2);padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px -20px rgba(0,0,0,.6);z-index:40}
+  .tab{flex:1;max-width:160px;background:transparent;border:none;cursor:pointer;color:#8aa3a0;font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;padding:9px 6px;border-radius:10px}
+  .tab.active{background:rgba(255,255,255,.10);color:var(--ink)}
 
-  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:11px 18px;border-radius:30px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:60;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+  .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:11px 18px;border-radius:30px;font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:60;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ============================================================
      PASO 2 — componentes del tab Primadas + overlays
      ============================================================ */
-  .badge.good{background:rgba(63,122,82,.16);color:var(--green);border:1px solid rgba(63,122,82,.4)}
-  .badge.red{background:rgba(200,71,47,.14);color:var(--red-deep);border:1px solid rgba(200,71,47,.4)}
+  .badge.good{background:rgba(77,217,160,.16);color:var(--green);border:1px solid rgba(77,217,160,.42)}
+  .badge.red{background:rgba(240,140,140,.16);color:var(--alert);border:1px solid var(--alert)}
   .muted{color:var(--ink-soft)}
   .small{font-size:12px}
-  .owe{color:var(--red-deep)}
+  .owe{color:var(--alert)}
 
   /* inputs base */
   .ti{font-family:inherit;font-size:14px;padding:10px 11px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);width:100%}
@@ -103,14 +104,14 @@
   .mini:active{transform:scale(.95)}
   .mini:disabled{opacity:.45;cursor:default}
   .mini.ghost{background:transparent}
-  .mini.danger{color:var(--red-deep);border-color:rgba(200,71,47,.4)}
-  .mini.on{background:var(--green);color:#fff8ee;border-color:var(--green)}
+  .mini.danger{color:var(--alert);border-color:var(--alert)}
+  .mini.on{background:var(--green);color:#0d1716;border-color:var(--green)}
 
   /* cards */
   .card{background:var(--paper-2);border:2px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
-  .card.dark{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-  .card.dark .kv span{color:#c9b896}
-  .card.dark .sub{color:#c9b896;border-color:rgba(255,255,255,.14)}
+  .card.dark{background:var(--paper-2);color:var(--ink);border-color:var(--ink)}
+  .card.dark .kv span{color:#8aa3a0}
+  .card.dark .sub{color:#8aa3a0;border-color:rgba(255,255,255,.14)}
   .card-head{display:flex;align-items:center;gap:8px}
   .card-title{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:16px;margin-bottom:8px}
   .state{font-size:12px;font-weight:700}
@@ -175,7 +176,7 @@
   /* seg-nav (segmented control) — Personas|Ajustes y estado ahorrador|invitado */
   .seg-nav{display:inline-flex;gap:0;background:var(--paper-2);border:2px solid var(--line);border-radius:11px;padding:2px}
   .seg{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--ink-soft);padding:7px 14px;border-radius:8px}
-  .seg.on{background:var(--ink);color:var(--paper)}
+  .seg.on{background:var(--paper-2);color:var(--ink)}
   .seg-nav.sm .seg{font-size:12px;padding:6px 11px}
 
   /* directorio de personas */
