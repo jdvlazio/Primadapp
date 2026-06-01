@@ -69,6 +69,13 @@ function setVal(elOrSel, value) {
   el.value = value;
   el.dispatchEvent(new window.Event('change', { bubbles: true }));
 }
+// Acordeón: las tarjetas nacen CERRADAS; rol/cover/steppers/abonos viven en el .acc-body expandido.
+// abrir(pid) es idempotente: togglea solo si está cerrada (sin .acc-body para ese pid).
+function abrir(pid) {
+  const head = q(`.acc-head[data-pid="${pid}"]`);
+  if (!head) throw new Error('abrir: no existe la cabecera de ' + pid);
+  if (!head.closest('.asis').querySelector('.acc-body')) click(head);
+}
 
 /* ============================================================ */
 section('Arranque (bootstrap cableó la Vista sobre el modelo v4)');
@@ -108,6 +115,9 @@ check('Snapshot inmutable: Ana=ahorrador, Beto=invitado en la asistencia',
 
 /* ---------- 4. Asignar principal (INVARIANTE #2) ---------- */
 section('Asignar principal — invariante "principal siempre ahorrador"');
+// Acordeón: abrir ambas tarjetas para acceder a sus controles internos (rol/cover/steppers/abonos).
+abrir(ana.id);
+abrir(beto.id);
 setVal(`select[data-ch="rol"][data-pid="${ana.id}"]`, 'principal');
 eq('Ana es el principal', prm().organizadorPrincipalId, ana.id);
 check('Ya no está incompleta', !Store.select.primadaIncompleta(prm()));
@@ -118,9 +128,14 @@ setVal(`select[data-ch="rol"][data-pid="${beto.id}"]`, 'principal');
 eq('Beto NO pudo ser principal (sigue Ana)', prm().organizadorPrincipalId, ana.id);
 check('Render se recuperó tras el error (sigue habiendo asistencias)', qa('.asis').length === 2);
 
-/* ---------- 5. Consumos ± ---------- */
-section('Consumos con los steppers ±');
-click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
+/* ---------- 5. Consumos ± (progressive disclosure) ---------- */
+section('Consumos: primer ítem por el chip-picker, luego steppers ±');
+abrir(beto.id);   // idempotente: asegura su tarjeta expandida
+// Progressive disclosure: sin cantidad>0 NO hay stepper; el primer consumo entra por "+ Agregar" → chip.
+click(`[data-act="open-pickprod"][data-pid="${beto.id}"]`);
+click(`[data-act="add-item"][data-pid="${beto.id}"][data-prod="cerveza"]`);   // 0→1 vía chip
+eq('Beto lleva 1 cerveza (agregada por chip)', prm().asistencias.find(a => a.personaId === beto.id).items.cerveza, 1);
+// Ya con cantidad>0 aparece el stepper: subir a 2 con +
 click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
 eq('Beto lleva 2 cervezas', prm().asistencias.find(a => a.personaId === beto.id).items.cerveza, 2);
 click(`[data-act="item-minus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
