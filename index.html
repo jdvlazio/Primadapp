@@ -142,7 +142,7 @@
      · Fondo SEMI-transparente (rgba) para que el backdrop-filter blur realmente se vea.
      ⚠️ env(safe-area-inset-bottom) solo es >0 en iOS standalone con barra de gestos; en escritorio/preview
        es 0 y aplica el piso de 20px — la validación del inset real debe hacerse en el iPhone. */
-  .tabbar{position:fixed;left:0;right:0;bottom:0;top:auto;display:flex;justify-content:center;gap:var(--space-1);background:rgba(19,32,31,.88);border-top:1px solid var(--line);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);padding:var(--space-2) var(--space-2) max(env(safe-area-inset-bottom), 20px);box-shadow:0 -10px 30px -20px rgba(0,0,0,.6);z-index:40}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;top:auto;display:flex;justify-content:center;gap:var(--space-1);background:rgba(19,32,31,.88);border-top:1px solid var(--line);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);padding:var(--space-2) var(--space-2) max(env(safe-area-inset-bottom), 20px);box-shadow:0 -10px 30px -20px rgba(0,0,0,.6);will-change:transform;z-index:40}
   .tab{flex:1;max-width:160px;min-height:var(--tap-row);display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--ink-soft);font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;letter-spacing:.02em;padding:var(--space-2);border-radius:var(--radius-md);transition:color .15s, background .15s}
   .tab:active{opacity:.7}
   /* Activo BIEN diferenciado: pill teñido de acento + texto acento + peso mayor (no el pill blanco tenue de antes). */
@@ -385,13 +385,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260601-191907-17c0662"></script>
-  <script src="js/util.js?v=20260601-191907-17c0662"></script>
-  <script src="js/api.js?v=20260601-191907-17c0662"></script>
-  <script src="js/auth.js?v=20260601-191907-17c0662"></script>
-  <script src="js/store.js?v=20260601-191907-17c0662"></script>
-  <script src="js/view.js?v=20260601-191907-17c0662"></script>
-  <script src="js/controller.js?v=20260601-191907-17c0662"></script>
+  <script src="js/config.js?v=20260601-203351-912fd86"></script>
+  <script src="js/util.js?v=20260601-203351-912fd86"></script>
+  <script src="js/api.js?v=20260601-203351-912fd86"></script>
+  <script src="js/auth.js?v=20260601-203351-912fd86"></script>
+  <script src="js/store.js?v=20260601-203351-912fd86"></script>
+  <script src="js/view.js?v=20260601-203351-912fd86"></script>
+  <script src="js/controller.js?v=20260601-203351-912fd86"></script>
 
   <!-- PWA: registrar el Service Worker (network-first; CACHE_VERSION se estampa en cada commit). -->
   <script>
