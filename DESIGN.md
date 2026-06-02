@@ -66,15 +66,21 @@ Valores resueltos, extraídos de `:root` en `index.html`. **Son la única fuente
 | `--alert-bg` | `#3a1818` | Debe / alerta — fondo |
 | `--amber` | `#e0b341` | Aviso / "incompleta" / "Próximamente" |
 
-### Espaciado (escala fija)
+### Espaciado (escala fija) — REGLA: ceñido al contenido
+**Principio (global, no negociable):** la app es **compacta y minimalista**. Márgenes, paddings y
+gaps van **ceñidos al contenido**, sin aire de más. Todo espaciado sale de un **token** (cero px
+sueltos de margin/padding/gap). El **alto de los controles** lo dan los tokens `--tap-*` (ver
+"Alturas"), compactos (44/36). **Default de separación entre secciones = `--space-4` (20px).**
+`--space-5/6` (28/40) son la **excepción**: solo para **aire deliberado** (estado vacío, login hero),
+nunca como ritmo normal. Cualquier control nuevo hereda esto por los tokens — no inventar valores.
 | Token | Valor | Uso |
 |---|---|---|
 | `--space-1` | 4px | gap mínimo (ícono↔texto, dot↔palabra) |
 | `--space-2` | 8px | gap corto entre elementos contiguos |
 | `--space-3` | 12px | gap medio / padding de fila |
-| `--space-4` | 20px | padding de tarjeta genuina (todos los lados) |
-| `--space-5` | 28px | **separación entre secciones** de una pantalla |
-| `--space-6` | 40px | margen mayor entre bloques |
+| `--space-4` | 20px | padding de tarjeta · **separación entre secciones (default)** |
+| `--space-5` | 28px | **excepción**: aire deliberado (login, padding inferior de sheet) |
+| `--space-6` | 40px | **excepción**: hero / estado vacío grande. **No** como ritmo normal |
 | `--space-safe` | 86px | padding inferior del contenido (deja sitio a la tabbar fija) |
 
 ### Tipografía — pesos (Instrument Sans, única familia)
