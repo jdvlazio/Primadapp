@@ -24,6 +24,11 @@
   const e = Util.esc;
   const $peso = Util.peso;
   function badge(text, cls) { return `<span class="badge ${cls || ''}">${e(text)}</span>`; }
+  // Capitaliza una palabra de rol/estado para mostrarla (DESIGN.md §4: Title Case). El dato crudo
+  // (data-*, modelo) sigue en minúscula; esto es SOLO presentación.
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  // Etiqueta de rol/estado en texto tenue (reemplaza los badges con borde en la identidad).
+  function rolTag(estado) { return `<span class="rol-tag">${e(cap(estado))}</span>`; }
   function nombrePersona(id) { const p = S().persona(id); return p ? p.nombre : '—'; }
 
   /* ---------- Iconografía: Lucide, SVG inline (ver DESIGN.md › Iconografía) ----------
@@ -71,7 +76,7 @@
     const p = S().activePrimada();
     if (!p) return `<div class="sheet full"><div class="sheet-head"><div class="sheet-title">Configurar</div>
       <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
-      <div class="empty">Sin primada</div></div>`;
+      <div class="empty-soft">Sin primada</div></div>`;
     const cerrada = p.estado === 'cerrada';
     const ro = cerrada ? 'disabled' : '';
     return `<div class="sheet full">
@@ -178,20 +183,19 @@
     const esPrin = S().esPrincipal(p, a);
     const saldo = S().saldoDe(p, a);
     const abierto = ui && ui.abiertos && ui.abiertos.has(a.personaId);
-    const snapBadge = badge(a.estadoEnEseMomento, a.estadoEnEseMomento === 'ahorrador' ? 'good' : '');
 
     // Cabecera-resumen (operar): el total visible es SOLO consumo + cover (el dato de un vistazo).
     // El saldo/deuda es "ver la plata" → vive en el tab Resumen, no aquí.
     const cabecera = `<button class="acc-head" data-act="toggle-asis" data-pid="${a.personaId}" aria-expanded="${abierto ? 'true' : 'false'}">
         <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-        <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b> ${snapBadge}${esPrin ? ' ' + badge('principal', 'red') : ''}</span>
+        <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b> ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
         <span class="acc-amt">${$peso(total)}</span>
       </button>`;
 
-    if (!abierto) return `<div class="asis ${esPrin ? 'is-principal' : ''}">${cabecera}</div>`;
+    if (!abierto) return `<div class="asis">${cabecera}</div>`;
 
     const cerrada = p.estado === 'cerrada';
-    return `<div class="asis open ${esPrin ? 'is-principal' : ''}">
+    return `<div class="asis open">
       ${cabecera}
       <div class="acc-body">
         <div class="asis-ctl">
@@ -244,7 +248,7 @@
     const dentro = new Set(p.asistencias.map(a => a.personaId));
     const fuera = S().personasOrdenadas().filter(per => !dentro.has(per.id));
     const opts = fuera.length
-      ? fuera.map(per => `<option value="${per.id}">${e(per.nombre)} · ${per.estado}</option>`).join('')
+      ? fuera.map(per => `<option value="${per.id}">${e(per.nombre)} · ${cap(per.estado)}</option>`).join('')
       : '';
     return `<div class="addbar">
       <select class="sel" id="as-pick" ${fuera.length ? '' : 'disabled'}>
@@ -359,7 +363,8 @@
   function primadaItem(state, p) {
     const sel = S();
     const inc = sel.primadaIncompleta(p) ? ' ' + badge('incompleta', 'warn') : '';
-    const estado = p.estado === 'cerrada' ? badge('cerrada', '') : badge('abierta', 'good');
+    const cerrada = p.estado === 'cerrada';
+    const estado = `<span class="estado-tag"><span class="dot ${cerrada ? 'closed' : 'open'}"></span>${cerrada ? 'Cerrada' : 'Abierta'}</span>`;
     return `<button class="pitem" data-act="select-primada" data-id="${p.id}">
       <div class="pitem-main">
         <div class="pitem-name">${e(p.nombre)}${inc}</div>
@@ -396,11 +401,11 @@
      ============================================================ */
   function tabResumen(state, ui) {
     const p = S().activePrimada();
-    if (!p) return `<div class="empty big"><div class="ph-title">Resumen</div>
+    if (!p) return `<div class="empty-soft big"><div class="ph-title">Resumen</div>
       <div>Sin primada</div></div>`;
     return `<div class="resumen-head">
         <div class="prm-name">${e(p.nombre)}</div>
-        <div class="muted small">${e(Util.monthLabel(p.mesContable))} · ${p.estado}</div>
+        <div class="muted small">${e(Util.monthLabel(p.mesContable))} · ${cap(p.estado)}</div>
       </div>
       ${reparto(p)}
       ${informe(p)}`;
@@ -410,7 +415,7 @@
      TAB Fondo (placeholder — tesorería futura)
      ============================================================ */
   function placeholder(titulo, txt) {
-    return `<div class="empty big"><div class="ph-title">${e(titulo)}</div><div>${txt}</div>
+    return `<div class="empty-soft big"><div class="ph-title">${e(titulo)}</div><div>${txt}</div>
       <div class="badge warn mt-3">Próximamente</div></div>`;
   }
 
@@ -421,7 +426,7 @@
   // y cuántas primadas la incluyen (su historia se conserva al cambiar de estado — INVARIANTE #1).
   function personaCard(per) {
     const ap = S().aparicionesDe(per.id);
-    const seg = est => `<button class="seg ${per.estado === est ? 'on' : ''}" data-act="set-estado-persona" data-pid="${per.id}" data-estado="${est}">${est}</button>`;
+    const seg = est => `<button class="seg ${per.estado === est ? 'on' : ''}" data-act="set-estado-persona" data-pid="${per.id}" data-estado="${est}">${cap(est)}</button>`;
     return `<div class="pcard">
       <input class="ti" data-ch="rename-persona" data-pid="${per.id}" value="${e(per.nombre)}" maxlength="40" aria-label="Nombre">
       <div class="pcard-row">
@@ -436,14 +441,14 @@
     const personas = S().personasOrdenadas();
     const cuerpo = personas.length
       ? `<div class="people">${personas.map(personaCard).join('')}</div>`
-      : '<div class="empty">Sin personas</div>';
+      : '<div class="empty-soft">Sin personas</div>';
     return `${cuerpo}
       <div class="sub">Nueva persona</div>
       <div class="addbar">
         <input class="ti" id="np-nombre" placeholder="Nombre" maxlength="40">
         <select class="sel" id="np-estado">
-          <option value="ahorrador">ahorrador</option>
-          <option value="invitado">invitado</option>
+          <option value="ahorrador">Ahorrador</option>
+          <option value="invitado">Invitado</option>
         </select>
         <button class="mini" data-act="add-persona">${icon('plus-circle')}Agregar</button>
       </div>`;
@@ -478,7 +483,7 @@
     const coCands = S().personasOrdenadas().filter(p => p.id !== w.principalId);
     const chips = coCands.map(p => {
       const on = w.coorg.indexOf(p.id) >= 0;
-      return `<button class="chip ${on ? 'on' : ''}" data-act="wz-toggle-coorg" data-pid="${p.id}">${e(p.nombre)} <i>${p.estado}</i></button>`;
+      return `<button class="chip ${on ? 'on' : ''}" data-act="wz-toggle-coorg" data-pid="${p.id}">${e(p.nombre)} <i>${cap(p.estado)}</i></button>`;
     }).join('');
     return `<div class="wz-step">
       <label class="fld"><span>Principal</span>${opcionPrincipal}</label>
@@ -502,7 +507,7 @@
       </div>
     </div>`).join('');
     return `<div class="wz-step">
-      <div class="prodlist">${filas || '<div class="empty">Sin productos</div>'}</div>
+      <div class="prodlist">${filas || '<div class="empty-soft">Sin productos</div>'}</div>
       <button class="mini ghost mt-3" data-act="wz-prod-add">${icon('plus-circle')}Agregar</button>
     </div>`;
   }
@@ -574,7 +579,7 @@
 
     // 2) contenido del tab
     let html;
-    if (!state)                    html = '<div class="empty">Cargando…</div>';   // primer pintado: aún hidratando (load async)
+    if (!state)                    html = '<div class="empty-soft">Cargando…</div>';   // primer pintado: aún hidratando (load async)
     else if (ui.tab === 'resumen') html = tabResumen(state, ui);                  // dashboard de la plata
     else if (ui.tab === 'fondo')   html = placeholder('Fondo', 'Tesorería');
     else                           html = tabPrimadas(state, ui);

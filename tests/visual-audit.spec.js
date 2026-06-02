@@ -8,12 +8,9 @@
  *     Falla solo si un selector crítico no existe (la pantalla no cargó).
  *  2) CONFORMIDAD — asserts de las reglas del DESIGN.md:
  *     · Reglas que el app YA cumple (tokens, tipografía, acento) → assert en VERDE.
- *     · Reglas que el app VIOLA hoy (caja .asis, divisores dashed, badges de identidad)
- *       → marcadas `test.fail()`: son DEUDA DE DISEÑO documentada en docs/AUDITORIA-VISUAL.md.
- *       Hoy "pasan" como expected-failure (suite verde). Cuando apliquemos el rediseño y la
- *       violación desaparezca, el test pasará inesperadamente → hay que QUITAR el `test.fail()`.
- *       Así este archivo es el gate ejecutable del rediseño: rojo→verde sin tocarlo, solo
- *       borrando las anotaciones de deuda.
+ *     · Reglas D1–D4 (fila liviana, principal con punto, sin dashed, sin .empty legado):
+ *       tras aplicar docs/AUDITORIA-VISUAL.md, el app las CUMPLE → pasan en verde SIN test.fail().
+ *       Son el gate del contrato: si una falla, el CSS/view.js se desvió del DESIGN.md.
  *
  * Fuente de verdad: DESIGN.md §1 (tokens), §2 (componentes canónicos), §3 (jerarquía).
  */
@@ -133,12 +130,13 @@ test.describe('Conformidad DESIGN.md — verde', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3 · CONFORMIDAD — DEUDA DE DISEÑO (test.fail hasta aplicar el rediseño)
-//     Cada uno corresponde a una entrada de docs/AUDITORIA-VISUAL.md.
+// 3 · CONFORMIDAD — rediseño aplicado (D1–D4). Cada uno corresponde a una entrada
+//     de docs/AUDITORIA-VISUAL.md, ya corregida.
 // ─────────────────────────────────────────────────────────────────────────────
-test.describe('Conformidad DESIGN.md — deuda (expected-fail)', () => {
-  test('D1 — fila de asistente SIN caja con borde (§2.1 vs .asis legado)', async ({ page }) => {
-    test.fail(true, 'Hoy .asis es caja border:2px. Canónico §2.1 = fila liviana. Ver AUDITORIA-VISUAL §1.');
+// Tras la pasada de rediseño (docs/AUDITORIA-VISUAL.md aplicada), estas reglas pasan en VERDE.
+// Ya NO llevan test.fail(): son el gate del contrato. Si alguna falla, el CSS/view.js se desvió.
+test.describe('Conformidad DESIGN.md — rediseño aplicado', () => {
+  test('D1 — fila de asistente SIN caja con borde (§2.1)', async ({ page }) => {
     await appConPrimadaAbierta(page);
     const bw = await page.evaluate(() => {
       const el = document.querySelector('.asis');
@@ -148,16 +146,16 @@ test.describe('Conformidad DESIGN.md — deuda (expected-fail)', () => {
   });
 
   test('D2 — principal marcado con punto+texto, NO badge con borde (§2.1)', async ({ page }) => {
-    test.fail(true, 'Hoy el principal usa badge("principal","red"). Canónico §2.1 = .dot teal + "Principal". Ver AUDITORIA-VISUAL §3.');
     await appConPrimadaAbierta(page);
-    const badgesEnIdentidad = await page.evaluate(() =>
-      document.querySelectorAll('.acc-id .badge').length
-    );
-    expect(badgesEnIdentidad).toBe(0); // canónico: cero badges en la identidad
+    const ident = await page.evaluate(() => ({
+      badges: document.querySelectorAll('.acc-id .badge').length,
+      dotPrin: document.querySelectorAll('.acc-id .dot.prin').length,
+    }));
+    expect(ident.badges).toBe(0);     // cero badges en la identidad
+    expect(ident.dotPrin).toBeGreaterThan(0); // el principal lleva punto teal
   });
 
   test('D3 — sin divisores punteados en el detalle de primada (§2 / Densidad)', async ({ page }) => {
-    test.fail(true, 'Hoy .asis-foot/.kv/.pay usan border dashed. Canónico = espacio o línea tenue sólida. Ver AUDITORIA-VISUAL §2.');
     await appConPrimadaAbierta(page);
     const dashed = await page.evaluate(() => {
       const dentro = document.querySelectorAll('#screen *');
@@ -171,8 +169,7 @@ test.describe('Conformidad DESIGN.md — deuda (expected-fail)', () => {
     expect(dashed).toBe(0); // canónico: ningún divisor dashed
   });
 
-  test('D4 — estado vacío sin caja punteada (§2.6 .empty-soft vs .empty legado)', async ({ page }) => {
-    test.fail(true, 'La clase legado .empty usa border:2px dashed. Canónico §2.6 = .empty-soft sin caja. Ver AUDITORIA-VISUAL §4.');
+  test('D4 — estado vacío sin caja punteada (§2.6 .empty-soft, .empty eliminado)', async ({ page }) => {
     await abrirApp(page);
     const emptyBorder = await page.evaluate(() => {
       const probe = document.createElement('div');
@@ -182,6 +179,6 @@ test.describe('Conformidad DESIGN.md — deuda (expected-fail)', () => {
       probe.remove();
       return bs;
     });
-    expect(emptyBorder).toBe('none'); // canónico: la clase no debería existir / sin borde
+    expect(emptyBorder).toBe('none'); // la clase legado .empty ya no existe en el CSS
   });
 });

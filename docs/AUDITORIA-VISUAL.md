@@ -1,9 +1,13 @@
-# Auditoría visual — plan de la pasada de rediseño
+# Auditoría visual — pasada de rediseño
 
-> **Informe, NO aplicación.** Lista cada desviación del CSS/`view.js` actual frente al
-> contrato `DESIGN.md`, dónde está, y qué cambio la corrige. La aplicación se hace **con el
-> PO presente** (cambia toda la app visualmente). Cada bloque mapea a un test de
-> `tests/visual-audit.spec.js` (los `test.fail()` D1–D4 pasan a verde al corregir).
+> **✅ APLICADA.** Los grupos 1–6 de abajo ya están corregidos en `index.html` y `js/view.js`;
+> los `test.fail()` D1–D4 se retiraron y `tests/visual-audit.spec.js` pasa **todo verde**
+> (19/19) como gate del contrato. Este documento se conserva como **registro** de qué se cambió
+> y por qué. Detalle de cada corrección abajo.
+>
+> Originalmente fue **informe, NO aplicación**: listaba cada desviación del CSS/`view.js` frente
+> al contrato `DESIGN.md`, dónde estaba, y qué cambio la corrige. Cada bloque mapea a un test de
+> `tests/visual-audit.spec.js`.
 >
 > Líneas son del estado al auditar (`index.html`, `js/view.js`); pueden correrse al editar.
 > Fuente de verdad: `DESIGN.md` §2 (componentes canónicos), §3 (jerarquía), §1 (tokens).

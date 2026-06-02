@@ -28,7 +28,7 @@
   :root{
     /* color */
     --paper:#0d1716; --paper-2:#13201f; --paper-3:#1a2c2a; --ink:#e2eeec; --ink-soft:#8aa3a0;
-    --line:#25403d; --red:#2DD4BF; --red-deep:#14b8a6; --green:#4DD9A0; --amber:#e0b341;
+    --line:#25403d; --line-soft:rgba(255,255,255,.06); --red:#2DD4BF; --red-deep:#14b8a6; --green:#4DD9A0; --amber:#e0b341;
     --accent:#2DD4BF; --accent-ink:#0d1716; --pos:#4DD9A0; --pos-bg:#103028; --alert:#F08C8C; --alert-bg:#3a1818;
     --shadow:0 1px 0 rgba(0,0,0,.2), 0 14px 32px -18px rgba(0,0,0,.75);
     /* espaciado (DESIGN.md › Espaciado y layout) */
@@ -82,8 +82,6 @@
   .xmini .icon{width:16px;height:16px}
 
   /* ---------- Bloques ---------- */
-  .status{font-size:12px;color:var(--ink-soft);background:var(--paper-2);border:2px solid var(--line);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-3)}
-  .status b{color:var(--green)}
   .bar{display:flex;gap:var(--space-2);margin-bottom:var(--space-3)}
   .btn{flex:1;min-height:var(--tap-btn);display:flex;align-items:center;justify-content:center;font-family:"Instrument Sans",sans-serif;font-weight:700;border:none;cursor:pointer;border-radius:var(--radius-md);background:var(--red);color:var(--accent-ink);padding:var(--space-3);font-size:15px;transition:transform .08s ease, background .15s}
   .btn:active{transform:scale(.96)}
@@ -93,7 +91,7 @@
 
   .panel{background:var(--paper-2);color:var(--ink);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-4);box-shadow:var(--shadow)}
   .panel-title{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:20px;margin-bottom:var(--space-2)}
-  .kv{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3);padding:var(--space-1) 0;font-size:13px;border-top:1px dashed rgba(255,255,255,.14)}
+  .kv{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3);padding:var(--space-1) 0;font-size:13px;border-top:1px solid var(--line-soft)}
   .kv:first-of-type{border-top:none}
   .kv span{color:var(--ink-soft)}
   .kv b{font-weight:700}
@@ -113,6 +111,10 @@
   /* punto de estado discreto (sin badge con borde) */
   .dot{display:inline-block;width:var(--space-2);height:var(--space-2);border-radius:50%;background:var(--pos);margin-right:var(--space-1);vertical-align:middle}
   .dot.closed{background:var(--ink-soft)}
+  .dot.prin{background:var(--accent)}                 /* punto del principal (teal) */
+  /* etiqueta de rol / estado en texto tenue (reemplaza los badges con borde en la identidad) */
+  .rol-tag{color:var(--ink-soft);font-weight:400;font-size:12px}
+  .estado-tag{color:var(--ink-soft);font-weight:400}
   /* estado vacío SIN caja: solo texto centrado con aire */
   .empty-soft{text-align:center;color:var(--ink-soft);font-size:14px;padding:var(--space-5) var(--space-3)}
   .empty-soft.big{padding:var(--space-6) var(--space-3);font-size:15px}
@@ -131,7 +133,6 @@
   .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);vertical-align:middle}
   .badge.warn{background:rgba(224,179,65,.16);color:var(--amber);border:1px solid rgba(224,179,65,.42)}
 
-  .empty{text-align:center;color:var(--ink-soft);font-size:13px;padding:var(--space-5) var(--space-4);border:2px dashed var(--line);border-radius:var(--radius-lg)}
   .note{margin-top:var(--space-4);font-size:11px;color:var(--ink-soft);text-align:center;line-height:1.5}
 
   /* ---------- Barra de tabs (navegación inferior fija) ----------
@@ -169,8 +170,6 @@
   /* ============================================================
      PASO 2 — componentes del tab Primadas + overlays
      ============================================================ */
-  .badge.good{background:rgba(77,217,160,.16);color:var(--green);border:1px solid rgba(77,217,160,.42)}
-  .badge.red{background:rgba(240,140,140,.16);color:var(--alert);border:1px solid var(--alert)}
   .muted{color:var(--ink-soft)}
   .small{font-size:12px}
   .owe{color:var(--alert)}
@@ -201,11 +200,12 @@
   .mini.danger{color:var(--alert);border-color:var(--alert)}
   .mini.on{background:var(--green);color:var(--accent-ink);border-color:var(--green)}
 
-  /* cards */
-  .card{background:var(--paper-2);border:2px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-4);box-shadow:var(--shadow)}
-  .card.dark{background:var(--paper-2);color:var(--ink);border-color:var(--ink)}
+  /* cards — superficie suave (sin outline pesado): tarjeta de datos genuina (informe/reparto).
+     La unidad se lee por la elevación de superficie + el título, no por un borde. */
+  .card{background:var(--paper-2);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-4);box-shadow:var(--shadow)}
+  .card.dark{background:var(--paper-3);color:var(--ink)}
   .card.dark .kv span{color:var(--ink-soft)}
-  .card.dark .sub{color:var(--ink-soft);border-color:rgba(255,255,255,.14)}
+  .card.dark .sub{color:var(--ink-soft)}
   .card-head{display:flex;align-items:center;gap:var(--space-2)}
   .card-title{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:16px;margin-bottom:var(--space-2)}
   .state{font-size:12px;font-weight:700}
@@ -214,7 +214,7 @@
   .card.dark .kv.total{border-top-color:rgba(255,255,255,.22)}
   .kv.total b{color:var(--red-deep);font-size:15px}
   .card.dark .kv.total b{color:#ffd9a0}
-  .sub{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);margin:var(--space-3) 0 var(--space-1);border-top:1px dashed var(--line);padding-top:var(--space-2)}
+  .sub{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);margin:var(--space-4) 0 var(--space-1)}
   .kv.subkv{border-top:none;padding:var(--space-1) 0;font-size:12px;color:var(--ink-soft)}
   .kv.subkv span{padding-left:var(--space-3)}
   .kv.subkv b{font-weight:400}
@@ -223,10 +223,11 @@
   /* asistencias */
   .addbar{display:flex;gap:var(--space-2);margin-bottom:var(--space-3);flex-wrap:wrap}
   .addbar .sel{flex:1;min-width:0}
-  .asis-list{display:flex;flex-direction:column;gap:var(--space-3);margin-bottom:var(--space-4)}
-  .asis{background:var(--paper-2);border:2px solid var(--line);border-radius:var(--radius-lg);overflow:hidden}
-  .asis.is-principal{border-color:var(--red)}
-  .asis.debe{border-color:var(--alert)}
+  .asis-list{display:flex;flex-direction:column;margin-bottom:var(--space-4)}
+  /* Fila de asistente CANÓNICA (DESIGN.md §2.1): sin caja con borde; separación por línea tenue.
+     El principal se marca con punto teal + "Principal"; la deuda, con color en el número. */
+  .asis{border-bottom:1px solid var(--line-soft)}
+  .asis:last-child{border-bottom:none}
   /* ---- Patrón ACORDEÓN (ver DESIGN.md › Patrones) ---- */
   .acc-head{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);width:100%;background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-3)}
   /* caret = chevron-down: cerrado apunta a la derecha (-90°), abierto hacia abajo (0°) */
@@ -254,12 +255,12 @@
   .step:active{transform:scale(.9)}
   .step:disabled{opacity:.4;cursor:default}
   .qty{min-width:16px;text-align:center;font-size:14px}
-  .asis-foot{display:flex;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px dashed var(--line);font-size:13px}
+  .asis-foot{display:flex;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--line-soft);font-size:13px}
   .asis-foot b{font-weight:700}
   .consumo-vacio{padding:var(--space-1) 0}
   /* chip-picker "+ Agregar" */
   .addprod{margin-top:var(--space-2)}
-  .prodpick{margin-top:var(--space-2);background:var(--paper);border:2px dashed var(--line);border-radius:var(--radius-md);padding:var(--space-2)}
+  .prodpick{margin-top:var(--space-2);background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--radius-md);padding:var(--space-2)}
   .prodpick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)}
   .chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
   .chip{display:inline-flex;align-items:center;gap:var(--space-2);min-height:var(--tap-sec);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--line);background:var(--paper-2);color:var(--ink);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3)}
@@ -268,18 +269,18 @@
   .chip i{color:var(--ink-soft);font-style:normal;font-weight:400;font-size:11px}
   /* gestión de productos del evento */
   .prodmgmt{padding-top:var(--space-3)}
-  .prodrow{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0;border-top:1px dashed var(--line)}
+  .prodrow{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0;border-top:1px solid var(--line-soft)}
   .prodrow:first-child{border-top:none}
   .prodrow-name{flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .prodrow-f{display:flex;flex-direction:column;gap:var(--space-1);font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
   .ti.num{width:74px;padding:var(--space-2);font-size:13px}
   .ti.emoji{width:var(--tap-input);text-align:center;padding:var(--space-2)}
-  .prodnew{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px dashed var(--line)}
+  .prodnew{display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center;margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--line-soft)}
   .prodnew .ti:not(.num):not(#pn-emoji){flex:1;min-width:120px}
   .prodrow .xmini,.prodpick-head .xmini{display:flex;align-items:center;justify-content:center;border:2px solid var(--line);background:var(--paper);color:var(--alert);border-radius:var(--radius-sm);width:var(--tap-sec);height:var(--tap-sec);font-weight:700;flex:none}
 
   /* abonos / pagos (siguen activos con la cuenta cerrada) */
-  .pay{margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px dashed var(--line)}
+  .pay{margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--line-soft)}
   .pay-form{display:flex;gap:var(--space-2)}
   .pay-form .ti{flex:1}
   .pay-sum{margin-top:var(--space-1)}
@@ -291,7 +292,6 @@
   .xmini{border:none;background:none;cursor:pointer;color:var(--ink-soft);font-size:13px;padding:var(--space-1);border-radius:var(--radius-sm)}
   .xmini:active{transform:scale(.85)}
 
-  .empty.big{padding:var(--space-6) var(--space-4)}
   .ph-title{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:24px;color:var(--ink);margin-bottom:var(--space-1)}
 
   /* overlay (sheet detrás del engranaje) */
@@ -310,7 +310,7 @@
   .resumen-head{margin-bottom:var(--space-4)}
   .resumen-head .prm-name{white-space:normal}
   /* "Zona peligrosa" en el sheet de config */
-  .danger-sub{color:var(--alert);border-top-color:var(--alert)}
+  .danger-sub{color:var(--alert)}
 
   /* Wizard "Nueva primada" (3 pasos) */
   .wz .wz-steps{display:flex;align-items:center;gap:0;flex:1}
@@ -325,14 +325,14 @@
   .wz-chips .chip i{color:var(--ink-soft);font-style:normal;font-size:10px;text-transform:uppercase}
   .wz-chips .chip.on{border-color:var(--accent);color:var(--accent)}
   .wz .prodlist{display:flex;flex-direction:column;gap:var(--space-3)}
-  .wz-prodrow{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) 0;border-top:1px dashed var(--line)}
+  .wz-prodrow{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) 0;border-top:1px solid var(--line-soft)}
   .wz-prodrow:first-child{border-top:none;padding-top:0}
   .wz-prodrow-top{display:flex;gap:var(--space-2)}
   .wz-prodname{flex:1;min-width:0}
   .wz-prodrow-bot{display:flex;gap:var(--space-2);align-items:flex-end}
   .wz-prodrow-bot .prodrow-f{flex:1}
   .wz-prodrow-bot .ti.num{width:100%}
-  .wz-nav{display:flex;gap:var(--space-2);margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px dashed var(--line)}
+  .wz-nav{display:flex;gap:var(--space-2);margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--line-soft)}
   .wz-nav .mini,.wz-nav .btn{flex:1}
 
   /* seg-nav (segmented control) — Personas|Ajustes y estado ahorrador|invitado */
@@ -343,7 +343,8 @@
 
   /* directorio de personas */
   .people{display:flex;flex-direction:column;gap:var(--space-3)}
-  .pcard{display:flex;flex-direction:column;gap:var(--space-2);background:var(--paper-2);border:2px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-3)}
+  /* Persona = unidad editable genuina (nombre + estado + Bre-B): superficie suave, sin outline pesado. */
+  .pcard{display:flex;flex-direction:column;gap:var(--space-2);background:var(--paper-2);border-radius:var(--radius-lg);padding:var(--space-4)}
   .pcard-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
   .pcard .breb{font-size:12px}
 
@@ -389,13 +390,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260601-182653-96d9174"></script>
-  <script src="js/util.js?v=20260601-182653-96d9174"></script>
-  <script src="js/api.js?v=20260601-182653-96d9174"></script>
-  <script src="js/auth.js?v=20260601-182653-96d9174"></script>
-  <script src="js/store.js?v=20260601-182653-96d9174"></script>
-  <script src="js/view.js?v=20260601-182653-96d9174"></script>
-  <script src="js/controller.js?v=20260601-182653-96d9174"></script>
+  <script src="js/config.js?v=20260601-191700-de75abf"></script>
+  <script src="js/util.js?v=20260601-191700-de75abf"></script>
+  <script src="js/api.js?v=20260601-191700-de75abf"></script>
+  <script src="js/auth.js?v=20260601-191700-de75abf"></script>
+  <script src="js/store.js?v=20260601-191700-de75abf"></script>
+  <script src="js/view.js?v=20260601-191700-de75abf"></script>
+  <script src="js/controller.js?v=20260601-191700-de75abf"></script>
 
   <!-- PWA: registrar el Service Worker (network-first; CACHE_VERSION se estampa en cada commit). -->
   <script>
