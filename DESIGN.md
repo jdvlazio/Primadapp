@@ -278,6 +278,34 @@ con el directorio; **un toque agrega** y la hoja queda abierta para sumar varios
 > importa el **consumo** (§2.1 expandida = consumo + abono). El **rol, el cover y "Quitar"** son
 > configuración → viven en **Configurar primada › Asistentes** (`.cfg-asis`), no en operación.
 
+### 2.11 · Selector de primada — barra superior del tab Primadas (✅ CANÓNICO)
+
+**Jerarquía por frecuencia de uso:** operar es diario → manda; crear es ~mensual → se degrada.
+La barra superior es un **selector** (navegación principal entre primadas), no una cabecera estática.
+
+**Cerrado (`.selrow`):** una fila con `[selector (flex:1)] [⚙ Configurar] [+ Nueva]`.
+- `.prm-selector` (botón tappable, `data-act="open-selector"`): dos líneas — **`.sel-main`** = `"Mes Año"`
+  (ej. "Junio 2026", `Util.monthYear`, peso 800/22px, **primario**: lo que importa de un vistazo) sobre
+  **`.sel-sub`** = punto de estado + **nombre** de la primada (`--ink-soft`, **secundario**). `.sel-caret`
+  (chevron-down) indica que abre; rota 180° abierto.
+- **`⚙`** (`.icon-btn`, `open-config-primada`): configuración (escondida, §2.8).
+- **`+`** (`.icon-btn.nueva`, ~32px, `new-primada`): abre el wizard de 3 pasos. **Secundario** — ícono
+  pequeño, NO un `.btn` grande (crear no compite con operar). **Prohibido** el botón grande "Nueva primada".
+
+**Abierto (overlay `selector-primada`, `selectorSheet`):** sheet con TODAS las primadas **agrupadas por
+AÑO → MES** (reciente arriba; `Store.select.primadasPorAnio`). El **historial vive aquí**, no como lista aparte.
+
+| Clase | Propiedades canónicas |
+|---|---|
+| `.sel-anio` | encabezado de año: `font-weight:800; font-size:13px; color:var(--ink-soft); letter-spacing:.06em` |
+| `.sel-fila` | fila tappable (`select-primada`): `min-height:var(--tap-row)`; sin caja; separación por línea tenue. Identidad `.sel-fila-main` = **`<b>Mes</b> · {nombre}`** (ellipsis); a la derecha `.sel-fila-right` = total (recaudo) + `.sel-check` (check teal) si es la activa |
+| activa | `.sel-fila.on` → el mes en acento. Tocar una la activa (`seleccionarPrimada`) y **cierra** la hoja |
+
+> **Nombre automático (decisión de producto):** al crear, `Store.select.nombreSugerido` arma
+> **"Primada {N1} + {N2}"** con el **primer token** del nombre de cada organizador — N1 = principal,
+> N2 = segundo organizador; 1 solo → "Primada {N1}"; 3+ → solo los dos primeros. **Editable** (✎ =
+> `renombrarPrimada`, override manual). Aplica a primadas nuevas; las viejas conservan su nombre.
+
 ---
 
 ## 3 · Jerarquía tipográfica por roles
