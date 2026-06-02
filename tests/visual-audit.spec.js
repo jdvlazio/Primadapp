@@ -103,30 +103,35 @@ test.describe('Conformidad DESIGN.md — verde', () => {
     expect(color).toBe(ACCENT);
   });
 
-  test('C4 — modelo Otrofestiv: body scrollea + tabbar position:fixed al borde físico (§6 safe-area)', async ({ page }) => {
+  test('C4 — fix cold-start: .app a la altura del viewport + tabbar flex al borde (§6 safe-area)', async ({ page }) => {
     await abrirApp(page);
     const r = await page.evaluate(() => {
+      const app = document.querySelector('.app');
+      const sc = document.querySelector('.app-scroll');
       const tb = document.querySelector('.tabbar');
       const rect = tb.getBoundingClientRect();
       return {
-        // copia literal de Otrofestiv: NO hay contenedor de scroll interno (.app-scroll/.app-shell).
-        hasInnerScroller: !!document.querySelector('.app-scroll') || !!document.querySelector('.app-shell'),
-        bodyOverflowHidden: getComputedStyle(document.body).overflow === 'hidden',
+        hasApp: !!app,
+        appHeightVar: getComputedStyle(document.documentElement).getPropertyValue('--app-height').trim(),
+        appDisplay: app ? getComputedStyle(app).display : null,
+        scrollerFlexGrow: sc ? getComputedStyle(sc).flexGrow : null,
+        scrollerOverflowY: sc ? getComputedStyle(sc).overflowY : null,
+        bodyOverflow: getComputedStyle(document.body).overflow,
         tabbarPosition: getComputedStyle(tb).position,
-        tabbarBottomCss: getComputedStyle(tb).bottom,
-        tabbarZ: getComputedStyle(tb).zIndex,
         tabbarBottom: Math.round(rect.bottom),
         innerHeight: window.innerHeight,
       };
     });
-    // El body scrollea (sin overflow:hidden ni contenedor fijo interno) y la tabbar es position:fixed
-    // bottom:0 — exactamente el modelo de .main-nav de Otrofestiv (PWA iOS probada).
-    expect(r.hasInnerScroller).toBe(false);         // sin .app-scroll/.app-shell (body scrollea)
-    expect(r.bodyOverflowHidden).toBe(false);       // body NO bloqueado → scrollea como Otrofestiv
-    expect(r.tabbarPosition).toBe('fixed');         // tabbar fija al viewport
-    expect(r.tabbarBottomCss).toBe('0px');          // bottom:0
-    expect(r.tabbarZ).toBe('1000');                 // z-index:1000 (copiado de Otrofestiv)
-    expect(r.tabbarBottom).toBe(r.innerHeight);     // toca el borde inferior físico (cubre el inset)
+    // FIX del cold-start de iOS PWA: el alto lo manda .app=var(--app-height) (window.innerHeight),
+    // NO 100dvh ni un position:fixed que iOS ancla mal al lanzar. La tabbar es un hijo flex al fondo.
+    expect(r.hasApp).toBe(true);
+    expect(r.appHeightVar).toMatch(/px$/);          // --app-height puesto por JS desde innerHeight
+    expect(r.appDisplay).toBe('flex');              // columna flex
+    expect(r.scrollerFlexGrow).toBe('1');           // .app-scroll ocupa el alto disponible
+    expect(r.scrollerOverflowY).toBe('auto');       // y es el único que scrollea
+    expect(r.bodyOverflow).toBe('hidden');          // el body no scrollea
+    expect(r.tabbarPosition).toBe('static');        // tabbar EN FLUJO (flex), no fixed
+    expect(r.tabbarBottom).toBe(r.innerHeight);     // queda pegada al borde inferior físico
   });
 
   test('C5 — saldo en deuda usa color en el NÚMERO, no borde de fila (§2.1 / §3)', async ({ page }) => {
@@ -243,23 +248,28 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     expect(await page.locator('.overlay .prow .acc-head').count()).toBeGreaterThan(0);
   });
 
-  test('E3 — tabbar anclada por estructura: el scroll del contenido no la mueve', async ({ page }) => {
+  test('E3 — tabbar anclada por estructura: el scroll del CONTENIDO (.app-scroll) no la mueve', async ({ page }) => {
     await appConPrimadaAbierta(page);
     const r = await page.evaluate(() => {
       const tb = document.querySelector('.tabbar');
-      // forzar contenido alto para que el body tenga algo que scrollear
-      document.body.style.minHeight = '3000px';
+      const scroller = document.querySelector('.app-scroll');
+      const spacer = document.createElement('div');     // forzar contenido alto en el scroller
+      spacer.style.height = '3000px';
+      scroller.appendChild(spacer);
       const bottom0 = Math.round(tb.getBoundingClientRect().bottom);
-      window.scrollTo(0, 600);                 // modelo Otrofestiv: scrollea el BODY/ventana
+      scroller.scrollTop = 600;                          // scrollea el contenedor interno, no el body
       const bottom1 = Math.round(tb.getBoundingClientRect().bottom);
-      const scrolled = window.scrollY;
-      document.body.style.minHeight = '';
-      return { bottom0, bottom1, scrolled, innerHeight: window.innerHeight };
+      const scrolled = scroller.scrollTop;
+      const windowScrolled = window.scrollY;
+      spacer.remove();
+      return { bottom0, bottom1, scrolled, windowScrolled, innerHeight: window.innerHeight };
     });
-    // La tabbar es position:fixed → aunque el body scrollee, permanece pegada al borde del viewport.
-    expect(r.scrolled).toBeGreaterThan(0);    // el body SÍ scrollea (modelo Otrofestiv)
+    // La tabbar es hermana del scroller (hijo flex de .app) → el scroll interno no la mueve, y el
+    // body no scrollea (overflow:hidden) → no hay scroll-away de la barra.
+    expect(r.scrolled).toBeGreaterThan(0);    // el contenido interno SÍ scrollea
+    expect(r.windowScrolled).toBe(0);         // el body/ventana NO scrollea
     expect(r.bottom0).toBe(r.innerHeight);    // tocaba el borde inferior...
-    expect(r.bottom1).toBe(r.innerHeight);    // ...y sigue ahí tras scrollear (fija al viewport)
+    expect(r.bottom1).toBe(r.innerHeight);    // ...y sigue ahí tras scrollear el contenido
   });
 
   test('E4 — los <select> usan appearance:none + chevron (no flechas nativas)', async ({ page }) => {

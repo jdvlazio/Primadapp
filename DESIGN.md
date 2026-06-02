@@ -334,7 +334,7 @@ Desviaciones **intencionales** del canónico, con razón. Aprobadas por el PO.
 | `rgba(255,255,255,.06)` (separador de filas) | valor raw, aún sin token | Línea tenue de separación de listas. **Pendiente de tokenizar** (`--line-soft`) cuando se aplique 2.1 — aprobar nombre con el PO |
 | `.chip` (picker "+ Agregar") | `border:2px solid var(--line)` | Es un **control interactivo** (chip-picker de productos), no una caja decorativa. El borde es la affordance, como en inputs |
 | `.ti` / `.sel` / `.step` | `border:2px solid var(--line)` | Inputs y steppers: el borde es affordance de control, permitido (§2.3) |
-| `.tabbar` / `.tab.active` | COPIA de `.main-nav` de Otrofestiv: `position:fixed;bottom:0;z-index:1000`, `border-top:1px solid var(--line)`, fondo semi-transparente `rgba(13,23,22,.88)` + `backdrop-filter:blur(20px) saturate(160%)`. Activo = solo color de acento (sin pill) | Modelo iOS PWA probado en Otrofestiv. El `backdrop-filter` necesita fondo semi-transparente para verse. Ver "App shell y scroll" para el porqué del modelo body-scroll + fixed |
+| `.tabbar` / `.tab.active` | `flex:none` (hijo flex al fondo de `.app`, NO `position:fixed`), `border-top:1px solid var(--line)`, fondo `var(--paper)`, `padding-bottom:max(env(safe-area-inset-bottom),20px)`. Activo = solo color de acento (sin pill) | Anclada por estructura (el alto de `.app` = `window.innerHeight`), inmune al cold-start de iOS PWA. Ver "App shell y scroll — fix del cold-start" |
 | `.toast` opacidad/blur raw | sombras y alphas a negro | Componentes flotantes (toast, sync-indicator); profundidad sobre oscuro |
 
 **Badges con borde** (`.badge.warn/.good/.red`): **legado**. Permitidos **sólo** de forma
@@ -352,35 +352,37 @@ tenue / dot. **Prohibidos** en la identidad de fila (§2.1). Decisión final pen
   genuina. **Nunca** para agrupar secciones, estados vacíos, ni barras de control.
 - Liviano pero **claro y con vida**: no esconder acciones esenciales; la principal siempre visible.
 
-### App shell y scroll (iOS / PWA standalone) — anclaje de la tabbar (COPIA LITERAL de Otrofestiv)
-**El BODY scrollea; la tabbar es `position:fixed; bottom:0`. Sin contenedor de scroll interno, sin
-JS de posición.** Se copió, carácter por carácter, el modelo de `.main-nav` de Otrofestiv (PWA iOS
-probada). Lo único que difería en La Primada y causaba el salto era el **viewport meta** (tenía
-`maximum-scale=1.0, user-scalable=no`, que Otrofestiv NO usa) sumado a un contenedor de scroll fijo
-interno. Modelo exacto:
-1. **Viewport** idéntico a Otrofestiv: `width=device-width, initial-scale=1.0, viewport-fit=cover`
-   (SIN `maximum-scale` ni `user-scalable=no` — esos rompían el asentamiento del safe-area en iOS).
-2. **`body`** = **`min-height:100dvh; touch-action:pan-y; overscroll-behavior-x:none`** → el body
-   scrollea normal (las mismas props que el `<body>` de Otrofestiv). **Sin** `overflow:hidden`,
-   **sin** `.app-shell`/`.app-scroll` (no hay contenedor de scroll interno).
-3. **`.tabbar`** = copia de la regla mobile de `.main-nav`: **`position:fixed; bottom:0; left:0;
-   right:0; top:auto; z-index:1000; border-top:1px solid var(--line); padding-bottom:
-   max(env(safe-area-inset-bottom),20px); background:rgba(13,23,22,.88); backdrop-filter:blur(20px)
-   saturate(160%); will-change:transform`**. Único cambio: el color del fondo a la paleta teal
-   (`rgba(13,23,22,.88)`=`--paper` a .88) y `--bdr`→`var(--line)`. **NO** se ejecuta JS al cargar
-   para posicionarla (Otrofestiv tampoco lo hace).
-4. **Contenido** (`.wrap`) lleva `padding-bottom:calc(72px + max(env(safe-area-inset-bottom),20px))`
-   para despejar la tabbar fija (como las vistas de Otrofestiv reservan el alto del nav).
-5. **z-index de overlays > tabbar:** `.overlay`=1100, `.toast`=1200, `.sync-indicator`=1300 (todos
-   por encima de 1000). CRÍTICO: con la tabbar a z-index 1000, un sheet abierto debe ir **por
-   encima**, o la tabbar intercepta los clics del pie del sheet (rompía el "Siguiente"/"Crear" del wizard).
-6. Header bajo el Island: `padding-top:env(safe-area-inset-top)` dentro de `@supports`.
-7. Mínimo inferior: tabbar/sheets/padding usan **`max(env(safe-area-inset-bottom),20px)`** directo.
+### App shell y scroll (iOS / PWA standalone) — fix del cold-start (`--app-height`)
+**El alto de la app lo manda `window.innerHeight` (vía `--app-height`), NO `100dvh` ni un
+`position:fixed` que dependa del viewport.** CAUSA del bug "la tabbar aparece muy arriba al lanzar y
+baja al primer scroll" (documentada en foros/docs): en una PWA standalone el viewport **no está
+asentado en el cold-start**, así que `100dvh` y el anclaje de `position:fixed; bottom:0` se calculan
+contra un viewport corto. **`100dvh` se rompe específicamente en el cold-start de PWA**; `100vh` en
+standalone SÍ es correcto, y **`window.innerHeight` es el valor fiable**. (Otrofestiv no lo sufre
+porque corre como app **NATIVA Capacitor** = viewport fijo; su CSS `position:fixed;bottom:0` basta
+ahí, pero NO en una PWA pura. Por eso el fix va **por fuera** de la barra, a nivel documento.)
+Modelo:
+1. **Viewport:** `width=device-width, initial-scale=1.0, viewport-fit=cover` (sin `maximum-scale`/`user-scalable`).
+2. **`html, body { height:100% }` + `body { overflow:hidden; touch-action:pan-y; overscroll-behavior:none }`** → el body no scrollea.
+3. **`.app`** = **`height:var(--app-height, 100vh); display:flex; flex-direction:column`**. El alto es
+   el viewport REAL. Fallback `100vh` (correcto en standalone), nunca `100dvh`.
+4. **`.app-scroll`** = `flex:1 1 auto; min-height:0; overflow-y:auto` (único scroller).
+5. **`.tabbar`** = **`flex:none`** (hijo flex al fondo de `.app`, `position:static`). Como `.app`
+   tiene el alto correcto desde el cold-start, la barra queda pegada al borde físico sin `position:fixed`.
+   `padding-bottom:max(env(safe-area-inset-bottom),20px)`; fondo `var(--paper)`, `border-top:1px var(--line)`.
+6. **JS (a nivel documento, en `index.html`):** `--app-height = window.innerHeight + 'px'` en `load`,
+   `resize`, `orientationchange`, `visualViewport.resize`, `visibilitychange`, **+ reintentos**
+   `setTimeout` a 0/100/300/600/1000 ms (el viewport del cold-start se asienta tarde).
+7. **z-index de overlays:** `.overlay`=1100, `.toast`=1200, `.sync-indicator`=1300 (la tabbar ya no
+   usa z-index; histórico: cuando fue `position:fixed;z-index:1000`, interceptaba los clics del pie
+   del sheet — wizard "Siguiente"/"Crear" — si el overlay no iba por encima).
+8. Header bajo el Island: `padding-top:env(safe-area-inset-top)` dentro de `@supports`.
 
-> **Regla de hoy:** ante un problema ya resuelto en Otrofestiv, **copiar su código exacto** (no
-> "replicar con criterio"). Los intentos previos —shell `position:fixed;inset:0` flex, hacks de
-> compositor con doble-rAF, fondo "igual al contenido sin línea"— eran invenciones que no atacaban
-> la raíz. El modelo de arriba es el de Otrofestiv tal cual.
+> **Por qué los intentos previos fallaron:** `position:fixed;bottom:0` (copia de Otrofestiv) asume
+> viewport asentado → en PWA cold-start cae corto. `100dvh` se rompe en cold-start. Hacks de
+> compositor (doble-rAF) eran parches frágiles. El fix robusto es **medir el alto real con
+> `window.innerHeight` y dárselo al contenedor raíz** — patrón documentado para PWA en iOS.
+> Refs: gist *iphone-pwa-game-guide*, *frontend.fyi*, *susiekim9* (Medium), *dev.to/maciejtrzcinski*.
 
 ### Acordeón (progressive disclosure)
 Cerrado por defecto: cada ítem es una **línea-resumen**; el detalle aparece al expandir.

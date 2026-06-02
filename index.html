@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260602-114844-3787c5e">
+<meta name="build" content="20260602-124637-6a0564f">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,22 +44,31 @@
     --content-max:480px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  /* APP SHELL — COPIA LITERAL del modelo de Otrofestiv (PWA iOS probada).
-     El BODY scrollea (min-height:100dvh, SIN overflow:hidden ni contenedor fijo interno); la tabbar
-     es position:fixed;bottom:0 (regla más abajo). NO hay ningún hack de JS al cargar — Otrofestiv no
-     ejecuta nada para posicionar la barra, simplemente funciona con este modelo + el viewport correcto.
-     touch-action:pan-y + overscroll-behavior-x:none = exactamente las propiedades de su <body>. */
+  /* APP SHELL — fix DOCUMENTADO del bug de cold-start de PWA en iOS (la barra inferior aparece
+     "muy arriba" al lanzar y baja al primer scroll). CAUSA (foros/docs): en una PWA standalone el
+     viewport NO está asentado en el cold-start → `100dvh` y el anclaje de `position:fixed;bottom:0`
+     se calculan contra un viewport corto. (Otrofestiv no lo sufre porque corre como app NATIVA
+     Capacitor: viewport fijo; su CSS basta ahí, no en PWA pura.)
+     SOLUCIÓN (fuera de la barra, a nivel documento): el alto lo manda `.app` = `var(--app-height)`,
+     que un script pone desde `window.innerHeight` (valor FIABLE en cold-start) y re-mide en cada
+     evento de viewport + reintentos. Fallback `100vh` (que en standalone SÍ es correcto; el que
+     falla es `100dvh`). La tabbar va al fondo de ese contenedor de alto correcto (flex), NO anclada
+     a un viewport que iOS calcula mal. Refs: gist iphone-pwa-game-guide, frontend.fyi, susiekim9. */
+  html{height:100%}
   body{
-    min-height:100dvh;
+    height:100%;
+    overflow:hidden;                 /* el scroll vive en .app-scroll; el body no scrollea */
     touch-action:pan-y;
-    overscroll-behavior-x:none;
+    overscroll-behavior:none;
     font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--paper);
     line-height:1.4;-webkit-font-smoothing:antialiased;
   }
-  /* Contenido: el body scrollea. padding-bottom reserva el alto de la tabbar fija (como las vistas
-     de Otrofestiv: padding-bottom:calc(<alto-nav> + env(safe-area-inset-bottom))). */
-  .wrap{max-width:var(--content-max);margin:0 auto;padding:var(--space-3);
-    padding-bottom:calc(72px + max(env(safe-area-inset-bottom), 20px))}
+  /* Raíz de la app: su ALTO es el viewport REAL (window.innerHeight vía --app-height), NO 100dvh.
+     Columna flex: scroll arriba, tabbar abajo. Como el alto es correcto desde el cold-start, la
+     tabbar (hijo flex al fondo) NO puede quedar "muy arriba". */
+  .app{height:var(--app-height, 100vh);display:flex;flex-direction:column;background:var(--paper)}
+  .app-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:var(--space-4)}
+  .wrap{max-width:var(--content-max);margin:0 auto;padding:var(--space-3)}
 
   /* ---------- Encabezado ---------- */
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-1) var(--space-3);margin-bottom:var(--space-4)}
@@ -138,15 +147,13 @@
 
   .note{margin-top:var(--space-4);font-size:11px;color:var(--ink-soft);text-align:center;line-height:1.5}
 
-  /* ---------- Barra de tabs (navegación inferior) — COPIA LITERAL de .main-nav de Otrofestiv ----------
-     Regla mobile de Otrofestiv (@media max-width:768px), mecánica idéntica:
-       position:fixed; bottom:0; left:0; right:0; top:auto; z-index:1000;
-       border-top:1px solid <bdr>; padding-bottom:max(env(safe-area-inset-bottom),20px);
-       background:rgba(...,0.88); backdrop-filter:blur(20px) saturate(160%); will-change:transform.
-     El body scrollea (no hay contenedor fijo interno) y NO se ejecuta JS para posicionar la barra —
-     tal como Otrofestiv. Lo ÚNICO adaptado: el color del fondo a la paleta teal (rgba(13,23,22,.88)
-     = --paper a .88) y --bdr → var(--line). */
-  .tabbar{position:fixed;bottom:0;left:0;right:0;top:auto;z-index:1000;display:flex;justify-content:center;gap:var(--space-1);border-top:1px solid var(--line);background:rgba(13,23,22,0.88);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);padding:var(--space-2) var(--space-2) max(env(safe-area-inset-bottom), 20px);will-change:transform}
+  /* ---------- Barra de tabs (navegación inferior) ----------
+     Hijo FLEX al fondo de .app (cuyo alto = window.innerHeight vía --app-height). Al estar el
+     contenedor a la altura REAL del viewport desde el cold-start, la barra queda pegada al borde
+     físico sin depender de un position:fixed que iOS ancla mal al lanzar. padding-bottom con el
+     safe-area empuja los tabs sobre la barra de gestos; fondo = var(--paper) (= contenido), border
+     superior tenue. */
+  .tabbar{flex:none;display:flex;justify-content:center;gap:var(--space-1);border-top:1px solid var(--line);background:var(--paper);padding:var(--space-2) var(--space-2) max(env(safe-area-inset-bottom), 20px)}
   .tab{flex:1;max-width:160px;min-height:var(--tap-row);display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--ink-soft);font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;letter-spacing:.02em;padding:var(--space-2);border-radius:var(--radius-md);transition:color .15s, background .15s}
   .tab:active{opacity:.7}
   /* Activo = SOLO color (acento) + peso. Sin caja/pill (que solo cambie de color es suficiente). */
@@ -372,8 +379,11 @@
 </style>
 </head>
 <body>
-  <!-- Modelo de Otrofestiv: el BODY scrollea. El contenido vive en .wrap; la tabbar (fija) es
-       hermana directa, después del contenido. Sin .app-shell ni contenedor de scroll interno. -->
+  <!-- .app = raíz de alto = window.innerHeight (vía --app-height, puesto por JS). Columna flex:
+       .app-scroll (scroll) arriba + tabbar abajo. El body NO scrollea (overflow:hidden). Esto fija
+       el bug de cold-start de iOS PWA sin depender de position:fixed ni de 100dvh. -->
+  <div class="app">
+  <div class="app-scroll">
   <div class="wrap">
     <header class="topbar">
       <div class="brand">
@@ -392,14 +402,16 @@
 
     <main id="screen"><!-- la Vista renderiza aquí --></main>
   </div><!-- /.wrap -->
+  </div><!-- /.app-scroll -->
 
-  <!-- Tabbar (3 tabs): position:fixed; bottom:0 (copia de .main-nav de Otrofestiv). Hermana directa
-       del contenido; el body scrollea bajo ella. Sin contenedor fijo interno, sin JS de posición. -->
+  <!-- Tabbar (3 tabs): hijo FLEX al fondo de .app (cuyo alto = window.innerHeight). Queda pegada al
+       borde físico sin position:fixed → inmune al cold-start de iOS PWA. -->
   <nav class="tabbar" id="tabbar">
     <button class="tab" data-tab="resumen">Resumen</button>
     <button class="tab active" data-tab="primadas">Primadas</button>
     <button class="tab" data-tab="fondo">Fondo</button>
   </nav>
+  </div><!-- /.app -->
 
   <!-- Overlay (detrás del engranaje): Personas / Ajustes. Inerte salvo cuando ui.overlay activo. -->
   <div class="overlay" id="overlay" hidden></div>
@@ -413,13 +425,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260602-114844-3787c5e"></script>
-  <script src="js/util.js?v=20260602-114844-3787c5e"></script>
-  <script src="js/api.js?v=20260602-114844-3787c5e"></script>
-  <script src="js/auth.js?v=20260602-114844-3787c5e"></script>
-  <script src="js/store.js?v=20260602-114844-3787c5e"></script>
-  <script src="js/view.js?v=20260602-114844-3787c5e"></script>
-  <script src="js/controller.js?v=20260602-114844-3787c5e"></script>
+  <script src="js/config.js?v=20260602-124637-6a0564f"></script>
+  <script src="js/util.js?v=20260602-124637-6a0564f"></script>
+  <script src="js/api.js?v=20260602-124637-6a0564f"></script>
+  <script src="js/auth.js?v=20260602-124637-6a0564f"></script>
+  <script src="js/store.js?v=20260602-124637-6a0564f"></script>
+  <script src="js/view.js?v=20260602-124637-6a0564f"></script>
+  <script src="js/controller.js?v=20260602-124637-6a0564f"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
@@ -438,6 +450,27 @@
         navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
       });
     }
+
+    /* --- FIX cold-start iOS PWA: --app-height = window.innerHeight (a nivel documento) ---------
+       En una PWA standalone el viewport NO está asentado al lanzar → 100dvh y el anclaje de
+       position:fixed dan un alto CORTO y la barra inferior aparece "muy arriba" (baja al primer
+       scroll). window.innerHeight SÍ es fiable; lo exponemos como --app-height para que el alto del
+       .app sea el viewport real. Se re-mide en cada evento que cambia el viewport + reintentos por
+       timer (el área segura/viewport se asienta tarde en el cold-start). Refs: gist
+       iphone-pwa-game-guide, frontend.fyi, susiekim9 (Medium), dev.to/maciejtrzcinski. */
+    (function () {
+      function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      }
+      setAppHeight();
+      window.addEventListener('resize', setAppHeight);
+      window.addEventListener('orientationchange', function () { setAppHeight(); setTimeout(setAppHeight, 300); });
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', setAppHeight);
+      // Reintentos: el viewport del cold-start se asienta entre el primer paint y ~1s.
+      window.addEventListener('load', function () { [0, 100, 300, 600, 1000].forEach(function (ms) { setTimeout(setAppHeight, ms); }); });
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') setAppHeight(); });
+    })();
+
     (function () {
       // BUILD = build de ESTE HTML (meta sellado). Es la VERDAD de qué versión corre — NO localStorage,
       // que podía quedar "mintiendo" (guardaba el build nuevo antes de confirmar que el reload trajo el
@@ -479,8 +512,8 @@
         });
       }
 
-      // (Sin JS de posicionamiento de la tabbar: copia literal de Otrofestiv, que tampoco ejecuta
-      //  nada para su .main-nav. position:fixed;bottom:0 + body que scrollea + viewport correcto bastan.)
+      // (El posicionamiento de la tabbar lo resuelve --app-height arriba: .app a la altura real del
+      //  viewport y la barra como hijo flex al fondo. No hace falta tocar la barra aquí.)
 
       checkVersion();                               // 1) cold start
       document.addEventListener('visibilitychange', function () {   // 1+3) volver de background
