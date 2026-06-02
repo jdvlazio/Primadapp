@@ -43,9 +43,8 @@
   // ui = estado EFÍMERO (no dominio, no se persiste):
   // - abiertos: Set de personaId con tarjeta-acordeón expandida (multiabierto)
   // - pickProd: personaId con el chip-picker "+ Agregar" abierto (uno a la vez)
-  // - panelProductos: sección "Productos del evento" desplegada
   // - addAsis: selector de asistente abierto (un solo punto de entrada "+ Agregar")
-  const ui = { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, panelProductos: false, wizard: null, addAsis: false };
+  const ui = { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, wizard: null, addAsis: false };
 
   function rerender() { View.render(Store.select.state(), ui); }
 
@@ -181,8 +180,7 @@
         break;
       }
 
-      // ----- gestión de productos del evento -----
-      case 'toggle-panel-productos': ui.panelProductos = !ui.panelProductos; rerender(); return;
+      // ----- gestión de productos del evento (en el overlay Configurar) -----
       case 'remove-producto': A.removeProducto(prm, id); break;
       case 'add-producto': {
         const emoji = (document.getElementById('pn-emoji') || {}).value || '';

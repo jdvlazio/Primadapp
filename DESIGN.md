@@ -226,8 +226,25 @@ reemplazar por `.empty-soft`.
 
 ### 2.7 · Estado (abierta / cerrada) (✅ CANÓNICO)
 
-Estado de una primada = **punto de color** (`.dot` / `.dot.closed`) o color del texto
-(`.state` / `.state.closed`). **No** un badge con borde. Abierta → `--pos`; cerrada → `--ink-soft`.
+Estado de una primada = **punto de color** (`.dot` / `.dot.closed`) + texto (`.estado-tag`).
+**No** un badge con borde. Abierta → `--pos`; cerrada → `--ink-soft`. Mismo patrón en el
+detalle (`.prm-meta`) y en el historial (`.estado-tag`).
+
+### 2.8 · Fila de producto editable — Configurar (✅ CANÓNICO)
+
+Vive **solo** en el overlay Configurar (no en el tab Primadas): editar un producto del snapshot
+de la primada es un ajuste de una vez, no operación diaria. Fila por producto: identidad +
+dos precios editables + quitar. Sin caja; separación entre filas por **línea tenue**.
+
+| Clase | Propiedades canónicas |
+|---|---|
+| `.prodrow` | `display:flex; align-items:center; gap:var(--space-2); padding:var(--space-2) 0; border-top:1px solid var(--line-soft)` (primera sin borde). Sin caja |
+| `.prodrow-name` | identidad (emoji + nombre): `flex:1; min-width:0; font-size:13px; font-weight:700` + ellipsis. **Primario** |
+| `.prodrow-f` (campo costo / venta) | etiqueta + input apilados: etiqueta `font-size:9px; uppercase; color:var(--ink-soft)` (**terciario**) sobre `.ti.num` (input, §2.3) |
+| quitar (`.xmini`) | ícono `trash-2`, `color:var(--alert)` — **destructivo** (§2.4) |
+| alta (`.prodnew`) | form de un producto nuevo (emoji, nombre, costo, venta + botón Agregar), separado por línea tenue |
+
+La lógica de precios (costo/venta, margen) **no** cambia con esta anatomía; solo **dónde** se edita.
 
 ---
 

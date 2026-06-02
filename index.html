@@ -183,10 +183,13 @@
   .ti:focus{outline:none;border-color:var(--red)}
   .ti.name{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:18px}
   .ti:disabled{opacity:.6}
-  .sel{font-family:inherit;font-size:13px;min-height:var(--tap-input);padding:var(--space-2) var(--space-3);border:2px solid var(--line);border-radius:var(--radius-md);background:var(--paper);color:var(--ink)}
+  /* Select con chevron-down de Lucide (appearance:none): una sola flecha, no las dobles nativas.
+     Igual que el caret de fila (.acc-caret, --ink-soft). El <select> nativo sigue funcional. */
+  .sel{font-family:inherit;font-size:13px;min-height:var(--tap-input);padding:var(--space-2) calc(var(--space-3) + 22px) var(--space-2) var(--space-3);border:2px solid var(--line);border-radius:var(--radius-md);color:var(--ink);appearance:none;-webkit-appearance:none;background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238aa3a0' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right var(--space-3) center;background-size:16px}
   .sel:disabled{opacity:.6}
   .fld{display:flex;flex-direction:column;gap:var(--space-1);font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);margin:var(--space-3) 0}
+  .grid2 > *{min-width:0}   /* deja que las columnas se encojan: inputs date/month no desbordan el sheet */
   .row{display:flex;align-items:center}
   .row.gap{gap:var(--space-2)}.row.end{justify-content:flex-end;flex-wrap:wrap;margin-top:var(--space-3)}
 
@@ -240,7 +243,6 @@
   .asis-ctl{display:flex;align-items:center;gap:var(--space-2)}
   .cover{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2)}
   .cover b{color:var(--ink)}
-  .cover.org{font-style:italic}
   .prods{display:flex;flex-direction:column;gap:var(--space-1)}
   .prod{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:13px;padding:var(--space-1) 0}
   .prod.has{font-weight:700}
@@ -296,6 +298,10 @@
   .sheet-title{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:22px}
   .sheet.full{min-height:86vh}
   .sheet-body{display:block}
+  /* Overlay Configurar: secciones agrupadas por AIRE (sin divisores). Cada sección abre con su
+     etiqueta .sub; entre secciones, --space-5. */
+  .cfg-sec + .cfg-sec{margin-top:var(--space-5)}
+  .cfg-sec .sub{margin-top:0}
 
   /* Cabecera compacta de la primada activa (tab Primadas = operar) + dashboard Resumen */
   .prm-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-6)}
@@ -385,13 +391,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260601-203351-912fd86"></script>
-  <script src="js/util.js?v=20260601-203351-912fd86"></script>
-  <script src="js/api.js?v=20260601-203351-912fd86"></script>
-  <script src="js/auth.js?v=20260601-203351-912fd86"></script>
-  <script src="js/store.js?v=20260601-203351-912fd86"></script>
-  <script src="js/view.js?v=20260601-203351-912fd86"></script>
-  <script src="js/controller.js?v=20260601-203351-912fd86"></script>
+  <script src="js/config.js?v=20260601-204736-8b1eaba"></script>
+  <script src="js/util.js?v=20260601-204736-8b1eaba"></script>
+  <script src="js/api.js?v=20260601-204736-8b1eaba"></script>
+  <script src="js/auth.js?v=20260601-204736-8b1eaba"></script>
+  <script src="js/store.js?v=20260601-204736-8b1eaba"></script>
+  <script src="js/view.js?v=20260601-204736-8b1eaba"></script>
+  <script src="js/controller.js?v=20260601-204736-8b1eaba"></script>
 
   <!-- PWA: registrar el Service Worker (network-first; CACHE_VERSION se estampa en cada commit). -->
   <script>

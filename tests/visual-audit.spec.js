@@ -182,3 +182,51 @@ test.describe('Conformidad DESIGN.md — rediseño aplicado', () => {
     expect(emptyBorder).toBe('none'); // la clase legado .empty ya no existe en el CSS
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4 · AJUSTES tab Primadas / Configurar (productos movidos) + tabbar fija
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
+  test('E1 — tab Primadas NO edita productos (solo asistentes)', async ({ page }) => {
+    await appConPrimadaAbierta(page);
+    expect(await page.locator('#screen .prodrow').count()).toBe(0);
+    expect(await page.locator('[data-act="toggle-panel-productos"]').count()).toBe(0);
+    expect(await page.locator('#screen .acc-head').count()).toBeGreaterThan(0); // sí hay asistentes
+  });
+
+  test('E2 — Configurar muestra productos editables (costo/venta)', async ({ page }) => {
+    await abrirApp(page);
+    await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
+    await crearPrimada(page, 'Ana');
+    await page.click('[data-act="open-config-primada"]');
+    await expect(page.locator('.overlay')).toBeVisible();
+    expect(await page.locator('.overlay .prodrow').count()).toBeGreaterThan(0);
+    await expect(page.locator('.overlay [data-ch="costo-producto"]').first()).toBeVisible();
+    await expect(page.locator('.overlay [data-ch="venta-producto"]').first()).toBeVisible();
+  });
+
+  test('E3 — tabbar fija: position:fixed, bottom:0, will-change (iOS), anclada bajo scroll', async ({ page }) => {
+    await appConPrimadaAbierta(page);
+    const r = await page.evaluate(() => {
+      const tb = document.querySelector('.tabbar');
+      const top0 = Math.round(tb.getBoundingClientRect().top);
+      window.scrollTo(0, 400);
+      const top1 = Math.round(tb.getBoundingClientRect().top);
+      const cs = getComputedStyle(tb);
+      return { position: cs.position, bottom: cs.bottom, willChange: cs.willChange, top0, top1 };
+    });
+    expect(r.position).toBe('fixed');
+    expect(r.bottom).toBe('0px');
+    expect(r.willChange).toContain('transform'); // promoción de capa (fix iOS fixed+backdrop)
+    expect(r.top0).toBe(r.top1);                  // no se mueve al scrollear
+  });
+
+  test('E4 — los <select> usan appearance:none + chevron (no flechas nativas)', async ({ page }) => {
+    await appConPrimadaAbierta(page); // expande un asistente → aparece el select de rol
+    const sel = page.locator('select.sel').first();
+    await expect(sel).toBeVisible();
+    const css = await sel.evaluate(el => ({ ap: getComputedStyle(el).appearance, bg: getComputedStyle(el).backgroundImage }));
+    expect(css.ap).toBe('none');
+    expect(css.bg).toContain('svg'); // chevron-down como background data-URI
+  });
+});

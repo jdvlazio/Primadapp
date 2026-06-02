@@ -79,26 +79,41 @@
       <div class="empty-soft">Sin primada</div></div>`;
     const cerrada = p.estado === 'cerrada';
     const ro = cerrada ? 'disabled' : '';
+    // Hogar ordenado de TODA la configuración de una vez. Secciones separadas por AIRE (.sub),
+    // sin divisores. Identidad → Productos (edición de precios) → Cuenta → Eliminar (destructivo).
     return `<div class="sheet full">
       <div class="sheet-head">
         <div class="sheet-title">Configurar primada</div>
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button>
       </div>
       <div class="sheet-body">
-        <label class="fld"><span>Nombre</span>
-          <input class="ti name" data-ch="rename-primada" data-id="${p.id}" value="${e(p.nombre)}" ${ro} maxlength="40" aria-label="Nombre de la primada"></label>
-        <div class="grid2">
-          <label class="fld"><span>Fecha</span>
-            <input class="ti" type="date" data-ch="fecha-primada" data-id="${p.id}" value="${e(p.fecha)}" ${ro}></label>
-          <label class="fld"><span>Mes contable</span>
-            <input class="ti" type="month" data-ch="mes-primada" data-id="${p.id}" value="${e(p.mesContable)}" ${ro}></label>
-        </div>
-        <div class="sub">Cuenta</div>
-        ${cerrada
-          ? `<button class="mini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>`
-          : `<button class="mini" data-act="cerrar-primada" data-id="${p.id}">Cerrar</button>`}
-        <div class="sub danger-sub">Eliminar</div>
-        <button class="mini danger" data-act="borrar-primada" data-id="${p.id}">${icon('trash-2')}Borrar</button>
+        <section class="cfg-sec">
+          <label class="fld"><span>Nombre</span>
+            <input class="ti name" data-ch="rename-primada" data-id="${p.id}" value="${e(p.nombre)}" ${ro} maxlength="40" aria-label="Nombre de la primada"></label>
+          <div class="grid2">
+            <label class="fld"><span>Fecha</span>
+              <input class="ti" type="date" data-ch="fecha-primada" data-id="${p.id}" value="${e(p.fecha)}" ${ro}></label>
+            <label class="fld"><span>Mes contable</span>
+              <input class="ti" type="month" data-ch="mes-primada" data-id="${p.id}" value="${e(p.mesContable)}" ${ro}></label>
+          </div>
+        </section>
+
+        <section class="cfg-sec">
+          <div class="sub">Productos <span class="muted">(${p.productos.length})</span></div>
+          ${productosConfig(p)}
+        </section>
+
+        <section class="cfg-sec">
+          <div class="sub">Cuenta</div>
+          ${cerrada
+            ? `<button class="mini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>`
+            : `<button class="mini" data-act="cerrar-primada" data-id="${p.id}">Cerrar</button>`}
+        </section>
+
+        <section class="cfg-sec">
+          <div class="sub danger-sub">Eliminar</div>
+          <button class="mini danger" data-act="borrar-primada" data-id="${p.id}">${icon('trash-2')}Borrar</button>
+        </section>
       </div>
     </div>`;
   }
@@ -120,8 +135,10 @@
         </span>
       </div>`;
     }).join('');
+    // Estado vacío sin etiqueta: si está abierta, el botón "+ Agregar" ya comunica el estado;
+    // solo cuando está CERRADA (sin botón) se muestra "Sin consumo" como estado mínimo.
     const cuerpo = consumidos.length ? `<div class="prods">${filas}</div>`
-      : `<div class="muted small consumo-vacio">Sin consumo</div>`;
+      : (cerrada ? `<div class="muted small consumo-vacio">Sin consumo</div>` : '');
     return `${cuerpo}${pickProductos(p, a, ui)}`;
   }
 
@@ -149,7 +166,8 @@
     const cerrada = p.estado === 'cerrada';
     const dis = cerrada ? 'disabled' : '';
     if (a.rol !== 'asistente') {
-      return `<div class="cover org">Sin cover · Organizador</div>`;
+      // El rol ya lo muestra el selector de arriba → aquí solo lo que aporta (sin repetir el rol, sin itálica).
+      return `<div class="cover">Sin cover</div>`;
     }
     const cv = S().coverDe(p, a);
     if (a.coverExonerado) {
@@ -203,7 +221,6 @@
           <button class="mini danger" data-act="remove-asistencia" data-pid="${a.personaId}" ${cerrada ? 'disabled' : ''} aria-label="quitar">${icon('trash-2')}Quitar</button>
         </div>
         ${coverLinea(p, a)}
-        <div class="sub">Consumo</div>
         ${consumoBloque(p, a, ui)}
         <div class="asis-foot">
           <span>Total <b>${$peso(total)}</b></span>
@@ -322,19 +339,15 @@
         ${p.asistencias.length
           ? p.asistencias.map(a => asistenciaCard(p, a, ui)).join('')
           : '<div class="empty-soft">Sin asistentes</div>'}
-      </div>
-      ${productosEvento(p, ui)}`;
+      </div>`;
   }
 
-  // Gestión de productos PROPIOS de la primada (sección plegable). Editar precio / quitar / añadir.
-  // Opera sobre el snapshot de ESTA primada: no toca defaultProducts ni otras primadas.
-  // Precio en vivo → setPreciosProducto usa commitQuiet (sin re-render, no pierde foco).
-  function productosEvento(p, ui) {
+  // Gestión de productos PROPIOS de la primada (vive en el overlay Configurar, no en el tab).
+  // Editar costo/venta · quitar · añadir. Opera sobre el snapshot de ESTA primada: no toca
+  // defaultProducts ni otras primadas. Precio en vivo → setPreciosProducto usa commitQuiet
+  // (sin re-render, no pierde foco). Anatomía canónica: DESIGN.md §2.8 (fila de producto editable).
+  function productosConfig(p) {
     const cerrada = p.estado === 'cerrada';
-    const abierto = ui && ui.panelProductos;
-    const head = `<button class="h2 acc-h2" data-act="toggle-panel-productos" aria-expanded="${abierto ? 'true' : 'false'}">
-      <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span> Productos <span class="muted">(${p.productos.length})</span></button>`;
-    if (!abierto) return head;
     const ro = cerrada ? 'disabled' : '';
     const filas = p.productos.map(prod => `<div class="prodrow">
       <span class="prodrow-name">${e(prod.emoji)} ${e(prod.nombre)}</span>
@@ -351,8 +364,7 @@
       <input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" placeholder="venta" aria-label="Precio de venta">
       <button class="mini" data-act="add-producto">${icon('plus-circle')}Agregar</button>
     </div>`;
-    return `${head}
-      <div class="prodmgmt">
+    return `<div class="prodmgmt">
         ${p.productos.length ? filas : '<div class="empty-soft">Sin productos</div>'}
         ${alta}
       </div>`;
@@ -569,7 +581,7 @@
      (consumos, roles, abonos, navegación) sí re-renderizan.
      ============================================================ */
   function render(state, ui) {
-    ui = ui || { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, panelProductos: false };
+    ui = ui || { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null };
 
     // 1) tabbar: marcar el activo
     if (els.tabbar) {
