@@ -196,6 +196,7 @@ El input **sí** lleva borde: es la affordance del control, no una caja decorati
 | `.ti` (texto) | `font-size:14px; min-height:var(--tap-input)` (44px, compacto); `padding:var(--space-2) var(--space-3)` (8/12, poco aire vertical); `border:1px solid var(--line); border-radius:var(--radius-md); background:var(--paper); color:var(--ink); width:100%` |
 | `.ti:focus` | `border-color:var(--accent)` (foco = acento) |
 | `.ti.name` | variante título: `font-weight:700; font-size:18px` |
+| `.ti[type=date]` / `.ti[type=month]` | **`appearance:none; text-align:left`** — en iOS el control nativo rendea más alto que el `min-height` y centrado (parece un botón grande); esto lo ciñe al alto del `.ti` y lo alinea como campo. El picker nativo sigue abriéndose al tocar |
 | `.sel` (select) | igual al `.ti` (`border:1px`) + chevron-down de Lucide (`appearance:none` + background data-URI), una sola flecha como el caret de fila |
 | `.fld` (etiqueta de campo) | `font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft)` + gap al control. **Secciones de un sheet separadas por aire (`.cfg-sec`), no por divisores** |
 | `.stepper` / `.step` (±) · `.mini` (botón chico) | borde **`1px solid var(--line)`** (afinado de 2px → 1px en la pasada de liviandad) |
