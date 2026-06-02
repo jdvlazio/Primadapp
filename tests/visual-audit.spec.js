@@ -103,21 +103,22 @@ test.describe('Conformidad DESIGN.md — verde', () => {
     expect(color).toBe(ACCENT);
   });
 
-  test('C4 — app shell: body NO scrollea; tabbar anclada por estructura (§6)', async ({ page }) => {
+  test('C4 — app shell: scroller fijo + tabbar al borde físico (§6 safe-area)', async ({ page }) => {
     await abrirApp(page);
     const r = await page.evaluate(() => {
       const tb = document.querySelector('.tabbar');
+      const sc = document.querySelector('.app-scroll');
       const rect = tb.getBoundingClientRect();
       return {
-        bodyOverflow: getComputedStyle(document.body).overflow,
-        hasScroller: !!document.querySelector('.app-scroll'),
+        scrollerPosition: sc ? getComputedStyle(sc).position : null,
+        tabbarPosition: getComputedStyle(tb).position,
         tabbarBottom: Math.round(rect.bottom),
         innerHeight: window.innerHeight,
       };
     });
-    expect(r.bodyOverflow).toBe('hidden');          // el body no scrollea (clave del anclaje iOS)
-    expect(r.hasScroller).toBe(true);               // el scroll vive en .app-scroll
-    expect(r.tabbarBottom).toBe(r.innerHeight);     // la tabbar toca el borde inferior del viewport
+    expect(r.scrollerPosition).toBe('fixed');       // el scroll vive en un contenedor FIJO → body no scrollea
+    expect(r.tabbarPosition).toBe('fixed');         // tabbar fija al viewport
+    expect(r.tabbarBottom).toBe(r.innerHeight);     // toca el borde inferior físico (cubre el inset)
   });
 
   test('C5 — saldo en deuda usa color en el NÚMERO, no borde de fila (§2.1 / §3)', async ({ page }) => {
