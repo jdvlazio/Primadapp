@@ -72,7 +72,7 @@
 
   // Overlay de CONFIGURACIÓN de la primada (escondido tras el engranaje de la cabecera).
   // Edición de una sola vez + acciones destructivas (cerrar/reabrir, borrar) con confirmación.
-  function configPrimadaSheet(state) {
+  function configPrimadaSheet(state, ui) {
     const p = S().activePrimada();
     if (!p) return `<div class="sheet full"><div class="sheet-head"><div class="sheet-title">Configurar</div>
       <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
@@ -100,12 +100,12 @@
 
         <section class="cfg-sec">
           <div class="sub">Asistentes <span class="muted">(${p.asistencias.length})</span></div>
-          ${asistentesConfig(p)}
+          ${asistentesConfig(p, ui)}
         </section>
 
         <section class="cfg-sec">
           <div class="sub">Productos <span class="muted">(${p.productos.length})</span></div>
-          ${productosConfig(p)}
+          ${productosConfig(p, ui)}
         </section>
 
         <section class="cfg-sec">
@@ -123,21 +123,36 @@
     </div>`;
   }
 
-  // Sección "Asistentes" del overlay Configurar: aquí vive la CONFIGURACIÓN de cada asistente
-  // (rol, cover, quitar) — fuera de la operación. Filas livianas, sin cajas anidadas.
-  function asistentesConfig(p) {
+  // Sección "Asistentes" del overlay Configurar: CLON del componente de Personas (mismas clases).
+  // Cada asistente es una FILA ACORDEÓN (.prow + .acc-head + .acc-id-stack); colapsada = línea liviana
+  // sin caja; abierta = .acc-body con rol, cover y quitar. Indistinguible de la fila de Personas.
+  function asistentesConfig(p, ui) {
     if (!p.asistencias.length) return '<div class="empty-soft">Sin asistentes</div>';
-    return `<div class="cfg-asis-list">${p.asistencias.map(a => asistenteConfigRow(p, a)).join('')}</div>`;
+    return `<div class="prow-list">${p.asistencias.map(a => asistenteConfigRow(p, a, ui)).join('')}</div>`;
   }
-  function asistenteConfigRow(p, a) {
+  function asistenteConfigRow(p, a, ui) {
     const cerrada = p.estado === 'cerrada';
-    return `<div class="cfg-asis">
-      <div class="cfg-asis-top">
-        <span class="cfg-asis-name"><b>${e(nombrePersona(a.personaId))}</b> ${rolTag(a.estadoEnEseMomento)}</span>
-        ${rolSelect(p, a)}
-        <button class="xmini" data-act="remove-asistencia" data-pid="${a.personaId}" ${cerrada ? 'disabled' : ''} aria-label="quitar asistente">${icon('trash-2', 'sm')}</button>
+    const esPrin = S().esPrincipal(p, a);
+    const abierto = ui && ui.configAsis && ui.configAsis.has(a.personaId);
+    // línea 2 (tenue): rol + resumen de cover, igual que el dato secundario de la fila de Persona.
+    const sub = a.rol === 'asistente'
+      ? (a.coverExonerado ? 'Cover exonerado' : 'Cover ' + $peso(S().coverDe(p, a)))
+      : 'Sin cover';
+    const cabecera = `<button class="acc-head" data-act="toggle-cfg-asis" data-pid="${a.personaId}" aria-expanded="${abierto ? 'true' : 'false'}">
+        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
+        <span class="acc-id-stack">
+          <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b> ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
+          <span class="acc-sub">${cap(a.rol)} · ${sub}</span>
+        </span>
+      </button>`;
+    if (!abierto) return `<div class="prow">${cabecera}</div>`;
+    return `<div class="prow open">
+      ${cabecera}
+      <div class="acc-body">
+        <div class="fld"><span>Rol</span>${rolSelect(p, a)}</div>
+        ${a.rol === 'asistente' ? coverLinea(p, a) : ''}
+        <button class="mini danger" data-act="remove-asistencia" data-pid="${a.personaId}" ${cerrada ? 'disabled' : ''}>${icon('trash-2', 'sm')}Quitar</button>
       </div>
-      ${a.rol === 'asistente' ? coverLinea(p, a) : ''}
     </div>`;
   }
 
@@ -367,32 +382,49 @@
       </div>`;
   }
 
-  // Gestión de productos PROPIOS de la primada (vive en el overlay Configurar, no en el tab).
-  // Editar costo/venta · quitar · añadir. Opera sobre el snapshot de ESTA primada: no toca
-  // defaultProducts ni otras primadas. Precio en vivo → setPreciosProducto usa commitQuiet
-  // (sin re-render, no pierde foco). Anatomía canónica: DESIGN.md §2.8 (fila de producto editable).
-  function productosConfig(p) {
+  // Gestión de productos PROPIOS de la primada (overlay Configurar). CLON del componente de Personas:
+  // cada producto es una FILA ACORDEÓN (.prow + .acc-head + .acc-id-stack). Colapsada = línea liviana
+  // (emoji+nombre arriba, venta·margen tenue abajo); abierta = .acc-body con costo/venta (.fld+.ti) y
+  // quitar. El alta vive en .prow-foot/.prow-new, igual que "Agregar persona". Precio en vivo →
+  // setPreciosProducto usa commitQuiet (sin re-render, no pierde foco).
+  function productosConfig(p, ui) {
     const cerrada = p.estado === 'cerrada';
-    const ro = cerrada ? 'disabled' : '';
-    const filas = p.productos.map(prod => `<div class="prodrow">
-      <span class="prodrow-name">${e(prod.emoji)} ${e(prod.nombre)}</span>
-      <label class="prodrow-f"><span>costo</span>
-        <input class="ti num" type="number" min="0" step="500" inputmode="numeric" value="${prod.costoNeto}" data-ch="costo-producto" data-id="${prod.id}" ${ro}></label>
-      <label class="prodrow-f"><span>venta</span>
-        <input class="ti num" type="number" min="0" step="500" inputmode="numeric" value="${prod.precioVenta}" data-ch="venta-producto" data-id="${prod.id}" ${ro}></label>
-      <button class="xmini" data-act="remove-producto" data-id="${prod.id}" ${ro} aria-label="quitar producto">${icon('trash-2', 'sm')}</button>
-    </div>`).join('');
-    const alta = cerrada ? '' : `<div class="prodnew">
+    const filas = p.productos.map(prod => productoConfigRow(p, prod, ui)).join('');
+    const alta = cerrada ? '' : `<div class="prow-new">
       <input class="ti emoji" id="pn-emoji" maxlength="2" placeholder="🍹" aria-label="Emoji">
       <input class="ti" id="pn-nombre" maxlength="40" placeholder="Nombre" aria-label="Nombre">
       <input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" placeholder="costo" aria-label="Costo neto">
       <input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" placeholder="venta" aria-label="Precio de venta">
       <button class="mini" data-act="add-producto">${icon('plus-circle')}Agregar</button>
     </div>`;
-    return `<div class="prodmgmt">
-        ${p.productos.length ? filas : '<div class="empty-soft">Sin productos</div>'}
-        ${alta}
-      </div>`;
+    return `${p.productos.length ? `<div class="prow-list">${filas}</div>` : '<div class="empty-soft">Sin productos</div>'}
+      <div class="prow-foot">${alta}</div>`;
+  }
+  function productoConfigRow(p, prod, ui) {
+    const cerrada = p.estado === 'cerrada';
+    const ro = cerrada ? 'disabled' : '';
+    const abierto = ui && ui.configProd && ui.configProd.has(prod.id);
+    const margen = (Number(prod.precioVenta) || 0) - (Number(prod.costoNeto) || 0);
+    const cabecera = `<button class="acc-head" data-act="toggle-cfg-prod" data-id="${prod.id}" aria-expanded="${abierto ? 'true' : 'false'}">
+        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
+        <span class="acc-id-stack">
+          <span class="acc-id"><b>${e(prod.emoji)} ${e(prod.nombre)}</b></span>
+          <span class="acc-sub">Venta ${$peso(prod.precioVenta)} · margen ${$peso(margen)}</span>
+        </span>
+      </button>`;
+    if (!abierto) return `<div class="prow">${cabecera}</div>`;
+    return `<div class="prow open">
+      ${cabecera}
+      <div class="acc-body">
+        <div class="grid2">
+          <label class="fld"><span>Costo</span>
+            <input class="ti" type="number" min="0" step="500" inputmode="numeric" value="${prod.costoNeto}" data-ch="costo-producto" data-id="${prod.id}" ${ro}></label>
+          <label class="fld"><span>Venta</span>
+            <input class="ti" type="number" min="0" step="500" inputmode="numeric" value="${prod.precioVenta}" data-ch="venta-producto" data-id="${prod.id}" ${ro}></label>
+        </div>
+        <button class="mini danger" data-act="remove-producto" data-id="${prod.id}" ${ro}>${icon('trash-2', 'sm')}Quitar</button>
+      </div>
+    </div>`;
   }
 
   // Ítem del historial. Las cifras salen de los SNAPSHOTS de esa primada (cover y precios
@@ -645,7 +677,7 @@
 
     // 3) overlay: wizard (prioridad) · config de primada · pantalla del engranaje (Personas / Ajustes)
     if (ui.wizard)                                              els.overlay.innerHTML = wizardSheet(state, ui);
-    else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state);
+    else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
     else if (ui.overlay === 'personas' || ui.overlay === 'ajustes') els.overlay.innerHTML = overlaySheet(ui.overlay, state, ui);
     else                                                        els.overlay.innerHTML = '';

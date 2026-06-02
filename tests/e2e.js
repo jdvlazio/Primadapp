@@ -133,15 +133,18 @@ section('Asignar principal — invariante "principal siempre ahorrador"');
 // El ROL es CONFIGURACIÓN: vive en el overlay "Configurar primada" (sección Asistentes), no en operación.
 click(`[data-act="open-config-primada"][data-id="${prm().id}"]`);
 check('Sección Asistentes en Configurar', /Asistentes/.test(q('#overlay').innerHTML));
+// Filas de asistente = acordeón (clon de Personas): expandir para acceder a rol/cover.
+click(`[data-act="toggle-cfg-asis"][data-pid="${ana.id}"]`);
 setVal(`select[data-ch="rol"][data-pid="${ana.id}"]`, 'principal');
 eq('Ana es el principal', prm().organizadorPrincipalId, ana.id);
 check('Ya no está incompleta', !Store.select.primadaIncompleta(prm()));
 check('Snapshot de la llave Bre-B del principal en pago', 'breB' in prm().pago);
 
 // Intentar hacer principal a Beto (invitado) → debe rechazarse por invariante
+click(`[data-act="toggle-cfg-asis"][data-pid="${beto.id}"]`);
 setVal(`select[data-ch="rol"][data-pid="${beto.id}"]`, 'principal');
 eq('Beto NO pudo ser principal (sigue Ana)', prm().organizadorPrincipalId, ana.id);
-check('Render se recuperó tras el error (config sigue con 2 asistentes)', qa('.cfg-asis').length === 2);
+check('Render se recuperó tras el error (config sigue con 2 asistentes)', qa('[data-act="toggle-cfg-asis"]').length === 2);
 click('[data-act="close-overlay"]');
 
 /* ---------- 5. Consumos ± (progressive disclosure) ---------- */

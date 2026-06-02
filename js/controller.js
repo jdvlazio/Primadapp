@@ -46,8 +46,11 @@
   // - personasAbiertas: Set de personaId con la fila de persona expandida (edición inline)
   // - nuevaPersona: form "Agregar persona" desplegado al pie del overlay Personas
   // - overlay 'add-asis': hoja simple para agregar asistentes del directorio
+  // - configAsis / configProd: Sets de filas-acordeón expandidas en el overlay Configurar
+  //   (mismo patrón que personasAbiertas; clon del componente de Personas)
   const ui = { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, wizard: null,
-               personasAbiertas: new Set(), nuevaPersona: false };
+               personasAbiertas: new Set(), nuevaPersona: false,
+               configAsis: new Set(), configProd: new Set() };
 
   function rerender() { View.render(Store.select.state(), ui); }
 
@@ -215,6 +218,15 @@
       // Fila de persona: expandir/colapsar para editar inline (multiabierto).
       case 'toggle-persona': {
         if (ui.personasAbiertas.has(pid)) ui.personasAbiertas.delete(pid); else ui.personasAbiertas.add(pid);
+        rerender(); return;
+      }
+      // Configurar: fila-acordeón de asistente / producto (clon de la fila de Persona, multiabierto).
+      case 'toggle-cfg-asis': {
+        if (ui.configAsis.has(pid)) ui.configAsis.delete(pid); else ui.configAsis.add(pid);
+        rerender(); return;
+      }
+      case 'toggle-cfg-prod': {
+        if (ui.configProd.has(id)) ui.configProd.delete(id); else ui.configProd.add(id);
         rerender(); return;
       }
       case 'open-nueva-persona': ui.nuevaPersona = true; rerender(); return;

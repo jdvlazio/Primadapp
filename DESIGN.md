@@ -232,22 +232,25 @@ Estado de una primada = **punto de color** (`.dot` / `.dot.closed`) + texto (`.e
 **No** un badge con borde. Abierta → `--pos`; cerrada → `--ink-soft`. Mismo patrón en el
 detalle (`.prm-meta`) y en el historial (`.estado-tag`).
 
-### 2.8 · Fila de producto editable — Configurar (✅ CANÓNICO)
+### 2.8 · Productos y asistentes en Configurar = CLON del componente de Personas (✅ CANÓNICO)
 
-Vive **solo** en el overlay Configurar (no en el tab Primadas): editar un producto del snapshot
-de la primada es un ajuste de una vez, no operación diaria. Fila por producto: identidad +
-dos precios editables + quitar. Sin caja; separación entre filas por **AIRE** (pasada de liviandad:
-se eliminaron los divisores — DESIGN.md §2.8 permite "sólo espacio". Las líneas entre productos
-sumaban peso visual; el aire las reemplaza).
+Vive **solo** en el overlay Configurar (no en el tab Primadas). **Regla:** las filas de asistente y
+de producto usan EXACTAMENTE las mismas clases que la fila de Personas (§2.9) — son el mismo
+componente acordeón, no unas "cajas livianas" propias. Configurar y Personas son **indistinguibles**
+en estilo de fila/campo. Antes Configurar mostraba TODO expandido (un muro de cajas con borde);
+ahora es una lista de filas-línea colapsadas, idéntica a Personas.
 
-| Clase | Propiedades canónicas |
+| Clase (compartida con Personas §2.9) | Uso en Configurar |
 |---|---|
-| `.prodrow` | `display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0` (**sin** `border-top`: separación por aire). Sin caja |
-| `.prodrow-name` | identidad (emoji + nombre): `flex:1; min-width:0; font-size:13px; font-weight:700` + ellipsis. **Primario** |
-| `.prodrow-f` (campo costo / venta) | etiqueta + input apilados: etiqueta `font-size:9px; uppercase; color:var(--ink-soft)` (**terciario**) sobre `.ti.num` (input compacto: `min-height:var(--tap-sec)`, §2.3) |
-| `.wz-prodrow` (wizard) | misma identidad arriba (emoji+nombre editables) + costo/venta **compactos** (`.ti.num` 96px) abajo. Lista con `gap:var(--space-5)`, **sin divisores** (aire) |
-| quitar (`.xmini`) | ícono `trash-2`, `color:var(--alert)` — **destructivo** (§2.4) |
-| alta (`.prodnew`) | form de un producto nuevo (emoji, nombre, costo, venta + botón Agregar), separado por línea tenue |
+| `.prow-list` / `.prow` | contenedor + fila acordeón (sin caja; separación por línea tenue `border-bottom`) |
+| `.acc-head` + `.acc-caret` + `.acc-id-stack` (`.acc-id` + `.acc-sub`) | cabecera colapsada: **asistente** = nombre+rol (arriba) · rol·cover (tenue, abajo); **producto** = emoji+nombre · `Venta $X · margen $Y` (tenue) |
+| `.acc-body` | al expandir: **asistente** = Rol (`.fld`+`select.sel`) + cover + Quitar (`.mini.danger`); **producto** = Costo/Venta (`.grid2`+`.fld`+`.ti`) + Quitar |
+| `.prow-foot` / `.prow-new` | alta de producto nuevo, igual que "Agregar persona" |
+| toggles | `data-act="toggle-cfg-asis"` / `toggle-cfg-prod` (mismo patrón que `toggle-persona`) |
+
+**❌ ELIMINADAS** (clases pesadas propias de Configurar, ya no existen): `.prodmgmt`, `.prodrow`,
+`.prodrow-name`, `.prodnew`, `.cfg-asis*`. **`.prodrow-f`/`.ti.num`/`.ti.emoji`** se conservan: las usa
+el **wizard** (`.wz-prodrow`, productos en 2 líneas con costo/venta compactos de 96px, separados por aire).
 
 La lógica de precios (costo/venta, margen) **no** cambia con esta anatomía; solo **dónde** se edita.
 
@@ -331,7 +334,7 @@ Desviaciones **intencionales** del canónico, con razón. Aprobadas por el PO.
 | `rgba(255,255,255,.06)` (separador de filas) | valor raw, aún sin token | Línea tenue de separación de listas. **Pendiente de tokenizar** (`--line-soft`) cuando se aplique 2.1 — aprobar nombre con el PO |
 | `.chip` (picker "+ Agregar") | `border:2px solid var(--line)` | Es un **control interactivo** (chip-picker de productos), no una caja decorativa. El borde es la affordance, como en inputs |
 | `.ti` / `.sel` / `.step` | `border:2px solid var(--line)` | Inputs y steppers: el borde es affordance de control, permitido (§2.3) |
-| `.tabbar` / `.tab.active` | sin pill ni línea: fondo de la barra = `var(--paper)` (igual al contenido), activo = solo color de acento | Evita banda/línea visible contra el contenido y "franja" en el inset (Apple Dev Forums: el corte se nota cuando el fondo de la barra difiere del contenido). El activo se distingue por color, no por caja |
+| `.tabbar` / `.tab.active` | COPIA de `.main-nav` de Otrofestiv: `position:fixed;bottom:0;z-index:1000`, `border-top:1px solid var(--line)`, fondo semi-transparente `rgba(13,23,22,.88)` + `backdrop-filter:blur(20px) saturate(160%)`. Activo = solo color de acento (sin pill) | Modelo iOS PWA probado en Otrofestiv. El `backdrop-filter` necesita fondo semi-transparente para verse. Ver "App shell y scroll" para el porqué del modelo body-scroll + fixed |
 | `.toast` opacidad/blur raw | sombras y alphas a negro | Componentes flotantes (toast, sync-indicator); profundidad sobre oscuro |
 
 **Badges con borde** (`.badge.warn/.good/.red`): **legado**. Permitidos **sólo** de forma
@@ -349,35 +352,35 @@ tenue / dot. **Prohibidos** en la identidad de fila (§2.1). Decisión final pen
   genuina. **Nunca** para agrupar secciones, estados vacíos, ni barras de control.
 - Liviano pero **claro y con vida**: no esconder acciones esenciales; la principal siempre visible.
 
-### App shell y scroll (iOS / PWA standalone) — anclaje de la tabbar (SOLUCIÓN DE RAÍZ)
-**El shell es un FLEX COLUMN anclado al viewport; la tabbar es un hijo EN FLUJO, no un `fixed`.**
-En una PWA web pura de iOS, una barra `position:fixed; bottom:0` se **re-posiciona** tras el primer
-paint (el viewport/safe-area se asienta tarde) → aparece "muy arriba" y baja al primer toque; y
-escondida tras hacks de compositor. La raíz: **no debe haber NINGÚN elemento `fixed` independiente
-para la barra.** Patrón robusto (réplica del viewport fijo de Otrofestiv, en PWA pura):
-1. `viewport-fit=cover` en el `<meta viewport>` (requisito; sin esto `env(...)` = 0).
-2. **`body { height:100dvh; overflow:hidden; overscroll-behavior:none }`** → el body no scrollea.
-3. **`.app-shell`** = **`position:fixed; inset:0; display:flex; flex-direction:column;
-   background:var(--paper)`**. CLAVE: `position:fixed; inset:0` con `viewport-fit=cover` lo hace
-   cubrir la pantalla **COMPLETA** (incl. los insets) — NO es una caja `height:100dvh` en flujo del
-   body (ese intento previo encogía el alto y cortaba el inferior). Sobre un shell fijo de viewport
-   completo, el flexbox sí ancla bien.
-4. **`.app-scroll`** = único contenedor de scroll: **`flex:1 1 auto; min-height:0`** (`min-height:0`
-   es obligatorio para que el hijo flex permita overflow interno), `overflow-y:auto;
-   -webkit-overflow-scrolling:touch; overscroll-behavior:contain`. Contiene topbar + `#screen`.
-5. **`.tabbar`** = **`flex:none`** (hijo EN FLUJO del shell, `position:static`). El flexbox la ancla
-   al fondo del shell de forma **determinista** → **no puede saltar** (no es un `fixed` que iOS
-   recalcule). `padding-bottom: max(env(safe-area-inset-bottom),20px)` empuja los tabs sobre la barra
-   de gestos **y su FONDO (= `var(--paper)`, igual al contenido) llena hasta el borde físico** (cubre
-   el inset → sin franja negra ni línea). Sin `z-index`, sin `will-change`, sin hack de compositor.
+### App shell y scroll (iOS / PWA standalone) — anclaje de la tabbar (COPIA LITERAL de Otrofestiv)
+**El BODY scrollea; la tabbar es `position:fixed; bottom:0`. Sin contenedor de scroll interno, sin
+JS de posición.** Se copió, carácter por carácter, el modelo de `.main-nav` de Otrofestiv (PWA iOS
+probada). Lo único que difería en La Primada y causaba el salto era el **viewport meta** (tenía
+`maximum-scale=1.0, user-scalable=no`, que Otrofestiv NO usa) sumado a un contenedor de scroll fijo
+interno. Modelo exacto:
+1. **Viewport** idéntico a Otrofestiv: `width=device-width, initial-scale=1.0, viewport-fit=cover`
+   (SIN `maximum-scale` ni `user-scalable=no` — esos rompían el asentamiento del safe-area en iOS).
+2. **`body`** = **`min-height:100dvh; touch-action:pan-y; overscroll-behavior-x:none`** → el body
+   scrollea normal (las mismas props que el `<body>` de Otrofestiv). **Sin** `overflow:hidden`,
+   **sin** `.app-shell`/`.app-scroll` (no hay contenedor de scroll interno).
+3. **`.tabbar`** = copia de la regla mobile de `.main-nav`: **`position:fixed; bottom:0; left:0;
+   right:0; top:auto; z-index:1000; border-top:1px solid var(--line); padding-bottom:
+   max(env(safe-area-inset-bottom),20px); background:rgba(13,23,22,.88); backdrop-filter:blur(20px)
+   saturate(160%); will-change:transform`**. Único cambio: el color del fondo a la paleta teal
+   (`rgba(13,23,22,.88)`=`--paper` a .88) y `--bdr`→`var(--line)`. **NO** se ejecuta JS al cargar
+   para posicionarla (Otrofestiv tampoco lo hace).
+4. **Contenido** (`.wrap`) lleva `padding-bottom:calc(72px + max(env(safe-area-inset-bottom),20px))`
+   para despejar la tabbar fija (como las vistas de Otrofestiv reservan el alto del nav).
+5. **z-index de overlays > tabbar:** `.overlay`=1100, `.toast`=1200, `.sync-indicator`=1300 (todos
+   por encima de 1000). CRÍTICO: con la tabbar a z-index 1000, un sheet abierto debe ir **por
+   encima**, o la tabbar intercepta los clics del pie del sheet (rompía el "Siguiente"/"Crear" del wizard).
 6. Header bajo el Island: `padding-top:env(safe-area-inset-top)` dentro de `@supports`.
-7. Mínimo inferior: tabbar/sheets/padding usan **`max(env(safe-area-inset-bottom),20px)`**
-   **directo** (no anidado en `calc(var()+max(...))`).
+7. Mínimo inferior: tabbar/sheets/padding usan **`max(env(safe-area-inset-bottom),20px)`** directo.
 
-> **Por qué el intento flex previo falló y este no:** antes se usó `html,body{height:100%}` con la
-> tabbar como ítem flex de una caja en **flujo del body** → el alto se encogía bajo el inset y dejaba
-> una franja negra. Aquí el contenedor flex es **`position:fixed; inset:0`** (viewport completo,
-> independiente del flujo) → el mismo patrón flex ahora ancla la barra al borde físico sin corte.
+> **Regla de hoy:** ante un problema ya resuelto en Otrofestiv, **copiar su código exacto** (no
+> "replicar con criterio"). Los intentos previos —shell `position:fixed;inset:0` flex, hacks de
+> compositor con doble-rAF, fondo "igual al contenido sin línea"— eran invenciones que no atacaban
+> la raíz. El modelo de arriba es el de Otrofestiv tal cual.
 
 ### Acordeón (progressive disclosure)
 Cerrado por defecto: cada ítem es una **línea-resumen**; el detalle aparece al expandir.

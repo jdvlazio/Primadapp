@@ -103,28 +103,29 @@ test.describe('Conformidad DESIGN.md — verde', () => {
     expect(color).toBe(ACCENT);
   });
 
-  test('C4 — app shell flex: tabbar EN FLUJO anclada al borde físico (§6 safe-area)', async ({ page }) => {
+  test('C4 — modelo Otrofestiv: body scrollea + tabbar position:fixed al borde físico (§6 safe-area)', async ({ page }) => {
     await abrirApp(page);
     const r = await page.evaluate(() => {
-      const shell = document.querySelector('.app-shell');
       const tb = document.querySelector('.tabbar');
-      const sc = document.querySelector('.app-scroll');
       const rect = tb.getBoundingClientRect();
       return {
-        shellPosition: shell ? getComputedStyle(shell).position : null,
-        scrollerFlexGrow: sc ? getComputedStyle(sc).flexGrow : null,
-        scrollerOverflowY: sc ? getComputedStyle(sc).overflowY : null,
+        // copia literal de Otrofestiv: NO hay contenedor de scroll interno (.app-scroll/.app-shell).
+        hasInnerScroller: !!document.querySelector('.app-scroll') || !!document.querySelector('.app-shell'),
+        bodyOverflowHidden: getComputedStyle(document.body).overflow === 'hidden',
         tabbarPosition: getComputedStyle(tb).position,
+        tabbarBottomCss: getComputedStyle(tb).bottom,
+        tabbarZ: getComputedStyle(tb).zIndex,
         tabbarBottom: Math.round(rect.bottom),
         innerHeight: window.innerHeight,
       };
     });
-    // SOLUCIÓN DE RAÍZ: el SHELL es fijo (cubre el viewport); la tabbar es un hijo EN FLUJO
-    // (position:static) anclado por flexbox al fondo → no es un fixed independiente que pueda saltar.
-    expect(r.shellPosition).toBe('fixed');          // el shell flex cubre el viewport
-    expect(r.scrollerFlexGrow).toBe('1');           // el scroller ocupa el alto disponible (flex:1)
-    expect(r.scrollerOverflowY).toBe('auto');       // y es el único que scrollea
-    expect(r.tabbarPosition).toBe('static');        // tabbar EN FLUJO (no fixed) → no se reposiciona
+    // El body scrollea (sin overflow:hidden ni contenedor fijo interno) y la tabbar es position:fixed
+    // bottom:0 — exactamente el modelo de .main-nav de Otrofestiv (PWA iOS probada).
+    expect(r.hasInnerScroller).toBe(false);         // sin .app-scroll/.app-shell (body scrollea)
+    expect(r.bodyOverflowHidden).toBe(false);       // body NO bloqueado → scrollea como Otrofestiv
+    expect(r.tabbarPosition).toBe('fixed');         // tabbar fija al viewport
+    expect(r.tabbarBottomCss).toBe('0px');          // bottom:0
+    expect(r.tabbarZ).toBe('1000');                 // z-index:1000 (copiado de Otrofestiv)
     expect(r.tabbarBottom).toBe(r.innerHeight);     // toca el borde inferior físico (cubre el inset)
   });
 
@@ -209,38 +210,62 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     expect(await page.locator('#screen .acc-head').count()).toBeGreaterThan(0); // sí hay asistentes
   });
 
-  test('E2 — Configurar muestra productos editables (costo/venta)', async ({ page }) => {
+  test('E2 — Configurar: productos como filas-acordeón (clon Personas); costo/venta al expandir', async ({ page }) => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
     await crearPrimada(page, 'Ana');
     await page.click('[data-act="open-config-primada"]');
     await expect(page.locator('.overlay')).toBeVisible();
-    expect(await page.locator('.overlay .prodrow').count()).toBeGreaterThan(0);
+    // Filas de producto = mismas clases que Personas (.prow + .acc-head). Colapsadas: sin inputs.
+    expect(await page.locator('.overlay .prow').count()).toBeGreaterThan(0);
+    expect(await page.locator('.overlay [data-ch="costo-producto"]').count()).toBe(0); // colapsado
+    // Expandir la primera fila de producto → aparecen costo/venta (.fld + .ti).
+    await page.locator('.overlay [data-act="toggle-cfg-prod"]').first().click();
     await expect(page.locator('.overlay [data-ch="costo-producto"]').first()).toBeVisible();
     await expect(page.locator('.overlay [data-ch="venta-producto"]').first()).toBeVisible();
+  });
+
+  test('E2b — Configurar y Personas usan las MISMAS clases de fila/campo (acc-head + .prow)', async ({ page }) => {
+    await abrirApp(page);
+    await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
+    await crearPrimada(page, 'Ana');
+    // Configurar: asistentes y productos son filas .prow con .acc-head (idéntico a Personas).
+    await page.click('[data-act="open-config-primada"]');
+    expect(await page.locator('.overlay .prow .acc-head').count()).toBeGreaterThan(0);
+    expect(await page.locator('.overlay [data-act="toggle-cfg-asis"]').count()).toBeGreaterThan(0);
+    expect(await page.locator('.overlay [data-act="toggle-cfg-prod"]').count()).toBeGreaterThan(0);
+    // ya NO existen las clases pesadas propias de Configurar
+    expect(await page.locator('.overlay .cfg-asis, .overlay .prodmgmt, .overlay .prodrow').count()).toBe(0);
+    await page.click('[data-act="close-overlay"]');
+    // Personas: mismas clases .prow + .acc-head.
+    await page.click('#gearBtn');
+    await page.click('[data-act="overlay-tab"][data-overlay="personas"]');
+    expect(await page.locator('.overlay .prow .acc-head').count()).toBeGreaterThan(0);
   });
 
   test('E3 — tabbar anclada por estructura: el scroll del contenido no la mueve', async ({ page }) => {
     await appConPrimadaAbierta(page);
     const r = await page.evaluate(() => {
       const tb = document.querySelector('.tabbar');
-      const scroller = document.querySelector('.app-scroll');
-      const top0 = Math.round(tb.getBoundingClientRect().top);
-      // scrollear el contenedor interno (no el body) y el body por si acaso
-      scroller.scrollTop = 400;
-      window.scrollTo(0, 400);
-      const top1 = Math.round(tb.getBoundingClientRect().top);
-      const bottom = Math.round(tb.getBoundingClientRect().bottom);
-      return { top0, top1, bottom, innerHeight: window.innerHeight, windowScrollY: window.scrollY };
+      // forzar contenido alto para que el body tenga algo que scrollear
+      document.body.style.minHeight = '3000px';
+      const bottom0 = Math.round(tb.getBoundingClientRect().bottom);
+      window.scrollTo(0, 600);                 // modelo Otrofestiv: scrollea el BODY/ventana
+      const bottom1 = Math.round(tb.getBoundingClientRect().bottom);
+      const scrolled = window.scrollY;
+      document.body.style.minHeight = '';
+      return { bottom0, bottom1, scrolled, innerHeight: window.innerHeight };
     });
-    expect(r.windowScrollY).toBe(0);          // el body NO scrollea
-    expect(r.top0).toBe(r.top1);              // la tabbar no se mueve al scrollear el contenido
-    expect(r.bottom).toBe(r.innerHeight);     // sigue tocando el borde inferior del viewport
+    // La tabbar es position:fixed → aunque el body scrollee, permanece pegada al borde del viewport.
+    expect(r.scrolled).toBeGreaterThan(0);    // el body SÍ scrollea (modelo Otrofestiv)
+    expect(r.bottom0).toBe(r.innerHeight);    // tocaba el borde inferior...
+    expect(r.bottom1).toBe(r.innerHeight);    // ...y sigue ahí tras scrollear (fija al viewport)
   });
 
   test('E4 — los <select> usan appearance:none + chevron (no flechas nativas)', async ({ page }) => {
     await appConPrimadaAbierta(page);
     await page.click('[data-act="open-config-primada"]'); // el select de rol vive en Configurar (sección Asistentes)
+    await page.locator('.overlay [data-act="toggle-cfg-asis"]').first().click(); // expandir la fila-acordeón
     const sel = page.locator('.overlay select.sel').first();
     await expect(sel).toBeVisible();
     const css = await sel.evaluate(el => ({ ap: getComputedStyle(el).appearance, bg: getComputedStyle(el).backgroundImage }));
@@ -268,10 +293,11 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
       st.personas.forEach(per => { if (per.id !== p.organizadorPrincipalId) S.actions.addAsistencia(p.id, per.id); });
     });
     await page.click('[data-act="open-config-primada"]');
-    const rows = page.locator('.overlay .cfg-asis');
+    const rows = page.locator('.overlay [data-act="toggle-cfg-asis"]'); // filas-acordeón de asistente
     const before = await rows.count();
     expect(before).toBeGreaterThan(1);
-    await page.locator('.overlay .cfg-asis [data-act="remove-asistencia"]').last().click(); // quita el último (no principal)
+    await rows.last().click();                                          // expandir el último (no principal)
+    await page.locator('.overlay [data-act="remove-asistencia"]').last().click(); // quitar (en el .acc-body)
     await expect(rows).toHaveCount(before - 1);
   });
 
