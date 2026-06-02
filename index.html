@@ -55,11 +55,12 @@
     background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,.04) 1px, transparent 0);
     background-size:14px 14px;line-height:1.4;-webkit-font-smoothing:antialiased;
   }
-  /* Columna a altura de viewport: contenido scrolleable arriba + tabbar fija abajo (flex). */
-  .app{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-  /* Único contenedor de scroll. min-height:0 deja que flex:1 encoja y permita el overflow. */
-  .app-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain}
-  .wrap{max-width:var(--content-max);margin:0 auto;padding:var(--space-3) var(--space-3) var(--space-5)}
+  /* Único contenedor de SCROLL (el body está bloqueado). height:100% del viewport — ESTABLE
+     (no 100dvh, que es dinámico y se recalcula al tocar → la barra saltaba). padding-bottom
+     reserva el alto de la tabbar fija para que el último contenido la despeje. */
+  .app-scroll{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;
+    padding-bottom:calc(var(--space-safe) + max(env(safe-area-inset-bottom), 20px))}
+  .wrap{max-width:var(--content-max);margin:0 auto;padding:var(--space-3)}
 
   /* ---------- Encabezado ---------- */
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-1) var(--space-3);margin-bottom:var(--space-4)}
@@ -147,11 +148,13 @@
      · Fondo SEMI-transparente (rgba) para que el backdrop-filter blur realmente se vea.
      ⚠️ env(safe-area-inset-bottom) solo es >0 en iOS standalone con barra de gestos; en escritorio/preview
        es 0 y aplica el piso de 20px — la validación del inset real debe hacerse en el iPhone. */
-  /* Tabbar = ítem flex AL FONDO del .app (no position:fixed). Anclada por estructura: como el
-     body no scrollea y el scroll vive en .app-scroll, la barra no puede irse con el scroll.
-     padding-bottom respeta la barra de gestos (safe-area). Fondo sólido (ya no hay contenido
-     pasando por detrás que justifique el blur). */
-  .tabbar{flex:none;display:flex;justify-content:center;gap:var(--space-1);background:var(--paper-2);border-top:1px solid var(--line);padding:var(--space-2) var(--space-2) max(env(safe-area-inset-bottom), 20px);box-shadow:0 -10px 30px -20px rgba(0,0,0,.6)}
+  /* Tabbar fija al borde FÍSICO inferior (manejo de safe-area de Otrofestiv): position:fixed;bottom:0
+     con viewport-fit=cover → el borde inferior toca el fondo físico. padding-bottom:max(env,20px)
+     empuja los tabs por encima de la barra de gestos Y el FONDO de la barra se extiende por ese
+     padding hasta el borde (cubre el inset → sin espacio negro muerto). Es estable y NO salta porque
+     está fija al viewport, no atada a una caja de alto dinámico (dvh); y como el body no scrollea
+     (overflow:hidden) y el scroll vive en .app-scroll, tampoco se va con el scroll. */
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center;gap:var(--space-1);background:var(--paper-2);border-top:1px solid var(--line);padding:var(--space-2) var(--space-2) max(env(safe-area-inset-bottom), 20px);box-shadow:0 -10px 30px -20px rgba(0,0,0,.6)}
   .tab{flex:1;max-width:160px;min-height:var(--tap-row);display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--ink-soft);font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;letter-spacing:.02em;padding:var(--space-2);border-radius:var(--radius-md);transition:color .15s, background .15s}
   .tab:active{opacity:.7}
   /* Activo BIEN diferenciado: pill teñido de acento + texto acento + peso mayor (no el pill blanco tenue de antes). */
@@ -379,7 +382,6 @@
 </style>
 </head>
 <body>
-  <div class="app">
   <div class="app-scroll">
   <div class="wrap">
     <header class="topbar">
@@ -401,13 +403,13 @@
   </div><!-- /.wrap -->
   </div><!-- /.app-scroll -->
 
-  <!-- Tabbar (3 tabs): ítem flex AL FONDO del .app, anclada por estructura (no position:fixed). -->
+  <!-- Tabbar (3 tabs): position:fixed; bottom:0 → pegada al borde físico. El body bloqueado
+       (overflow:hidden) + scroll en .app-scroll evitan que se vaya con el scroll. -->
   <nav class="tabbar" id="tabbar">
     <button class="tab" data-tab="resumen">Resumen</button>
     <button class="tab active" data-tab="primadas">Primadas</button>
     <button class="tab" data-tab="fondo">Fondo</button>
   </nav>
-  </div><!-- /.app -->
 
   <!-- Overlay (detrás del engranaje): Personas / Ajustes. Inerte salvo cuando ui.overlay activo. -->
   <div class="overlay" id="overlay" hidden></div>
@@ -421,13 +423,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260602-064057-ccdf4a2"></script>
-  <script src="js/util.js?v=20260602-064057-ccdf4a2"></script>
-  <script src="js/api.js?v=20260602-064057-ccdf4a2"></script>
-  <script src="js/auth.js?v=20260602-064057-ccdf4a2"></script>
-  <script src="js/store.js?v=20260602-064057-ccdf4a2"></script>
-  <script src="js/view.js?v=20260602-064057-ccdf4a2"></script>
-  <script src="js/controller.js?v=20260602-064057-ccdf4a2"></script>
+  <script src="js/config.js?v=20260602-065435-4eb9ff1"></script>
+  <script src="js/util.js?v=20260602-065435-4eb9ff1"></script>
+  <script src="js/api.js?v=20260602-065435-4eb9ff1"></script>
+  <script src="js/auth.js?v=20260602-065435-4eb9ff1"></script>
+  <script src="js/store.js?v=20260602-065435-4eb9ff1"></script>
+  <script src="js/view.js?v=20260602-065435-4eb9ff1"></script>
+  <script src="js/controller.js?v=20260602-065435-4eb9ff1"></script>
 
   <!-- PWA: registrar el Service Worker (network-first; CACHE_VERSION se estampa en cada commit). -->
   <script>

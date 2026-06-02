@@ -348,18 +348,22 @@ tenue / dot. **Prohibidos** en la identidad de fila (§2.1). Decisión final pen
 **El scroll vive en un contenedor interno, NO en el body.** En una PWA web pura de iOS, si el
 documento/body scrollea, una barra `position:fixed; bottom:0` se **desancla** con el scroll de
 inercia/rebote. (Otrofestiv no lo sufre porque corre como app **nativa Capacitor**: viewport fijo.)
-El equivalente robusto en PWA pura:
+El equivalente robusto en PWA pura — **scroll bloqueado en el body + tabbar fija al borde físico**:
 1. `viewport-fit=cover` en el `<meta viewport>` (requisito; sin esto `env(...)` = 0).
 2. **`html, body { height:100% }` + `body { overflow:hidden; overscroll-behavior:none }`** → el
-   body **no scrollea**.
-3. **`.app`** = columna a altura de viewport (`height:100dvh` con fallback `100vh`;
-   `display:flex; flex-direction:column; overflow:hidden`).
-4. **`.app-scroll`** = único contenedor de scroll (`flex:1; min-height:0; overflow-y:auto;
-   -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain`). Contiene topbar + `#screen`.
-5. **`.tabbar`** = ítem flex al fondo del `.app` (`flex:none`), **NO `position:fixed`** → anclada
-   por estructura: como el body no scrollea y el scroll vive en `.app-scroll`, no puede irse.
-6. Header bajo el Island: `padding-top:env(safe-area-inset-top)` dentro de `@supports`.
-7. Mínimo inferior: tabbar/sheets/padding usan **`max(env(safe-area-inset-bottom),20px)`**
+   body **no scrollea** (esto es lo que evita que la barra fija se vaya con el scroll de inercia).
+3. **`.app-scroll`** = único contenedor de scroll: **`height:100%`** (ESTABLE, **no `100dvh`** —
+   dvh es dinámico y al recalcularse hacía SALTAR la barra), `overflow-y:auto;
+   -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain`. Contiene topbar + `#screen`.
+   Lleva `padding-bottom` (≈`--space-safe` + inset) para que el contenido despeje la tabbar fija.
+4. **`.tabbar`** = **`position:fixed; left:0; right:0; bottom:0`** (manejo de safe-area de Otrofestiv):
+   con `viewport-fit=cover` el borde inferior toca el **fondo físico**; `padding-bottom:
+   max(env(safe-area-inset-bottom),20px)` empuja los tabs sobre la barra de gestos **y el FONDO
+   sólido se extiende por ese padding hasta el borde** (cubre el inset → sin espacio negro muerto).
+   Es estable (fija al viewport, no a una caja `dvh`) y, como el body no scrollea, tampoco se va
+   con el scroll. **No** usar la tabbar como ítem flex de una caja `100dvh` (causaba el corte + el salto).
+5. Header bajo el Island: `padding-top:env(safe-area-inset-top)` dentro de `@supports`.
+6. Mínimo inferior: tabbar/sheets/padding usan **`max(env(safe-area-inset-bottom),20px)`**
    **directo** (no anidado en `calc(var()+max(...))`).
 
 ### Acordeón (progressive disclosure)
