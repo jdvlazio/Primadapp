@@ -342,6 +342,24 @@ AÑO → MES** (reciente arriba; `Store.select.primadasPorAnio`). El **historial
 > La llave Bre-B es el dato para **recibir** (no sensible, visible para todos). QR queda para una fase
 > futura (el QR oficial de Bre-B usa un payload estándar que no se puede generar solo desde la llave).
 
+### 2.13 · Input de producto — emoji + nombre (✅ CANÓNICO)
+
+**Una sola anatomía** para capturar un producto, **idéntica** en *Configurar › Productos* (el alta) y en el
+*Wizard Paso 2*. La produce el helper `prodIdInput()` (`view.js`); nunca se maquetan estos dos inputs sueltos.
+
+- **Estructura:** `.prod-id` = fila flex con **caja de emoji CHICA y fija** (`.ti.emoji`, `flex:0 0 52px`,
+  centrada, 20px) + **campo de nombre DOMINANTE** (`.ti.prod-name`, `flex:1`). El nombre manda; el emoji es un
+  acento. Tocar el emoji enfoca el campo → el teclado del sistema permite elegir/cambiar emoji.
+- **Autosugerencia (editable):** al teclear el **nombre**, el emoji se autorrellena por palabra clave
+  (`Util.emojiSugerido` ← `CONFIG.emojiKeywords`). El input de emoji lleva `data-auto`: `'1'` = aún auto (se
+  sobreescribe al teclear); `'0'` = **fijado a mano** (no se vuelve a tocar). Editar el emoji lo pasa a `'0'`.
+  Se deriva del estado inicial: emoji vacío → `auto`; emoji ya presente (catálogo) → `manual` (no se pisa).
+- **Sin re-render:** la autosugerencia escribe **directo** el `value` del emoji hermano (listener `input` del
+  controller) — **no** dispara render (no pierde foco), igual de seguro que `commitQuiet`. `wzSync`/`add-producto`
+  leen ese `value` del DOM al confirmar.
+- **Costo/venta debajo** (`.prod-new-bot` / `.wz-prodrow-bot`): etiqueta apilada `.prodrow-f` + `.ti.num`,
+  separación por **aire** (sin cajas anidadas; el Paso 3 es el referente de ligereza).
+
 ---
 
 ## 3 · Jerarquía tipográfica por roles

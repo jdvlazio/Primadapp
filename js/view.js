@@ -463,15 +463,29 @@
   // (emoji+nombre arriba, venta·margen tenue abajo); abierta = .acc-body con costo/venta (.fld+.ti) y
   // quitar. El alta vive en .prow-foot/.prow-new, igual que "Agregar persona". Precio en vivo →
   // setPreciosProducto usa commitQuiet (sin re-render, no pierde foco).
+  // ANATOMÍA CANÓNICA del input de producto (DESIGN.md › "Input de producto"): caja de emoji CHICA
+  // (fija) + campo de NOMBRE dominante (ancho). Idéntica en Configurar›Productos (alta) y Wizard Paso 2.
+  // El emoji lleva data-auto: '1' = aún autosugerido (se rellena al teclear el nombre, vía
+  // Util.emojiSugerido en el controller); '0' = fijado a mano (no se sobreescribe). Se deriva de si ya
+  // hay emoji (vacío → auto). Tocar el emoji enfoca el campo para elegir/cambiar (teclado de emojis).
+  function prodIdInput(emojiVal, nombreVal, emojiAttrs, nombreAttrs) {
+    const auto = String(emojiVal || '') === '' ? '1' : '0';
+    return `<div class="prod-id">
+        <input class="ti emoji" maxlength="2" value="${e(emojiVal || '')}" data-auto="${auto}" ${emojiAttrs} placeholder="🙂" aria-label="Emoji">
+        <input class="ti prod-name" value="${e(nombreVal || '')}" maxlength="40" placeholder="Nombre del producto" ${nombreAttrs} aria-label="Nombre del producto">
+      </div>`;
+  }
+
   function productosConfig(p, ui) {
     const cerrada = p.estado === 'cerrada';
     const filas = p.productos.map(prod => productoConfigRow(p, prod, ui)).join('');
-    const alta = cerrada ? '' : `<div class="prow-new">
-      <input class="ti emoji" id="pn-emoji" maxlength="2" placeholder="🍹" aria-label="Emoji">
-      <input class="ti" id="pn-nombre" maxlength="40" placeholder="Nombre" aria-label="Nombre">
-      <input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" placeholder="costo" aria-label="Costo neto">
-      <input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" placeholder="venta" aria-label="Precio de venta">
-      <button class="mini" data-act="add-producto">${icon('plus-circle')}Agregar</button>
+    const alta = cerrada ? '' : `<div class="prod-new">
+      ${prodIdInput('', '', 'id="pn-emoji"', 'id="pn-nombre"')}
+      <div class="prod-new-bot">
+        <label class="prodrow-f"><span>costo</span><input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" aria-label="Costo neto"></label>
+        <label class="prodrow-f"><span>venta</span><input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" aria-label="Precio de venta"></label>
+        <button class="mini" data-act="add-producto">${icon('plus-circle')}Agregar</button>
+      </div>
     </div>`;
     return `${p.productos.length ? `<div class="prow-list">${filas}</div>` : '<div class="empty-soft">Sin productos</div>'}
       <div class="prow-foot">${alta}</div>`;
@@ -636,10 +650,7 @@
     // Fila de producto del wizard: emoji + nombre (ancho completo) arriba; costo/venta/quitar abajo.
     // Evita apretar 5 controles en una sola línea en el ancho angosto del sheet.
     const filas = w.productos.map((prod, i) => `<div class="wz-prodrow">
-      <div class="wz-prodrow-top">
-        <input class="ti emoji" maxlength="2" value="${e(prod.emoji || '')}" data-wz="emoji" data-i="${i}" aria-label="Emoji">
-        <input class="ti wz-prodname" value="${e(prod.nombre || '')}" maxlength="40" placeholder="Nombre del producto" data-wz="nombre" data-i="${i}" aria-label="Nombre">
-      </div>
+      ${prodIdInput(prod.emoji, prod.nombre, `data-wz="emoji" data-i="${i}"`, `data-wz="nombre" data-i="${i}"`)}
       <div class="wz-prodrow-bot">
         <label class="prodrow-f"><span>costo</span><input class="ti num" type="number" min="0" step="500" inputmode="numeric" value="${prod.costoNeto}" data-wz="costoNeto" data-i="${i}"></label>
         <label class="prodrow-f"><span>venta</span><input class="ti num" type="number" min="0" step="500" inputmode="numeric" value="${prod.precioVenta}" data-wz="precioVenta" data-i="${i}"></label>

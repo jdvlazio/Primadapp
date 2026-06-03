@@ -126,7 +126,7 @@
         if (i >= 0) w.coorg.splice(i, 1); else w.coorg.push(pid);
         rerender(); return;
       }
-      case 'wz-prod-add':    if (ui.wizard) ui.wizard.productos.push({ emoji: '•', nombre: '', costoNeto: 0, precioVenta: 0 }); rerender(); return;
+      case 'wz-prod-add':    if (ui.wizard) ui.wizard.productos.push({ emoji: '', nombre: '', costoNeto: 0, precioVenta: 0 }); rerender(); return;
       case 'wz-prod-remove': if (ui.wizard) ui.wizard.productos.splice(Number(b.dataset.i), 1); rerender(); return;
       case 'wz-siguiente': {
         const w = ui.wizard; if (!w) return;
@@ -303,9 +303,30 @@
     }
   }
 
+  // Autosugerencia de emoji EN VIVO (Punto 1 del lote visual). Al teclear el NOMBRE de un producto,
+  // rellena el emoji HERMANO si aún es "auto" (data-auto !== '0'). Si el usuario edita el emoji a mano,
+  // lo marca manual. Escribe DIRECTO el value del input hermano → NO re-renderiza (no pierde foco),
+  // igual de seguro que commitQuiet. wzSync/add-producto leen ese value del DOM al confirmar.
+  function onInput(ev) {
+    const t = ev.target; if (!t || !t.dataset) return;
+    const esNombre = t.id === 'pn-nombre' || t.dataset.wz === 'nombre';
+    if (esNombre) {
+      const emojiEl = (t.id === 'pn-nombre')
+        ? document.getElementById('pn-emoji')
+        : (t.closest('.prod-id') && t.closest('.prod-id').querySelector('[data-wz="emoji"]'));
+      if (emojiEl && emojiEl.dataset.auto !== '0' && Util.emojiSugerido) {
+        const sug = Util.emojiSugerido(t.value, '');
+        if (sug) emojiEl.value = sug;
+      }
+      return;
+    }
+    if (t.id === 'pn-emoji' || t.dataset.wz === 'emoji') { t.dataset.auto = '0'; }
+  }
+
   function init() {
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
+    document.addEventListener('input', onInput);
     // Al salir de un input de texto en vivo (commitQuiet debounced), forzar el envío pendiente.
     document.addEventListener('blur', (ev) => {
       if (ev.target && ev.target.matches && ev.target.matches('[data-ch]') && Store.flushQuiet) Store.flushQuiet();
