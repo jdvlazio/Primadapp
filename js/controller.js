@@ -35,6 +35,8 @@
       document.querySelectorAll('[data-wz]').forEach(el => {
         const i = Number(el.dataset.i), campo = el.dataset.wz; if (!w.productos[i]) return;
         w.productos[i][campo] = (campo === 'costoNeto' || campo === 'precioVenta') ? (Number(el.value) || 0) : el.value;
+        // Captura el "manual" del emoji (data-auto '0') para que sobreviva al re-render.
+        if (campo === 'emoji') w.productos[i].emojiManual = (el.dataset.auto === '0');
       });
     }
     if (w.paso === 3) { const f = val('wz-fecha'), m = val('wz-mes'); if (f !== undefined) w.fecha = f; if (m !== undefined) w.mesContable = m; }
@@ -127,8 +129,10 @@
         if (i >= 0) w.coorg.splice(i, 1); else w.coorg.push(pid);
         rerender(); return;
       }
-      case 'wz-prod-add':    if (ui.wizard) ui.wizard.productos.push({ emoji: '', nombre: '', costoNeto: 0, precioVenta: 0 }); rerender(); return;
-      case 'wz-prod-remove': if (ui.wizard) ui.wizard.productos.splice(Number(b.dataset.i), 1); rerender(); return;
+      // wzSync ANTES de mutar la lista: si no, el re-render reconstruye desde el modelo viejo y se
+      // pierde lo tecleado (nombre + emoji) en las demás filas.
+      case 'wz-prod-add':    if (ui.wizard) { wzSync(); ui.wizard.productos.push({ emoji: '', nombre: '', costoNeto: 0, precioVenta: 0, emojiManual: false }); } rerender(); return;
+      case 'wz-prod-remove': if (ui.wizard) { wzSync(); ui.wizard.productos.splice(Number(b.dataset.i), 1); } rerender(); return;
       case 'wz-siguiente': {
         const w = ui.wizard; if (!w) return;
         // sincronizar inputs del paso actual antes de avanzar (los selects/date no disparan change si no se tocaron)
@@ -327,7 +331,15 @@
       }
       return;
     }
-    if (t.id === 'pn-emoji' || t.dataset.wz === 'emoji') { t.dataset.auto = '0'; }
+    if (t.id === 'pn-emoji' || t.dataset.wz === 'emoji') {
+      t.dataset.auto = '0';   // el usuario fijó el emoji a mano → deja de autosugerirse
+      // Wizard: persistir el "manual" en el modelo para que SOBREVIVA al re-render (si no, al volver
+      // de un paso el emoji volvería a auto y el nombre lo pisaría).
+      if (t.dataset.wz === 'emoji' && ui.wizard) {
+        const i = Number(t.dataset.i);
+        if (ui.wizard.productos[i]) ui.wizard.productos[i].emojiManual = true;
+      }
+    }
   }
 
   function init() {

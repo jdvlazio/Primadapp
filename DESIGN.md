@@ -351,9 +351,12 @@ AÑO → MES** (reciente arriba; `Store.select.primadasPorAnio`). El **historial
   centrada, 20px) + **campo de nombre DOMINANTE** (`.ti.prod-name`, `flex:1`). El nombre manda; el emoji es un
   acento. Tocar el emoji enfoca el campo → el teclado del sistema permite elegir/cambiar emoji.
 - **Autosugerencia (editable):** al teclear el **nombre**, el emoji se autorrellena por palabra clave
-  (`Util.emojiSugerido` ← `CONFIG.emojiKeywords`). El input de emoji lleva `data-auto`: `'1'` = aún auto (se
-  sobreescribe al teclear); `'0'` = **fijado a mano** (no se vuelve a tocar). Editar el emoji lo pasa a `'0'`.
-  Se deriva del estado inicial: emoji vacío → `auto`; emoji ya presente (catálogo) → `manual` (no se pisa).
+  (`Util.emojiSugerido` ← `CONFIG.emojiKeywords`), **cada vez** que cambia el nombre. El input lleva
+  `data-auto`: `'1'` = sigue autosugiriéndose; `'0'` = **fijado a mano**. **`manual` es EXPLÍCITO**, NO se
+  deriva de si hay emoji: un emoji de catálogo o ya sugerido sigue siendo `auto` (la sugerencia sigue al
+  nombre). **Solo tocar el campo de emoji** lo pasa a `manual`; en el wizard ese flag (`prod.emojiManual`)
+  se persiste en el modelo para sobrevivir al re-render. Si el nombre no matchea ninguna palabra, el emoji
+  actual se conserva (no se borra).
 - **Sin re-render:** la autosugerencia escribe **directo** el `value` del emoji hermano (listener `input` del
   controller) — **no** dispara render (no pierde foco), igual de seguro que `commitQuiet`. `wzSync`/`add-producto`
   leen ese `value` del DOM al confirmar.
