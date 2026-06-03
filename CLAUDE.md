@@ -126,8 +126,17 @@ alrededor de cada primada mensual, no a diario.
 > **gate INVERTIDO** (la app carga en LECTURA con solo el link; el login salta al intentar ESCRIBIR) + RLS verificado.
 > **RLS real (verificado):** `SELECT` abierto a **anon** en `personas`/`primadas`/`settings`/`consumos`; escritura de primadas/consumos
 > a **autenticados**; `settings`/`personas` UPDATE/DELETE solo **admin** (`is_admin()`); `consumos` no inserta si la primada está
-> **cerrada** (subquery en la policy). **Primer editor sembrado:** `jdvlazio@gmail.com` (admin). Pendiente: **Fase B** (sync en vivo:
-> Postgres Changes + snapshot/incremental) y **Fase C** (cola offline + presence + auditoría).
+> **cerrada** (subquery en la policy). **Primer editor sembrado:** `jdvlazio@gmail.com` (admin).
+>
+> **🟢 FASE B IMPLEMENTADA (sync en vivo):** `consumos` en la publicación `supabase_realtime` (replica identity full). Patrón
+> **snapshot + incremental**: `Api.subscribeConsumos(primadaId, {onChange, onSubscribed})` (Postgres Changes sobre consumos) +
+> `Api.fetchConsumos` (snapshot). El controller mantiene UNA suscripción a la primada ACTIVA; al (re)conectar re-snapshota
+> (reconcilia). `Store.actions.applyRemoteConsumo` (idempotente por id → ignora el eco propio) y `replaceConsumos` (snapshot);
+> NO hacen upsert (origen remoto). **GOTCHA verificado:** con RLS, el evento **DELETE de Postgres Changes trae SOLO la PK** (sin
+> `primada_id`, aunque replica identity sea full) → el DELETE se entrega **por id sin filtrar por primada** (ids únicos globales;
+> `applyRemoteConsumo` lo quita solo si está en la primada activa). INSERT/UPDATE traen la fila completa → filtrados por `primada_id`
+> en el cliente (los filtros server-side de Realtime no aplican fiable a DELETE). **Verificado en vivo (2 clientes vs Supabase real):**
+> INSERT $0→$1.000 y DELETE $1.000→$0 sin recargar. Pendiente: **Fase C** (cola offline + presence + botón de auditoría).
 
 **Store — qué cambia y qué NO.**
 - **NO cambian:** `select` (derivados), `actions` (mutaciones + invariantes), `migrate()` (normalizador tolerante), ni la forma
@@ -319,8 +328,10 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
       Verificado en navegador real (INVARIANTE #1: misma persona, dos primadas, dos snapshots distintos).
 - [~] **EN CURSO (sesión dedicada) — Backend Supabase** (localStorage → nube; OTP por código, RLS, híbrido, arranque limpio).
       **Fase A HECHA:** modelo v6 (consumos-como-filas) + RLS (ver anon / editar autenticado / admin en settings·personas /
-      cerrada solo-lectura, verificado) + gate invertido + editor sembrado (jdvlazio admin). **Falta Fase B** (sync en vivo:
-      Postgres Changes + snapshot/incremental + reconexión) y **Fase C** (cola offline + presence + botón de auditoría).
+      cerrada solo-lectura, verificado) + gate invertido + editor sembrado (jdvlazio admin).
+      **Fase B HECHA:** sync en vivo (Postgres Changes + snapshot/incremental + reconexión), verificado contra Supabase real
+      (INSERT/DELETE en vivo entre clientes; DELETE entregado por id por el gotcha de RLS). **Falta Fase C** (cola offline +
+      presence + botón de auditoría).
       Auth por **CÓDIGO OTP** (no solo magic link): plantilla de email con `{{ .Token }}` + `signInWithOtp` sin `emailRedirectTo`.
 - [ ] Tab "Próximamente" (placeholder). *(Resumen y Fondo ya muestran placeholder en PASO 2.)*
 - [ ] **Futuro:** módulo de **Ahorro/Tesorería** (aportes mensuales, retiros, préstamos, inversiones, actividades extra).
