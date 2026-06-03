@@ -113,6 +113,10 @@
       client = root.supabase.createClient(opts.url, opts.anonKey);
       mode = 'supabase';
     } else { client = null; mode = 'local'; }
+    if (mode === 'supabase') {
+      if (!init._online && typeof root.addEventListener === 'function') { init._online = true; root.addEventListener('online', function () { flush(); }); }
+      flush();   // vacía lo que haya quedado encolado de una sesión anterior (offline → reconectó)
+    }
     return mode;
   }
 
@@ -147,40 +151,71 @@
     return cacheRead();
   }
 
-  /* ---------- commit(state, target): upsert granular por entidad (async) ----------
-     target = { kind:'persona'|'primada'|'settings', id, op?:'delete' }.
-     Siempre refresca el espejo local; en modo supabase además upserta/borra la fila.
-     Lanza si el backend devuelve error → el Store muestra el mensaje y reintenta. */
+  /* ---------- COLA DE TRÁNSITO OFFLINE (Fase C) ----------
+     Las escrituras NO van directo a la red: se traducen a una OPERACIÓN autocontenida y se ENCOLAN
+     (persistida en localStorage, clave aparte). Se vacía al instante si hay red; si falla por red, se
+     reintenta al reconectar (evento 'online'). Errores DEFINITIVOS (RLS/validación/duplicado) se DESCARTAN
+     para no atascar la cola, y se reportan. La cola es TRÁNSITO, NO estado de dominio (excepción CLAUDE.md). */
+  const COLA_KEY = KEY + '_cola';
+  let cola = colaRead();
+  let colaError = null;
+  let flushing = false;
+  const colaListeners = [];
+  function colaRead() { try { return (typeof localStorage !== 'undefined') ? (JSON.parse(localStorage.getItem(COLA_KEY)) || []) : []; } catch (e) { return []; } }
+  function colaWrite() { try { if (typeof localStorage !== 'undefined') localStorage.setItem(COLA_KEY, JSON.stringify(cola)); } catch (e) {} }
+  function emitCola() { const snap = { pendientes: cola.length, error: colaError }; colaListeners.forEach(fn => fn(snap)); }
+  function onQueueChange(fn) { colaListeners.push(fn); }
+
+  // buildOp: traduce (state, target) a una operación Supabase AUTOCONTENIDA (no depende del state futuro).
+  function buildOp(state, target) {
+    const kind = target.kind, id = target.id, del = target.op === 'delete';
+    if (kind === 'persona') { if (del) return { t: 'personas', op: 'delete', id }; const p = (state.personas || []).find(x => x.id === id); return p ? { t: 'personas', op: 'upsert', row: personaToRow(p) } : null; }
+    if (kind === 'primada') { if (del) return { t: 'primadas', op: 'delete', id }; const p = (state.primadas || []).find(x => x.id === id); return p ? { t: 'primadas', op: 'upsert', row: primadaToRow(p) } : null; }
+    if (kind === 'settings') return { t: 'settings', op: 'upsert', row: settingsToRow(state.settings) };
+    if (kind === 'consumo') {
+      if (target.op === 'delete') return { t: 'consumos', op: 'delete', id };
+      if (target.op === 'delete-prod') return { t: 'consumos', op: 'delete-where', where: [['primada_id', target.primadaId], ['producto_id', target.prodId]] };
+      if (target.op === 'delete-persona') return { t: 'consumos', op: 'delete-where', where: [['primada_id', target.primadaId], ['persona_id', target.personaId]] };
+      const prm = (state.primadas || []).find(p => (p.consumos || []).some(c => c.id === id));
+      const c = prm && prm.consumos.find(x => x.id === id); return c ? { t: 'consumos', op: 'insert', row: consumoToRow(prm.id, c) } : null;
+    }
+    return null;
+  }
+  function execOp(o) {
+    const tbl = client.from(o.t);
+    if (o.op === 'upsert') return run(tbl.upsert(o.row), 'q.upsert.' + o.t);
+    if (o.op === 'insert') return run(tbl.insert(o.row), 'q.insert.' + o.t);
+    if (o.op === 'delete') return run(tbl.delete().eq('id', o.id), 'q.delete.' + o.t);
+    if (o.op === 'delete-where') { let q = tbl.delete(); o.where.forEach(([c, v]) => { q = q.eq(c, v); }); return run(q, 'q.deletewhere.' + o.t); }
+  }
+  // Un error es DEFINITIVO (descartar) si es de RLS/validación/duplicado; si no, es de RED (reintentar).
+  function esDefinitivo(msg) { return /row-level|\bRLS\b|no autoriz|not authorized|unauthorized|permission denied|violates|duplicate|already exists|invalid input|42501|23505|23502|23503|22P02/i.test(String(msg || '')); }
+  async function flush() {
+    if (flushing || mode !== 'supabase' || !client) return;
+    if (!cola.length) { if (colaError) { colaError = null; emitCola(); } return; }
+    flushing = true;
+    try {
+      while (cola.length) {
+        try { await execOp(cola[0]); cola.shift(); colaWrite(); colaError = null; emitCola(); }
+        catch (e) {
+          const msg = (e && e.message) || '';
+          if (esDefinitivo(msg)) { cola.shift(); colaWrite(); colaError = 'Un cambio fue rechazado (' + msg + ')'; emitCola(); }
+          else { colaError = 'Sin conexión — se sincroniza al volver'; emitCola(); break; }
+        }
+      }
+    } finally { flushing = false; }
+  }
+
+  /* ---------- commit(state, target): ENCOLA + intenta vaciar (Fase C) ----------
+     Render OPTIMISTA: el Store ya mutó y renderizó; aquí solo persistimos. NO lanza: la durabilidad la
+     da la cola; el estado (pendientes/error) se reporta por onQueueChange. target {local:true} → solo espejo. */
   async function commit(state, target) {
     cacheWrite(state);                                  // espejo de lectura (offline / cold start)
-    if (mode !== 'supabase' || !client || !target) return;
-
-    const kind = target.kind, id = target.id, del = target.op === 'delete';
-
-    if (kind === 'persona') {
-      if (del) return run(client.from('personas').delete().eq('id', id), 'delete.persona');
-      const p = (state.personas || []).find(x => x.id === id); if (!p) return;
-      return run(client.from('personas').upsert(personaToRow(p)), 'upsert.persona');
-    }
-    if (kind === 'primada') {
-      if (del) return run(client.from('primadas').delete().eq('id', id), 'delete.primada');
-      const p = (state.primadas || []).find(x => x.id === id); if (!p) return;
-      return run(client.from('primadas').upsert(primadaToRow(p)), 'upsert.primada');
-    }
-    if (kind === 'settings') {
-      return run(client.from('settings').upsert(settingsToRow(state.settings)), 'upsert.settings');
-    }
-    // Consumos (v6): granular. insert (1 fila) / delete (por id) / delete-prod / delete-persona (limpieza).
-    if (kind === 'consumo') {
-      const op = target.op;
-      if (op === 'delete') return run(client.from('consumos').delete().eq('id', id), 'delete.consumo');
-      if (op === 'delete-prod') return run(client.from('consumos').delete().eq('primada_id', target.primadaId).eq('producto_id', target.prodId), 'delete.consumos.prod');
-      if (op === 'delete-persona') return run(client.from('consumos').delete().eq('primada_id', target.primadaId).eq('persona_id', target.personaId), 'delete.consumos.persona');
-      // insert: la fila ya está en el estado (la primada que la contiene); la localizamos por id.
-      const prm = (state.primadas || []).find(p => (p.consumos || []).some(c => c.id === id));
-      const c = prm && prm.consumos.find(x => x.id === id); if (!c) return;
-      return run(client.from('consumos').insert(consumoToRow(prm.id, c)), 'insert.consumo');
-    }
+    if (mode !== 'supabase' || !client || !target || target.local) return;
+    const o = buildOp(state, target);
+    if (!o) return;
+    cola.push(o); colaWrite(); emitCola();
+    return flush();
   }
 
   /* ---------- SYNC EN VIVO (Fase B): snapshot + incremental sobre consumos ----------
@@ -220,6 +255,7 @@
 
   const Api = {
     init, load, commit, fetchConsumos, subscribeConsumos,
+    onQueueChange, flush, queueState: function () { return { pendientes: cola.length, error: colaError }; },
     mode: function () { return mode; },
     // Cambia el modo de DATOS sin tocar el client de auth: 'supabase' solo si hay client. Permite
     // tener el client (para el magic link) pero leer/escribir LOCAL hasta que haya sesión.

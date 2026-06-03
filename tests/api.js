@@ -256,14 +256,41 @@ section('load() async contra Supabase (fake en memoria)');
     eq('commit delete-prod → sin consumos de cz (0)', fake._tablas.consumos.size, 0);
   }
 
-  /* ====================== 6. Propagación de error (para el toast del Store) ====================== */
-  section('commit(): un error del backend se propaga (lo verá el usuario)');
+  /* ====================== 6. Cola offline (Fase C): error DEFINITIVO se descarta y se reporta ====================== */
+  section('commit(): la escritura NO lanza; la cola reporta el estado (pendientes/error)');
   {
+    // localStorage en jsdom para que la cola persista; limpiamos la clave de cola.
+    try { if (typeof localStorage !== 'undefined') localStorage.removeItem('laPrimada_cola'); } catch (e) {}
     const failing = { from() { return { upsert() { return { then: (r) => Promise.resolve({ data: null, error: { message: 'RLS: no autorizado' } }).then(r) }; } }; } };
     Api.init({ client: failing });
-    let threw = null;
-    try { await Api.commit(sampleState(), { kind: 'persona', id: 'per_a' }); } catch (e) { threw = e.message; }
-    check('commit con error → lanza (Store mostrará toast + reintento)', !!threw && /RLS: no autorizado/.test(threw));
+    let estados = [];
+    Api.onQueueChange((s) => estados.push(s));
+    let threw = false;
+    try { await Api.commit(sampleState(), { kind: 'persona', id: 'per_a' }); } catch (e) { threw = true; }
+    check('commit NO lanza (la cola absorbe el fallo)', !threw);
+    const fin = Api.queueState();
+    check('error RLS es DEFINITIVO → se descarta (cola vacía)', fin.pendientes === 0);
+    check('el rechazo se reporta por estado (no se pierde silencioso)', !!fin.error && /rechazado/i.test(fin.error));
+  }
+
+  /* ====================== 6b. Cola offline: error de RED se reintenta (queda encolado) ====================== */
+  section('Cola offline: sin red el cambio se ENCOLA y se sincroniza al reconectar');
+  {
+    try { if (typeof localStorage !== 'undefined') localStorage.removeItem('laPrimada_cola'); } catch (e) {}
+    let online = false;
+    // Cliente que RECHAZA (red caída) mientras online=false; al reconectar guarda la fila.
+    const net = { _store: new Map(), from() { const self = net; return {
+      upsert(row) { if (!online) return Promise.reject(new Error('Failed to fetch')); self._store.set(row.id, row); return Promise.resolve({ data: [row], error: null }); },
+    }; } };
+    Api.init({ client: net });
+    await Api.commit(sampleState(), { kind: 'persona', id: 'per_a' });
+    check('sin red → queda ENCOLADO (1 pendiente)', Api.queueState().pendientes === 1);
+    check('sin red → estado "sin conexión"', /conexi/i.test(Api.queueState().error || ''));
+    check('sin red → la fila NO llegó al backend todavía', !net._store.has('per_a'));
+    online = true;
+    await Api.flush();
+    check('al reconectar → la cola se vacía (0 pendientes)', Api.queueState().pendientes === 0);
+    check('al reconectar → la fila llegó al backend', net._store.has('per_a'));
   }
 
   /* ====================== 7. Fallback a 'local' (Node/jsdom sin SDK) ====================== */

@@ -297,24 +297,14 @@
     } catch (e) { return null; }
   }
 
-  // Dispara el upsert async de un target con reintento acotado. Optimista: no bloquea el render.
-  function pushUpsert(target, intento) {
+  // Fase C: la durabilidad (cola persistente + reintento al reconectar) la maneja Api. El Store solo
+  // delega; el estado de sincronización (pendientes/error) llega por Api.onQueueChange → emitSync.
+  function pushUpsert(target) {
     if (!Api || !target) return;
-    intento = intento || 0;
-    sync.pendientes++; emitSync();
-    Promise.resolve(Api.commit(state, target))
-      .then(() => { sync.pendientes = Math.max(0, sync.pendientes - 1); sync.error = null; emitSync(); })
-      .catch((err) => {
-        sync.pendientes = Math.max(0, sync.pendientes - 1);
-        if (intento < 3) {
-          const espera = 800 * (intento + 1);
-          sync.error = 'Reintentando guardar… (' + (intento + 1) + '/3)'; emitSync();
-          setTimeout(() => pushUpsert(target, intento + 1), espera);
-        } else {
-          sync.error = (err && err.message) ? err.message : 'No se pudo guardar en la nube';
-          emitSync();
-        }
-      });
+    Api.commit(state, target);
+  }
+  if (Api && Api.onQueueChange) {
+    Api.onQueueChange(function (snap) { sync.pendientes = snap.pendientes; sync.error = snap.error; emitSync(); });
   }
 
   // load() ASYNC: hidrata el AppState desde Api (Supabase o espejo local) y le aplica migrate()

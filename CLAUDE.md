@@ -150,6 +150,12 @@ alrededor de cada primada mensual, no a diario.
   Si el upsert **falla, el usuario lo ve** (manejo de error visible: toast / reintento). *El cómo es del implementador.*
 - **Caché offline = solo LECTURA:** localStorage espeja el último estado para **ver datos sin conexión** y arranque en frío.
   **La fuente de verdad es Supabase. Nunca se escribe lógica de dominio a localStorage** (solo el espejo de lectura).
+- **EXCEPCIÓN documentada — cola de tránsito de ESCRITURA (Fase C):** además del espejo de lectura, existe una **cola
+  persistente** (`localStorage` clave `laPrimada_cola`, SEPARADA del estado de dominio) con las **escrituras pendientes**
+  cuando no hay red. NO es estado de dominio: es **tránsito** (operaciones Supabase autocontenidas) que se vacía al
+  reconectar (evento `online`) y se descarta si el backend la rechaza definitivamente (RLS/validación). Vive **dentro de
+  `js/api.js`** (el Store no la conoce; solo recibe el estado `{pendientes,error}` vía `Api.onQueueChange` para el indicador).
+  Esto resuelve "una primada es una fiesta con red mala": el que apunta no reintenta a mano (render optimista + sync al volver).
 - **View pura intacta** (sin cambios). **Controller** solo cambia el **bootstrap** (auth gate + carga async).
 
 ## Estructura de archivos
