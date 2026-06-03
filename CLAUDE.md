@@ -115,9 +115,19 @@ alrededor de cada primada mensual, no a diario.
 - `personas` **relacional** (directorio mutable, referenciado por muchas primadas; sede de la INVARIANTE #1).
 - `primadas` con **columnas indexables** (`fecha`, `mes_contable`, `estado`, `organizador_principal_id`) **+ `data jsonb`**
   para los **snapshots congelados** (`pago`, `cover`, `productos[]`, `asistencias[]`).
-- `settings` singleton (`jsonb`), `profiles` (`user_id → role`).
-- **IDs de texto actuales se conservan** (PK `text`, p. ej. `'per…'`, `'prm…'`) — **sin migrar a uuid** → cero cambios al modelo.
-- Granularidad **por fila**: editar la primada A no pisa la B ni el directorio; dentro de una primada, last-write-wins es aceptable.
+- `settings` singleton (`jsonb`), `profiles` (`user_id → role`, `role:'admin'|'miembro'`; `is_admin()` = SECURITY DEFINER).
+- **`consumos` relacional (v6, NO en el jsonb):** `{ id text PK, primada_id text FK→primadas, persona_id text FK→personas,
+  producto_id text, cantidad int default 1, apuntado_por uuid default auth.uid(), created_at timestamptz }`. 1 fila = 1 pedido
+  (append-only) → concurrencia sin lost-update. `replica identity full` (para realtime de la Fase B).
+- **IDs de texto actuales se conservan** (PK `text`, p. ej. `'per…'`, `'prm…'`, `'cns…'`) — **sin migrar a uuid** → cero cambios al modelo.
+- Granularidad **por fila**: editar la primada A no pisa la B ni el directorio; los consumos son filas independientes.
+
+> **🟢 FASE A IMPLEMENTADA (sesión Supabase):** tabla `consumos` + modelo v6 (consumos-como-filas, `migrate()` v5→v6) +
+> **gate INVERTIDO** (la app carga en LECTURA con solo el link; el login salta al intentar ESCRIBIR) + RLS verificado.
+> **RLS real (verificado):** `SELECT` abierto a **anon** en `personas`/`primadas`/`settings`/`consumos`; escritura de primadas/consumos
+> a **autenticados**; `settings`/`personas` UPDATE/DELETE solo **admin** (`is_admin()`); `consumos` no inserta si la primada está
+> **cerrada** (subquery en la policy). **Primer editor sembrado:** `jdvlazio@gmail.com` (admin). Pendiente: **Fase B** (sync en vivo:
+> Postgres Changes + snapshot/incremental) y **Fase C** (cola offline + presence + auditoría).
 
 **Store — qué cambia y qué NO.**
 - **NO cambian:** `select` (derivados), `actions` (mutaciones + invariantes), `migrate()` (normalizador tolerante), ni la forma
@@ -175,18 +185,25 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
   - **Ajustes** — cover vigente, productos por defecto.
 - Toda feature nueva debe caber en esta navegación. Si no cabe → **pausar y consultar** (no inventar un cuarto tab).
 
-## Modelo de datos (esquema v5 — DEFINITIVO)
+## Modelo de datos (esquema v6 — DEFINITIVO)
 ```
-AppState  { schemaVersion:5, settings{cover{ahorrador,invitado}, defaultProducts[]},
+AppState  { schemaVersion:6, settings{cover{ahorrador,invitado}, defaultProducts[]},
             personas[], primadas[], activePrimadaId }
 Persona   { id, nombre, estado:'ahorrador'|'invitado', breB:string|null }
 Primada   { id, nombre, fecha:'YYYY-MM-DD', mesContable:'YYYY-MM',
             organizadorPrincipalId:personaId|null, pago{ breB:string|null },
-            cover{ahorrador,invitado}, productos[], asistencias[], estado:'abierta'|'cerrada' }
+            cover{ahorrador,invitado}, productos[], asistencias[], consumos[], estado:'abierta'|'cerrada' }
 Producto  { id, nombre, emoji, costoNeto, precioVenta, aportadoPor:personaId|null }   // default aportadoPor = principal
 Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal'|'organizador'|'asistente',
-            coverExonerado:bool, items{productoId:cantidad}, pagado:bool }   // pagado = saldó su total (binario, v5)
+            coverExonerado:bool, pagado:bool }   // pagado = saldó su total (binario). SIN items (v6).
+Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   // 1 fila = 1 pedido (v6, append-only)
 ```
+- **CONSUMOS COMO FILAS (v6, decisión Supabase #1):** cada pedido es una **fila** (no un contador `items{}`).
+  La cantidad de un producto para una asistencia = **Σ filas** de `(personaId, productoId)`. **+1 = INSERT** una fila;
+  **−1 = DELETE** la fila más reciente. Resuelve el **lost-update** (dos +1 simultáneos = dos INSERT, no se pisan).
+  Tabla `consumos` **relacional aparte** (NO en el jsonb de la primada). `apuntadoPor` = sesión que lo registró
+  (auditoría). **Las fórmulas (ganancia, cover, informe) NO cambian:** solo la forma del dato; los selectores cuentan
+  desde `consumos`. Selectores nuevos: `resumenConsumoDe` (vista por defecto sumada) y `detalleConsumoDe` (auditoría).
 - **Organizadores = `rol` dentro de la asistencia** (asisten y consumen). El `principal` es la asistencia con `rol:'principal'`;
   `organizadorPrincipalId` es el puntero de integridad. **"Sin cover" se deriva del `rol`** (o de `coverExonerado`).
 - **`estadoEnEseMomento` es un SNAPSHOT inmutable** del estado que la persona tenía al asistir — igual que los precios.
@@ -300,8 +317,11 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - [x] Directorio de personas en UI (pantalla propia tras el engranaje): alta, edición de nombre, cambio de estado
       ahorrador↔invitado (vigente, sin reescribir snapshots), llave `breB`, y nº de primadas donde aparece.
       Verificado en navegador real (INVARIANTE #1: misma persona, dos primadas, dos snapshots distintos).
-- [ ] **PRÓXIMO (sesión dedicada) — Migración a backend Supabase** (localStorage → nube; magic link, RLS, híbrido, arranque limpio).
-      Arquitectura **CONFIRMADA** (ver "Arquitectura de backend — Supabase"). **No mezclar con otros cambios.**
+- [~] **EN CURSO (sesión dedicada) — Backend Supabase** (localStorage → nube; OTP por código, RLS, híbrido, arranque limpio).
+      **Fase A HECHA:** modelo v6 (consumos-como-filas) + RLS (ver anon / editar autenticado / admin en settings·personas /
+      cerrada solo-lectura, verificado) + gate invertido + editor sembrado (jdvlazio admin). **Falta Fase B** (sync en vivo:
+      Postgres Changes + snapshot/incremental + reconexión) y **Fase C** (cola offline + presence + botón de auditoría).
+      Auth por **CÓDIGO OTP** (no solo magic link): plantilla de email con `{{ .Token }}` + `signInWithOtp` sin `emailRedirectTo`.
 - [ ] Tab "Próximamente" (placeholder). *(Resumen y Fondo ya muestran placeholder en PASO 2.)*
 - [ ] **Futuro:** módulo de **Ahorro/Tesorería** (aportes mensuales, retiros, préstamos, inversiones, actividades extra).
 - [ ] **Futuro:** cierre de año / liquidación por persona (aún NO; el año es solo etiqueta).
