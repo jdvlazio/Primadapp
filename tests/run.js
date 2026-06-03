@@ -510,6 +510,48 @@ section('changeItem v6: +1 = fila nueva (no se pisa); −1 = borra la más recie
   eq('no baja de 0', prm().consumos.length, 0);
 }
 
+/* ============================================================ 12. Sync en vivo (Fase B): acciones remotas */
+section('Sync en vivo: applyRemoteConsumo (idempotente) + replaceConsumos (snapshot)');
+{
+  const { Store } = require(JS('store.js'));
+  Store.actions.replaceState({
+    schemaVersion: 6, settings: { cover: { ahorrador: 0, invitado: 0 }, defaultProducts: [] },
+    personas: [{ id: 'pp', nombre: 'P', estado: 'ahorrador', breB: null }],
+    primadas: [{ id: 'pr', nombre: 'Pr', fecha: '2026-06-01', mesContable: '2026-06', organizadorPrincipalId: 'pp',
+      pago: { breB: null }, cover: { ahorrador: 0, invitado: 0 },
+      productos: [{ id: 'cz', nombre: 'Cz', emoji: '🍺', costoNeto: 0, precioVenta: 1000, aportadoPor: 'pp' }],
+      asistencias: [{ personaId: 'pp', estadoEnEseMomento: 'ahorrador', rol: 'principal', coverExonerado: false, pagado: true }],
+      consumos: [], estado: 'abierta' }],
+    activePrimadaId: 'pr',
+  });
+  const prm = () => Store.select.state().primadas[0];
+  const fila = (id) => ({ op: 'INSERT', consumo: { id, personaId: 'pp', productoId: 'cz', cantidad: 1, apuntadoPor: null, createdAt: null } });
+  // INSERT remoto de OTRO cliente
+  Store.actions.applyRemoteConsumo('pr', fila('r1'));
+  eq('INSERT remoto → 1 fila', prm().consumos.length, 1);
+  // ECO: el mismo id NO se duplica (idempotente)
+  Store.actions.applyRemoteConsumo('pr', fila('r1'));
+  eq('eco (mismo id) ignorado → sigue 1', prm().consumos.length, 1);
+  // Otro INSERT remoto
+  Store.actions.applyRemoteConsumo('pr', fila('r2'));
+  eq('segundo INSERT remoto → 2 filas', prm().consumos.length, 2);
+  // DELETE remoto por id
+  Store.actions.applyRemoteConsumo('pr', { op: 'DELETE', id: 'r1' });
+  eq('DELETE remoto → 1 fila', prm().consumos.length, 1);
+  eq('quedó r2', prm().consumos[0].id, 'r2');
+  // DELETE de un id inexistente → no-op
+  Store.actions.applyRemoteConsumo('pr', { op: 'DELETE', id: 'noexiste' });
+  eq('DELETE inexistente → sigue 1', prm().consumos.length, 1);
+  // SNAPSHOT (reconciliación): reemplaza la lista entera con la verdad de la nube
+  Store.actions.replaceConsumos('pr', [
+    { id: 's1', personaId: 'pp', productoId: 'cz', cantidad: 1, apuntadoPor: null, createdAt: null },
+    { id: 's2', personaId: 'pp', productoId: 'cz', cantidad: 1, apuntadoPor: null, createdAt: null },
+    { id: 's3', personaId: 'pp', productoId: 'cz', cantidad: 1, apuntadoPor: null, createdAt: null },
+  ]);
+  eq('snapshot reemplaza → 3 filas (verdad de la nube)', prm().consumos.length, 3);
+  eq('total recalculado desde snapshot (3×1000)', select.consumoDe(prm(), prm().asistencias[0]), 3000);
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);

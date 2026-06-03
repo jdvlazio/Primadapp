@@ -183,8 +183,32 @@
     }
   }
 
+  /* ---------- SYNC EN VIVO (Fase B): snapshot + incremental sobre consumos ----------
+     fetchConsumos = SNAPSHOT de una primada (reconciliación en (re)conexión).
+     subscribeConsumos = INCREMENTAL por Postgres Changes (INSERT/DELETE/UPDATE) filtrado por primada.
+     onSubscribed dispara en cada (re)conexión del canal → el controller re-snapshota (no pierde eventos). */
+  async function fetchConsumos(primadaId) {
+    if (mode !== 'supabase' || !client) return null;
+    const res = await run(client.from('consumos').select('*').eq('primada_id', primadaId), 'fetch.consumos');
+    return (res.data || []).map(rowToConsumo);
+  }
+  function subscribeConsumos(primadaId, opts) {
+    opts = opts || {};
+    if (mode !== 'supabase' || !client || typeof client.channel !== 'function') return function () {};
+    const ch = client.channel('consumos:' + primadaId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'consumos', filter: 'primada_id=eq.' + primadaId }, function (payload) {
+        try {
+          const op = payload.eventType || payload.type;
+          const row = (op === 'DELETE') ? payload.old : payload.new;
+          if (opts.onChange) opts.onChange({ op: op, consumo: row ? rowToConsumo(row) : null, id: row ? row.id : (payload.old && payload.old.id) });
+        } catch (e) {}
+      })
+      .subscribe(function (status) { if (status === 'SUBSCRIBED' && opts.onSubscribed) { try { opts.onSubscribed(); } catch (e) {} } });
+    return function () { try { client.removeChannel(ch); } catch (e) {} };
+  }
+
   const Api = {
-    init, load, commit,
+    init, load, commit, fetchConsumos, subscribeConsumos,
     mode: function () { return mode; },
     // Cambia el modo de DATOS sin tocar el client de auth: 'supabase' solo si hay client. Permite
     // tener el client (para el magic link) pero leer/escribir LOCAL hasta que haya sesión.

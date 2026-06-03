@@ -48,13 +48,32 @@ function makeFakeSupabase() {
   const tablas = { personas: new Map(), primadas: new Map(), settings: new Map(), consumos: new Map() };
   function thenable(result) { return { then: (res) => Promise.resolve(result).then(res) }; }
   function write(store, rowOrRows) { const arr = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows]; arr.forEach(r => store.set(r.id, JSON.parse(JSON.stringify(r)))); return thenable({ data: arr, error: null }); }
+  const channels = [];
   return {
     _tablas: tablas,
+    _channels: channels,
+    // Realtime fake: channel().on().subscribe(cb) → cb('SUBSCRIBED'); _emit(payload) simula un cambio.
+    channel(name) {
+      const hs = []; const chan = {
+        on(type, cfg, cb) { hs.push(cb); return chan; },
+        subscribe(statusCb) { if (statusCb) statusCb('SUBSCRIBED'); return chan; },
+        _emit(payload) { hs.forEach(cb => cb(payload)); },
+      };
+      channels.push(chan); return chan;
+    },
+    removeChannel() {},
     from(nombre) {
       const store = tablas[nombre];
       if (!store) return { select: () => thenable({ data: null, error: { message: 'tabla desconocida ' + nombre } }) };
       return {
-        select() { return thenable({ data: Array.from(store.values()).map(r => JSON.parse(JSON.stringify(r))), error: null }); },
+        // select() es awaitable Y encadenable con .eq() (filtro por columnas).
+        select() {
+          const filtros = []; const q = {
+            eq(col, val) { filtros.push([col, val]); return q; },
+            then(res) { const rows = Array.from(store.values()).filter(r => filtros.every(([c, v]) => r[c] === v)).map(r => JSON.parse(JSON.stringify(r))); return Promise.resolve({ data: rows, error: null }).then(res); },
+          };
+          return q;
+        },
         upsert(rowOrRows) { return write(store, rowOrRows); },
         insert(rowOrRows) { return write(store, rowOrRows); },   // consumos usan insert (no upsert)
         delete() {
@@ -257,6 +276,30 @@ section('load() async contra Supabase (fake en memoria)');
     check('load local sin localStorage → null (Store hará defaultState vía migrate)', app === null);
     let ok = true; try { await Api.commit(sampleState(), { kind: 'settings' }); } catch (e) { ok = false; }
     check('commit local no lanza (solo espeja; sin red)', ok);
+  }
+
+  /* ====================== 8. Sync en vivo (Fase B): fetchConsumos + subscribeConsumos ====================== */
+  section('Sync en vivo (Fase B): fetchConsumos (snapshot) + subscribeConsumos (canal fake)');
+  {
+    const fake = makeFakeSupabase();
+    Api.init({ client: fake });
+    fake._tablas.consumos.set('a1', consumoRowOf('prm_1', { id: 'a1', personaId: 'per_a', productoId: 'cz', cantidad: 1, apuntadoPor: null, createdAt: null }));
+    fake._tablas.consumos.set('b1', consumoRowOf('prm_2', { id: 'b1', personaId: 'per_b', productoId: 'cz', cantidad: 1, apuntadoPor: null, createdAt: null }));
+    const snap = await Api.fetchConsumos('prm_1');
+    eq('fetchConsumos filtra por primada (1 fila de prm_1)', snap.length, 1);
+    check('fetchConsumos devuelve camelCase', snap[0].personaId === 'per_a' && snap[0].id === 'a1');
+
+    let subbed = 0; const eventos = [];
+    const unsub = Api.subscribeConsumos('prm_1', { onSubscribed: () => { subbed++; }, onChange: (e) => eventos.push(e) });
+    eq('subscribe → onSubscribed disparó (SUBSCRIBED = (re)conexión)', subbed, 1);
+    const chan = fake._channels[fake._channels.length - 1];
+    chan._emit({ eventType: 'INSERT', new: consumoRowOf('prm_1', { id: 'a2', personaId: 'per_a', productoId: 'cz', cantidad: 1, apuntadoPor: null, createdAt: null }) });
+    chan._emit({ eventType: 'DELETE', old: { id: 'a1', primada_id: 'prm_1', persona_id: 'per_a', producto_id: 'cz', cantidad: 1, apuntado_por: null, created_at: null } });
+    eq('onChange recibió 2 eventos', eventos.length, 2);
+    check('evento INSERT normalizado a camelCase', eventos[0].op === 'INSERT' && eventos[0].consumo.id === 'a2' && eventos[0].consumo.personaId === 'per_a');
+    check('evento DELETE trae el id', eventos[1].op === 'DELETE' && eventos[1].id === 'a1');
+    let threw = false; try { unsub(); } catch (e) { threw = true; }
+    check('unsubscribe no lanza', !threw);
   }
 
   /* ---------- Resumen ---------- */

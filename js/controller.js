@@ -68,7 +68,25 @@
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
   function pedirLogin() { ui.overlay = 'login'; ui.loginEstado = 'form'; rerender(); }
 
-  function rerender() { View.render(Store.select.state(), ui); }
+  function rerender() { View.render(Store.select.state(), ui); sincronizarVivo(); }
+
+  // SYNC EN VIVO (Fase B): mantiene UNA suscripción a los consumos de la primada ACTIVA (Postgres
+  // Changes). Al cambiar de primada → re-suscribe; al (re)conectar el canal → re-snapshota (reconcilia
+  // lo perdido). applyRemoteConsumo es idempotente (ignora el eco propio). Sin client (local/tests) → noop.
+  let vivoUnsub = null, vivoPrmId = null;
+  function sincronizarVivo() {
+    if (!(root.Api && root.Api.subscribeConsumos)) return;
+    const p = Store.select.activePrimada();
+    const id = p ? p.id : null;
+    if (id === vivoPrmId) return;                 // misma primada activa → nada que re-suscribir
+    if (vivoUnsub) { try { vivoUnsub(); } catch (e) {} vivoUnsub = null; }
+    vivoPrmId = id;
+    if (!id) return;
+    vivoUnsub = root.Api.subscribeConsumos(id, {
+      onChange: (evt) => Store.actions.applyRemoteConsumo(id, evt),
+      onSubscribed: () => Promise.resolve(root.Api.fetchConsumos(id)).then(rows => { if (rows) Store.actions.replaceConsumos(id, rows); }).catch(() => {}),
+    });
+  }
 
   // Envuelve acciones que pueden lanzar por invariante (principal ahorrador, etc.)
   function tryAction(fn) {

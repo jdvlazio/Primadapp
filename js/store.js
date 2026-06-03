@@ -665,6 +665,33 @@
       a.pagado = !!valor; commit({ kind: 'primada', id: primadaId });
     },
 
+    // ----- SYNC EN VIVO (Fase B): aplica cambios REMOTOS sin re-emitir (evita el eco) -----
+    // applyRemoteConsumo: un INSERT/DELETE/UPDATE llegado por Postgres Changes. IDEMPOTENTE por id:
+    // si el INSERT ya está (nuestro propio eco, o doble entrega) se ignora; un DELETE inexistente, igual.
+    // Muta + notifica (render) + espeja local; NO hace pushUpsert (es de origen remoto).
+    applyRemoteConsumo(primadaId, evt) {
+      const p = findPrimada(primadaId); if (!p || !evt) return;
+      if (!Array.isArray(p.consumos)) p.consumos = [];
+      let cambio = false;
+      if (evt.op === 'INSERT' && evt.consumo) {
+        if (!p.consumos.some(c => c.id === evt.consumo.id)) { p.consumos.push(evt.consumo); cambio = true; }
+      } else if (evt.op === 'DELETE' && evt.id != null) {
+        const i = p.consumos.findIndex(c => c.id === evt.id);
+        if (i >= 0) { p.consumos.splice(i, 1); cambio = true; }
+      } else if (evt.op === 'UPDATE' && evt.consumo) {
+        const i = p.consumos.findIndex(c => c.id === evt.consumo.id);
+        if (i >= 0) { p.consumos[i] = evt.consumo; cambio = true; }
+      }
+      if (cambio) { notify(); mirrorLocal(); }
+    },
+    // replaceConsumos: SNAPSHOT de reconciliación (al (re)conectar el canal). Reemplaza la lista de
+    // consumos de la primada con la verdad de la nube → recupera eventos perdidos durante una desconexión.
+    replaceConsumos(primadaId, consumos) {
+      const p = findPrimada(primadaId); if (!p) return;
+      p.consumos = Array.isArray(consumos) ? consumos.slice() : [];
+      notify(); mirrorLocal();
+    },
+
     // ----- infra -----
     // replaceState reemplaza TODO el estado (restore/import): notifica + espeja local. No intenta
     // un upsert masivo a Supabase (no hay un target único); la sincronización fina ocurre por acción.
