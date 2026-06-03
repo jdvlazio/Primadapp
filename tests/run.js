@@ -427,6 +427,21 @@ section('Robustez');
   eq('defaultState cover sugerido 15000/10000', d.settings.cover.ahorrador + '/' + d.settings.cover.invitado, '15000/10000');
 }
 
+/* ============================================================ 9. Util.emojiSugerido (autosugerencia) */
+section('Util.emojiSugerido (autosugerencia de emoji por nombre)');
+{
+  const { Util } = require(JS('util.js'));
+  eq('cerveza → 🍺', Util.emojiSugerido('Costeñita helada', '•'), '🍺');
+  eq('brownie → 🍫', Util.emojiSugerido('Brownie de chocolate', '•'), '🍫');
+  eq('rifa → 🎟️', Util.emojiSugerido('Boleta de rifa', '•'), '🎟️');
+  eq('café → ☕', Util.emojiSugerido('Tinto', '•'), '☕');
+  eq('case-insensitive', Util.emojiSugerido('PIZZA', '•'), '🍕');
+  eq('sin match → fallback', Util.emojiSugerido('cosa rara xyz', '🎁'), '🎁');
+  eq('vacío → fallback', Util.emojiSugerido('', '•'), '•');
+  eq('sin fallback → ""', Util.emojiSugerido('cosa rara xyz'), '');
+  eq('null tolerante', Util.emojiSugerido(null, '•'), '•');
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);

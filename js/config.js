@@ -45,7 +45,7 @@
       ['cerve|costeñ|costen|aguila|águila|club colombia|poker|póker|polar|corona|heineken|michelad|birra|pola', '🍺'],
       ['vino', '🍷'],
       ['aguardiente|guaro|ron|whisky|whiskey|tequila|vodka|cuba libre|coctel|cóctel|trago', '🍹'],
-      ['gaseosa|cola|refresco|postobon|postobón|colombiana|manzana postobon|soda|sprite|quatro', '🥤'],
+      ['gaseosa|\\bcola|refresco|postobon|postobón|colombiana|manzana postobon|soda|sprite|quatro', '🥤'],
       ['agua', '💧'], ['jugo|hit', '🧃'], ['café|cafe|tinto|capuchino|cappuccino', '☕'],
       ['brownie|chocolat|chocolatin', '🍫'], ['torta|pastel|ponqué|ponque|cheesecake|cake', '🍰'], ['galleta|cookie', '🍪'],
       ['rollo|canela|cinnamon', '🌀'], ['dona|donut|rosquilla', '🍩'], ['helado|paleta|gelato', '🍦'],

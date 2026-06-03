@@ -45,6 +45,20 @@
       if (!y || !m) return ym;
       return Util.monthName(ym) + ' ' + y;
     },
+
+    // Autosugerencia de emoji a partir del NOMBRE del producto (primer match del catálogo gana).
+    // Puro: lee CONFIG.emojiKeywords [[regex, emoji], ...]. Si no hay match → devuelve `fallback`
+    // (lo que el llamante quiera conservar; '' = sin sugerencia). Tolerante a regex inválidas.
+    emojiSugerido(nombre, fallback) {
+      const n = String(nombre || '').toLowerCase().trim();
+      const fb = (fallback != null) ? fallback : '';
+      if (!n) return fb;
+      const kws = CONFIG.emojiKeywords || [];
+      for (let k = 0; k < kws.length; k++) {
+        try { if (new RegExp(kws[k][0], 'i').test(n)) return kws[k][1]; } catch (e) {}
+      }
+      return fb;
+    },
   };
 
   root.Util = Util;
