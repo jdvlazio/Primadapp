@@ -69,12 +69,9 @@
   function primadaSelectorRow(state, ui) {
     const p = S().activePrimada();
     const masNueva = `<button class="icon-btn nueva" data-act="new-primada" title="Nueva primada" aria-label="Nueva primada">${icon('plus-circle')}</button>`;
-    if (!p) {
-      return `<div class="selrow">
-        <div class="prm-selector empty"><span class="sel-main muted">Sin primadas</span></div>
-        ${masNueva}
-      </div>`;
-    }
+    // Sin primadas: NO hay selector ni "+" en la cabecera. La única acción (crear) es protagonista en
+    // el estado vacío de tabPrimadas; aquí no repetimos el anuncio del vacío.
+    if (!p) return '';
     const cerrada = p.estado === 'cerrada';
     const abierto = ui && ui.overlay === 'selector-primada';
     const inc = S().primadaIncompleta(p) ? ' ' + badge('sin principal', 'warn') : '';
@@ -590,9 +587,15 @@
   // vive dentro del selector. "Nueva primada" es el "+" chico del selector (crear es ~mensual).
   function tabPrimadas(state, ui) {
     const activa = S().activePrimada();
+    // Estado vacío (primer uso): UNA sola invitación centrada; crear es la única acción → protagonista.
+    // En cuanto hay ≥1 primada vuelve el selector + "+" chico (branch CON primada, intacto).
+    const vacio = `<div class="empty-soft big primada-vacia">
+        <div class="ph-title">Tu primera primada</div>
+        <div>Aquí vivirán tus encuentros y sus cuentas.</div>
+        <button class="btn auto mt-3" data-act="new-primada">${icon('plus-circle')}Crear primada</button>
+      </div>`;
     return `${primadaSelectorRow(state, ui)}
-      ${activa ? primadaDetalle(activa, ui)
-               : '<div class="empty-soft big">Sin primada<br>Crea la primera con el +</div>'}`;
+      ${activa ? primadaDetalle(activa, ui) : vacio}`;
   }
 
   /* ============================================================

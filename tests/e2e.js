@@ -89,7 +89,16 @@ function abrir(pid) {
 /* ============================================================ */
 section('Arranque (bootstrap cableó la Vista sobre el modelo v4)');
 check('Store, View y Controller existen en window', !!window.Store && !!window.View && !!window.Controller);
-check('Render inicial: tab Primadas con estado vacío', /Sin primada/.test(q('#screen').innerHTML));
+check('Render inicial: tab Primadas con estado vacío (UNA invitación)', /Tu primera primada/.test(q('#screen').innerHTML));
+// Estado vacío SIN redundancia: no hay selector ni "+" en la cabecera; solo la invitación con el .btn.
+check('Estado vacío: NO hay selector de primada (.selrow)', !q('#screen .selrow'));
+check('Estado vacío: NO hay "+" chico (.icon-btn.nueva)', !q('#screen .icon-btn.nueva'));
+check('Estado vacío: el botón "Crear primada" es un .btn[data-act=new-primada]', !!q('#screen .btn[data-act="new-primada"]'));
+// El botón de la invitación abre el wizard; cancelar vuelve al estado vacío.
+click('#screen .btn[data-act="new-primada"]');
+check('Estado vacío: el botón abre el wizard', !!q('.wz'));
+click('[data-act="wz-cancelar"]');
+check('Cancelar el wizard vuelve a la invitación', !q('.wz') && /Tu primera primada/.test(q('#screen').innerHTML));
 eq('localStorage limpio → 0 personas', st().personas.length, 0);
 
 /* ---------- 1. Directorio de personas (overlay del engranaje) ---------- */

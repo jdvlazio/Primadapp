@@ -332,11 +332,21 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
 // 5 · SELECTOR de primada (año→mes) + "+" chico + nombre automático
 // ─────────────────────────────────────────────────────────────────────────────
 test.describe('Selector de primada + nombre automático', () => {
-  test('F1 — el tab Primadas NO tiene botón grande "Nueva primada" (es el "+" chico del selector)', async ({ page }) => {
+  test('F1 — estado vacío = UNA invitación con botón; con ≥1 primada = "+" chico (sin redundancia)', async ({ page }) => {
     await abrirApp(page);
-    // El disparador de nueva primada existe, pero NO como .btn grande de pantalla.
-    expect(await page.locator('#screen .btn[data-act="new-primada"]').count()).toBe(0);
+    // VACÍO (primer uso): una sola invitación centrada con el .btn primario; SIN selector ni "+" chico.
+    await expect(page.locator('#screen .primada-vacia')).toBeVisible();
+    await expect(page.locator('#screen').getByText('Tu primera primada')).toBeVisible();
+    expect(await page.locator('#screen .btn[data-act="new-primada"]').count()).toBe(1);
+    expect(await page.locator('#screen .selrow').count()).toBe(0);
+    expect(await page.locator('#screen .icon-btn.nueva').count()).toBe(0);
+    // Tras crear la primera, REAPARECE el selector + "+" chico, y se va el botón grande.
+    await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
+    await crearPrimada(page, 'Ana');
+    expect(await page.locator('#screen .selrow').count()).toBe(1);
     expect(await page.locator('#screen .icon-btn.nueva[data-act="new-primada"]').count()).toBe(1);
+    expect(await page.locator('#screen .btn[data-act="new-primada"]').count()).toBe(0);
+    await expect(page.locator('#screen .primada-vacia')).toHaveCount(0);
   });
 
   test('F2 — selector cerrado: NOMBRE corto primario (sin "Primada") + mes guía; el "+" abre el wizard', async ({ page }) => {

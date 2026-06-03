@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260603-090522-6c98208">
+<meta name="build" content="20260603-092532-3b6c53a">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -99,6 +99,8 @@
   .btn{flex:1;min-height:var(--tap-btn);display:flex;align-items:center;justify-content:center;font-family:"Instrument Sans",sans-serif;font-weight:700;border:none;cursor:pointer;border-radius:var(--radius-md);background:var(--red);color:var(--accent-ink);padding:var(--space-3);font-size:15px;transition:transform .08s ease, background .15s}
   .btn:active{transform:scale(.96)}
   .btn:hover{background:var(--red-deep)}
+  /* .btn primario de ANCHO AUTO y centrado (fuera de una .bar; no estira a todo lo ancho). */
+  .btn.auto{display:inline-flex;width:auto;flex:0 0 auto;padding-left:var(--space-5);padding-right:var(--space-5)}
   .btn.ghost{background:var(--paper-2);color:var(--ink);border:2px solid var(--line)}
   .btn.ghost:hover{border-color:var(--red);background:var(--paper-2)}
   /* CTA contextual "Todos pagaron · Cerrar primada" (P5): banner POSITIVO arriba de la operación,
@@ -137,6 +139,8 @@
   /* estado vacío SIN caja: solo texto centrado con aire */
   .empty-soft{text-align:center;color:var(--ink-soft);font-size:14px;padding:var(--space-5) var(--space-3)}
   .empty-soft.big{padding:var(--space-6) var(--space-3);font-size:15px;line-height:1.7}
+  /* Estado vacío del tab Primadas (primer uso): UNA invitación centrada vertical y horizontalmente. */
+  .empty-soft.big.primada-vacia{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:var(--space-2)}
   /* (Historial de primadas: ya no es una lista aparte — vive dentro del selector, clases .sel-*.) */
 
   .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);vertical-align:middle}
@@ -483,13 +487,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260603-090522-6c98208"></script>
-  <script src="js/util.js?v=20260603-090522-6c98208"></script>
-  <script src="js/api.js?v=20260603-090522-6c98208"></script>
-  <script src="js/auth.js?v=20260603-090522-6c98208"></script>
-  <script src="js/store.js?v=20260603-090522-6c98208"></script>
-  <script src="js/view.js?v=20260603-090522-6c98208"></script>
-  <script src="js/controller.js?v=20260603-090522-6c98208"></script>
+  <script src="js/config.js?v=20260603-092532-3b6c53a"></script>
+  <script src="js/util.js?v=20260603-092532-3b6c53a"></script>
+  <script src="js/api.js?v=20260603-092532-3b6c53a"></script>
+  <script src="js/auth.js?v=20260603-092532-3b6c53a"></script>
+  <script src="js/store.js?v=20260603-092532-3b6c53a"></script>
+  <script src="js/view.js?v=20260603-092532-3b6c53a"></script>
+  <script src="js/controller.js?v=20260603-092532-3b6c53a"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
