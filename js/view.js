@@ -161,12 +161,10 @@
           ${productosConfig(p, ui)}
         </section>
 
-        <section class="cfg-sec">
+        ${cerrada ? `<section class="cfg-sec">
           <div class="sub">Cuenta</div>
-          ${cerrada
-            ? `<button class="mini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>`
-            : `<button class="mini" data-act="cerrar-primada" data-id="${p.id}">Cerrar</button>`}
-        </section>
+          <button class="mini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>
+        </section>` : ''}
 
         <section class="cfg-sec">
           <div class="sub danger-sub">Eliminar</div>
@@ -470,7 +468,14 @@
   // Tab Primadas = solo OPERAR: asistencias (registrar consumo). La identidad (mes/nombre/estado) y
   // la navegación viven en el SELECTOR de arriba; la config tras el engranaje; la plata en RESUMEN.
   function primadaDetalle(p, ui) {
-    return `<div class="sec-head">
+    // CTA contextual para CERRAR (P5 lote visual): NO vive en Configuración. Aparece como banner arriba
+    // de la operación SOLO cuando ya hubo plata y TODOS saldaron (saldoPendiente 0 = nadie debe; el
+    // principal está auto-saldado). Es el momento natural de cerrar la cuenta del evento.
+    const inf = S().informePrincipal(p);
+    const cerrarCTA = (p.estado === 'abierta' && !inf.incompleta && inf.recaudadoTeorico > 0 && inf.saldoPendiente === 0)
+      ? `<button class="cerrar-cta" data-act="cerrar-primada" data-id="${p.id}">${icon('check')}Todos pagaron · Cerrar primada</button>`
+      : '';
+    return `${cerrarCTA}<div class="sec-head">
         <h2 class="h2">Asistentes <span class="muted">${p.asistencias.length}</span></h2>
         ${pickerAsistentes(p, ui)}
       </div>

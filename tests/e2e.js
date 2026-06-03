@@ -197,13 +197,19 @@ check('Informe del principal renderizado con el nombre (tab Resumen)', /Principa
 click('[data-tab="primadas"]');
 
 /* ---------- 8. Cerrar congela consumos pero la UI sigue viva ---------- */
-section('Cerrar cuenta (INVARIANTE #4) vía config escondida');
-// Cerrar/borrar viven detrás del engranaje de la cabecera, con confirmación (confirm=true en jsdom).
+section('Cerrar cuenta (INVARIANTE #4): "Cerrar" salió de Config; congela consumos');
+// P5 lote visual: "Cerrar" YA NO vive en Configuración. Es un CTA contextual que aparece arriba de la
+// operación SOLO cuando todos saldaron. Mientras Beto deba (7.000), el CTA NO está y Config no lo ofrece.
+check('CTA "Cerrar" ausente mientras Beto debe', !q('[data-act="cerrar-primada"]'));
 click(`[data-act="open-config-primada"][data-id="${prm().id}"]`);
 check('Overlay de config abierto', !q('#overlay').hidden && /Configurar primada/.test(q('#overlay').innerHTML));
-click(`[data-act="cerrar-primada"][data-id="${prm().id}"]`);
-eq('Primada cerrada', prm().estado, 'cerrada');
+check('Config ya NO ofrece "Cerrar"', !/data-act="cerrar-primada"/.test(q('#overlay').innerHTML));
 click('[data-act="close-overlay"]');
+// El modelo permite cerrar con deuda (la UI lo gatea tras el CTA); aquí cerramos por acción para
+// probar el congelado con un deudor pendiente (escenario de pago-tras-cerrar en 8b).
+Store.actions.cerrarPrimada(prm().id);
+click('[data-tab="resumen"]'); click('[data-tab="primadas"]');   // forzar re-render de la operación
+eq('Primada cerrada', prm().estado, 'cerrada');
 const before = betoAsis().items.cerveza;
 const plus = q(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
 check('Steppers deshabilitados al cerrar', !!plus && plus.disabled === true);
@@ -229,6 +235,18 @@ eq('Deshacer: Beto vuelve a deber 7.000', Store.select.saldoDe(prm(), betoAsis()
 click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);
 click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`);
 eq('Re-marcado pagado (persistencia)', betoAsis().pagado, true);
+
+/* ---------- 8b·2. CTA contextual "Todos pagaron · Cerrar primada" (P5 lote visual) ---------- */
+section('CTA "Todos pagaron · Cerrar primada" aparece y cierra (P5)');
+// Beto ya pagó → nadie debe (saldoPendiente 0) y hubo plata → el CTA debe ofrecerse en la operación.
+Store.actions.reabrirPrimada(prm().id);
+click('[data-tab="resumen"]'); click('[data-tab="primadas"]');   // re-render de la operación
+eq('Reabierta para probar el CTA', prm().estado, 'abierta');
+check('Todos saldados (saldo pendiente 0)', Store.select.informePrincipal(prm()).saldoPendiente === 0);
+const cta = q('[data-act="cerrar-primada"]');
+check('CTA "Cerrar" presente cuando todos pagaron', !!cta && /Todos pagaron/.test(cta.textContent));
+click(cta);                                                      // cerrar por el CTA real
+eq('Primada cerrada vía CTA', prm().estado, 'cerrada');
 
 /* ---------- 8c. Directorio: cambiar estado NO reescribe snapshots (INVARIANTE #1) vía UI ---------- */
 section('Directorio: cambiar estado vigente conserva la historia (INV#1)');
