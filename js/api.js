@@ -227,6 +227,15 @@
     const res = await run(client.from('consumos').select('*').eq('primada_id', primadaId), 'fetch.consumos');
     return (res.data || []).map(rowToConsumo);
   }
+  // Mapa user_id(uuid) → email, para el detalle de AUDITORÍA ("quién apuntó"). profiles tiene SELECT
+  // solo autenticado → anon obtiene {} (mostrará "—"). Tolerante: cualquier fallo → {}.
+  async function fetchApuntadores() {
+    if (mode !== 'supabase' || !client) return {};
+    try {
+      const res = await run(client.from('profiles').select('user_id,email'), 'fetch.apuntadores');
+      const map = {}; (res.data || []).forEach(r => { map[r.user_id] = r.email; }); return map;
+    } catch (e) { return {}; }
+  }
   function subscribeConsumos(primadaId, opts) {
     opts = opts || {};
     if (mode !== 'supabase' || !client || typeof client.channel !== 'function') return function () {};
@@ -254,7 +263,7 @@
   }
 
   const Api = {
-    init, load, commit, fetchConsumos, subscribeConsumos,
+    init, load, commit, fetchConsumos, fetchApuntadores, subscribeConsumos,
     onQueueChange, flush, queueState: function () { return { pendientes: cola.length, error: colaError }; },
     mode: function () { return mode; },
     // Cambia el modo de DATOS sin tocar el client de auth: 'supabase' solo si hay client. Permite

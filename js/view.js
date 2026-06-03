@@ -49,6 +49,7 @@
     'copy':       '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
     'x':          '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     'chevron-down':'<path d="m6 9 6 6 6-6"/>',
+    'info':       '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   };
   // icon(name, cls?) → <svg> inline. La clase .icon dimensiona; cls extra opcional.
   function icon(name, cls) {
@@ -228,7 +229,26 @@
     // solo cuando está CERRADA (sin botón) se muestra "Sin consumo" como estado mínimo.
     const cuerpo = consumidos.length ? `<div class="prods">${filas}</div>`
       : (cerrada ? `<div class="muted small consumo-vacio">Sin consumo</div>` : '');
-    return `${cuerpo}${pickProductos(p, a, ui)}`;
+    // AUDITORÍA (C2): el detalle por evento (hora + quién apuntó) NO se exhibe; se pide con el ⓘ.
+    const auditOpen = ui && ui.auditPid === a.personaId;
+    const auditBtn = consumidos.length
+      ? `<button class="xmini aud-btn ${auditOpen ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpen ? 'true' : 'false'}" aria-label="Detalle por evento">${icon('info', 'sm')}</button>`
+      : '';
+    return `${cuerpo}${pickProductos(p, a, ui)}${auditBtn}${auditOpen ? auditoriaPanel(p, a, ui) : ''}`;
+  }
+
+  // Panel de AUDITORÍA (colapsado tras el ⓘ): cada consumo con su HORA + producto + QUIÉN lo apuntó
+  // (email resuelto desde ui.apuntadores; '—' si no se pudo, p.ej. anon sin acceso a profiles).
+  function auditoriaPanel(p, a, ui) {
+    const eventos = S().detalleConsumoDe(p, a);
+    if (!eventos.length) return '<div class="aud-panel"><div class="muted small">Sin eventos</div></div>';
+    const map = (ui && ui.apuntadores) || {};
+    const filas = eventos.map(ev => {
+      const quien = ev.apuntadoPor ? (map[ev.apuntadoPor] || 'otro') : '—';
+      const prod = ev.prod ? `${e(ev.prod.emoji)} ${e(ev.prod.nombre)}` : '—';
+      return `<div class="aud-row"><span class="aud-hora">${Util.horaCorta(ev.createdAt)}</span><span class="aud-prod">${prod}</span><span class="aud-quien">${e(quien)}</span></div>`;
+    }).join('');
+    return `<div class="aud-panel"><div class="aud-head">Detalle · hora · quién apuntó</div>${filas}</div>`;
   }
 
   // "+ Agregar": chips del catálogo de ESA primada que aún no consume. Tap = changeItem(+1) → pasa a stepper.

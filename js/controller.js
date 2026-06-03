@@ -53,7 +53,7 @@
   const ui = { tab: 'primadas', overlay: null, abiertos: new Set(), pickProd: null, wizard: null,
                personasAbiertas: new Set(), nuevaPersona: false,
                configAsis: new Set(), configProd: new Set(), pagarPid: null,
-               resumen: new Set(),
+               resumen: new Set(), auditPid: null, apuntadores: {},
                loginEstado: 'form', loginEmail: '' };
   let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
 
@@ -231,6 +231,15 @@
       case 'toggle-asis': {
         if (ui.abiertos.has(pid)) { ui.abiertos.delete(pid); if (ui.pickProd === pid) ui.pickProd = null; }
         else ui.abiertos.add(pid);
+        rerender(); return;
+      }
+      // ----- Auditoría (C2): detalle por evento bajo demanda (lectura; carga quién→email una vez) -----
+      case 'toggle-auditoria': {
+        ui.auditPid = (ui.auditPid === pid) ? null : pid;
+        if (ui.auditPid && root.Api && root.Api.fetchApuntadores && !ui._apuntadoresCargados) {
+          ui._apuntadoresCargados = true;
+          Promise.resolve(root.Api.fetchApuntadores()).then(m => { ui.apuntadores = m || {}; rerender(); }).catch(() => {});
+        }
         rerender(); return;
       }
       // ----- Resumen: cards-acordeón colapsadas por defecto -----

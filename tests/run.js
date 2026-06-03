@@ -444,6 +444,10 @@ section('Util.emojiSugerido (autosugerencia de emoji por nombre)');
   eq('vacío → fallback', Util.emojiSugerido('', '•'), '•');
   eq('sin fallback → ""', Util.emojiSugerido('cosa rara xyz'), '');
   eq('null tolerante', Util.emojiSugerido(null, '•'), '•');
+  // Util.horaCorta (auditoría C2): ISO → "HH:MM"; tolerante a null/basura.
+  eq('horaCorta: null → —', Util.horaCorta(null), '—');
+  eq('horaCorta: basura → —', Util.horaCorta('no-fecha'), '—');
+  check('horaCorta: ISO válido → HH:MM', /^\d{1,2}:\d{2}/.test(Util.horaCorta('2026-06-03T10:05:00.000Z')));
 }
 
 /* ============================================================ 10. v5 → v6: consumos como filas */

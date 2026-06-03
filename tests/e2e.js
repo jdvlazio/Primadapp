@@ -163,6 +163,14 @@ click(`[data-act="item-minus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
 eq('Stepper baja a 1 (borró la fila más reciente)', cervezas(), 1);
 click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);   // de vuelta a 2
 
+// Auditoría (C2): el detalle por evento NO se exhibe; el ⓘ lo abre bajo demanda.
+check('Auditoría: ⓘ presente con consumos', !!q(`[data-act="toggle-auditoria"][data-pid="${beto.id}"]`));
+check('Auditoría: panel NO se exhibe por defecto', !q('.aud-panel'));
+click(`[data-act="toggle-auditoria"][data-pid="${beto.id}"]`);
+check('Auditoría: al tocar ⓘ aparece el panel con 2 eventos', !!q('.aud-panel') && q('.aud-panel').querySelectorAll('.aud-row').length === 2);
+click(`[data-act="toggle-auditoria"][data-pid="${beto.id}"]`);
+check('Auditoría: se cierra al re-tocar', !q('.aud-panel'));
+
 /* ---------- 6. Cover automático + exoneración ---------- */
 section('Cover automático por tipo + exoneración manual');
 const betoAsis = () => prm().asistencias.find(a => a.personaId === beto.id);

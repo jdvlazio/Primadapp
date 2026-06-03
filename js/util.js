@@ -46,6 +46,13 @@
       return Util.monthName(ym) + ' ' + y;
     },
 
+    // ISO 'createdAt' → hora corta local "10:05" (para el detalle de auditoría). Tolerante.
+    horaCorta(iso) {
+      if (!iso) return '—';
+      try { const d = new Date(iso); if (isNaN(d.getTime())) return '—'; return d.toLocaleTimeString(CONFIG.locale, { hour: '2-digit', minute: '2-digit' }); }
+      catch (e) { return '—'; }
+    },
+
     // Autosugerencia de emoji a partir del NOMBRE del producto (primer match del catálogo gana).
     // Puro: lee CONFIG.emojiKeywords [[regex, emoji], ...]. Si no hay match → devuelve `fallback`
     // (lo que el llamante quiera conservar; '' = sin sugerencia). Tolerante a regex inválidas.
