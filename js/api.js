@@ -128,13 +128,21 @@
      Devuelve un AppState CRUDO (o null); el Store le aplica migrate(). */
   async function load() {
     if (mode === 'supabase' && client) {
-      const [pe, pr, se, co] = await Promise.all([
-        run(client.from('personas').select('*'), 'load.personas'),
-        run(client.from('primadas').select('*'), 'load.primadas'),
-        run(client.from('settings').select('*'), 'load.settings'),
-        run(client.from('consumos').select('*'), 'load.consumos'),
-      ]);
-      return fromRows({ personas: pe.data, primadas: pr.data, settings: se.data, consumos: co.data });
+      try {
+        const [pe, pr, se, co] = await Promise.all([
+          run(client.from('personas').select('*'), 'load.personas'),
+          run(client.from('primadas').select('*'), 'load.primadas'),
+          run(client.from('settings').select('*'), 'load.settings'),
+          run(client.from('consumos').select('*'), 'load.consumos'),
+        ]);
+        return fromRows({ personas: pe.data, primadas: pr.data, settings: se.data, consumos: co.data });
+      } catch (e) {
+        // Resiliencia de LECTURA: si la red/Supabase falla, cae al espejo local (caché solo-lectura,
+        // CLAUDE.md). No deja la app en blanco por un parpadeo de red. La escritura sigue siendo nube.
+        const cache = cacheRead();
+        if (cache) return cache;
+        throw e;
+      }
     }
     return cacheRead();
   }

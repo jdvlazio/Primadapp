@@ -55,7 +55,18 @@
                configAsis: new Set(), configProd: new Set(), pagarPid: null,
                resumen: new Set(),
                loginEstado: 'form', loginEmail: '' };
-  let sesionActiva = false;   // hay sesión Supabase (el login es opt-in: no bloquea al entrar)
+  let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
+
+  // Acciones que ESCRIBEN datos de dominio (gate invertido: sin sesión se abre el login en vez de mutar).
+  // Lectura/navegación (tabs, selector, abrir tarjetas, colapsar Resumen, Configurar, copiar llave,
+  // open-pagar) NO están aquí: la app es usable en LECTURA con solo el link. seleccionar-primada es local.
+  const WRITE_ACTS = new Set([
+    'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
+    'add-asistencia', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus', 'add-item',
+    'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'add-persona', 'set-estado-persona',
+  ]);
+  function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
+  function pedirLogin() { ui.overlay = 'login'; ui.loginEstado = 'form'; rerender(); }
 
   function rerender() { View.render(Store.select.state(), ui); }
 
@@ -89,6 +100,10 @@
     const id  = b.dataset.id;           // primadaId
     const prm = activeId();
     const A = Store.actions;
+
+    // GATE INVERTIDO (decisión #5): la app carga en LECTURA para cualquiera con el link; el login salta
+    // SOLO al intentar ESCRIBIR. La frontera real es RLS (rechaza al anon); esto es el aviso amable.
+    if (WRITE_ACTS.has(act) && backendOn() && !sesionActiva) { pedirLogin(); return; }
 
     switch (act) {
       // ----- auth (hoja de login, opt-in desde el ícono de perfil) -----
@@ -290,6 +305,8 @@
       rerender(); return;
     }
     const t = ev.target.closest('[data-ch]'); if (!t) return;
+    // Todo data-ch es EDICIÓN (escritura): sin sesión, abre el login en vez de aplicar (gate invertido).
+    if (backendOn() && !sesionActiva) { pedirLogin(); return; }
     const ch = t.dataset.ch;
     const pid = t.dataset.pid;
     const id  = t.dataset.id;
@@ -372,19 +389,20 @@
   async function gate() {
     if (Auth && Auth.enabled()) {
       Auth.cleanUrl();                         // limpia el token del magic link de la URL
+      // GATE INVERTIDO (decisión #5): modo 'supabase' SIEMPRE que haya client → lectura anon para
+      // cualquiera con el link. La sesión NO cambia la fuente de datos, solo HABILITA la escritura
+      // (RLS rechaza al anon). Al iniciar/cerrar sesión recargamos (para traer/soltar lo que RLS permita).
+      if (root.Api && root.Api.setMode) root.Api.setMode('supabase');
       Auth.onChange((session) => {
         sesionActiva = !!session;
-        if (root.Api && root.Api.setMode) root.Api.setMode(sesionActiva ? 'supabase' : 'local');
         if (View.renderAuthButton) View.renderAuthButton(sesionActiva ? 'in' : 'out');
         if (ui.overlay === 'login' && sesionActiva) ui.overlay = null;   // cerrar la hoja al iniciar sesión
-        appIniciada = false; iniciarApp();     // recargar datos de la fuente correcta
+        appIniciada = false; iniciarApp();     // recargar (la escritura recién habilitada puede traer más)
       });
       const session = await Auth.getSession();
       sesionActiva = !!session;
-      // Datos LOCALES hasta que haya sesión (el client sigue vivo para el login opt-in).
-      if (root.Api && root.Api.setMode) root.Api.setMode(sesionActiva ? 'supabase' : 'local');
     }
-    await iniciarApp();                         // entra directo (login opt-in, no bloquea)
+    await iniciarApp();                         // entra directo en LECTURA (login solo al editar)
   }
 
   // Bootstrap único (async). evento → acción → commit (render optimista + upsert async) → notifica → render.
