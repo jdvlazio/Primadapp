@@ -272,7 +272,7 @@ check('Informe: sin Bre-B → la línea 🔑 se omite', !/informe-llave/.test(in
 const prevBreB = prm().pago.breB;
 prm().pago.breB = 'ana@bre-b';
 const conLlave = window.View.informeTemplateHTML(prm());
-check('Informe: Bre-B como línea 🔑 con el valor directo (no label+valor)', /informe-llave">🔑 ana@bre-b/.test(conLlave));
+check('Informe: Bre-B como línea "🔑 Bre-B {valor}" (etiqueta + valor)', /informe-llave">🔑 Bre-B ana@bre-b/.test(conLlave));
 check('Informe: la 🔑 va tras el título y antes de los asistentes',
   conLlave.indexOf('informe-title') < conLlave.indexOf('informe-llave') &&
   conLlave.indexOf('informe-llave') < conLlave.indexOf('informe-asis'));
@@ -282,10 +282,25 @@ prm().pago.breB = prevBreB || null;   // restaurar el snapshot
 prm().pago.breB = null;                                  // snapshot vacío (como una primada vieja)
 Store.actions.setBreBPersona(ana.id, 'ana-nueva@bre-b'); // llave agregada a la persona después
 check('Informe: Bre-B por FALLBACK a la persona principal cuando el snapshot es null',
-  /informe-llave">🔑 ana-nueva@bre-b/.test(window.View.informeTemplateHTML(prm())));
+  /informe-llave">🔑 Bre-B ana-nueva@bre-b/.test(window.View.informeTemplateHTML(prm())));
 Store.actions.setBreBPersona(ana.id, '');                // restaurar (persona sin llave)
 // View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
 check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');
+
+/* ---------- 7c. Orden por consumo (mayor total arriba) en app e informe ---------- */
+section('Orden por consumo: el que más debe, primero (cara Consumos + informe)');
+click('[data-act="set-cara"][data-cara="operacion"]');   // volver a la cara Consumos
+// Beto (2 cervezas = 7.000, exonerado) vs Ana (principal, 0) → Beto arriba en la lista.
+const ordenDom = qa('[data-act="toggle-asis"]').map(el => el.dataset.pid);
+check('Consumos: mayor total primero (Beto $7.000 antes que Ana $0)',
+  ordenDom.indexOf(beto.id) >= 0 && ordenDom.indexOf(beto.id) < ordenDom.indexOf(ana.id));
+// Informe: mismo orden. Doy a Ana un consumo menor (3.500) para que aparezca; Beto (7.000) debe ir antes.
+Store.actions.changeItem(prm().id, ana.id, 'cerveza', +1);
+const infOrden = window.View.informeTemplateHTML(prm());
+check('Informe: mayor total primero (Beto $7.000 antes que Ana $3.500)',
+  infOrden.indexOf('informe-nombre">' + beto.nombre) < infOrden.indexOf('informe-nombre">' + ana.nombre));
+Store.actions.changeItem(prm().id, ana.id, 'cerveza', -1);   // restaurar (Ana sin consumo) para el resto del flujo
+check('Orden es presentación: Ana volvió a total 0 tras restaurar', Store.select.totalAsistencia(prm(), anaAsis()) === 0);
 
 /* ---------- 8. Cerrar congela consumos pero la UI sigue viva ---------- */
 section('Cerrar cuenta (INVARIANTE #4): "Cerrar" salió de Config; congela consumos');

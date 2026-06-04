@@ -403,6 +403,15 @@
         .sort((x, y) => String(x.createdAt || '') < String(y.createdAt || '') ? -1 : 1);
     },
     totalAsistencia(primada, a) { return select.coverDe(primada, a) + select.consumoDe(primada, a); },
+    // PRESENTACIÓN (no muta el Store): asistencias de mayor a menor totalAsistencia (el que más debe
+    // arriba). Copia + sort ESTABLE → empates conservan el orden de inserción; con todos en 0 (inicio)
+    // queda el orden de inserción. Lo usan la cara Consumos y el informe; el orden en primada.asistencias
+    // NO cambia. Precalcula el total por asistencia (el comparador se llama O(n log n) veces).
+    asistenciasPorConsumo(primada) {
+      const arr = (primada.asistencias || []).slice();
+      const tot = new Map(arr.map(a => [a, select.totalAsistencia(primada, a)]));
+      return arr.sort((a, b) => tot.get(b) - tot.get(a));
+    },
     esPrincipal(primada, a) { return a.personaId != null && a.personaId === primada.organizadorPrincipalId; },
     // Saldo BINARIO: el principal está auto-saldado (plata en mano); un asistente debe su total
     // completo hasta que marca "pagado" (entonces 0). No hay pagos parciales (v5).

@@ -207,6 +207,15 @@ let v4primada;
   eq('v4: total C = 23000', select.totalAsistencia(p, p.asistencias[2]), 23000);
   eq('v4: recaudado = 37000', select.recaudado(p), 37000);
 
+  // Orden por consumo (PRESENTACIÓN): mayor totalAsistencia primero. Totales A=6000,B=3000,C=23000,D=5000
+  // → desc = C,A,D,B. NO debe mutar el orden real en primada.asistencias.
+  const ordenConsumo = select.asistenciasPorConsumo(p).map(a => a.personaId);
+  check('asistenciasPorConsumo: mayor total primero (C,A,D,B)', deepEqual(ordenConsumo, ['per_c', 'per_a', 'per_d', 'per_b']));
+  check('asistenciasPorConsumo: NO muta el Store (orden de inserción intacto)', deepEqual(p.asistencias.map(a => a.personaId), ['per_a', 'per_b', 'per_c', 'per_d']));
+  // Estable: todos en 0 (cover exonerado, sin consumo) → conserva el orden de inserción.
+  const cero = { asistencias: [{ personaId: 'z1', rol: 'asistente', coverExonerado: true }, { personaId: 'z2', rol: 'asistente', coverExonerado: true }, { personaId: 'z3', rol: 'asistente', coverExonerado: true }], productos: [], consumos: [], cover: { ahorrador: 0, invitado: 0 } };
+  check('asistenciasPorConsumo: todos en 0 → orden de inserción (sort estable)', deepEqual(select.asistenciasPorConsumo(cero).map(a => a.personaId), ['z1', 'z2', 'z3']));
+
   const inf = select.informePrincipal(p);
   check('v4: identidad contable recaudado = costoNeto + ganancia', inf.recaudadoTeorico === select.costoNetoTotal(p) + select.ganancia(p));
   eq('v4: recuperaPrincipal = costoNeto 8000', inf.recuperaPrincipal, 8000);

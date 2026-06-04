@@ -50,7 +50,7 @@
      ============================================================ */
   function informeTemplateHTML(p) {
     const sel = S();
-    const lineas = (p.asistencias || []).map(a => {
+    const lineas = sel.asistenciasPorConsumo(p).map(a => {
       const consumos = sel.resumenConsumoDe(p, a);                 // [{prod, cantidad}]
       const cover = sel.coverDe(p, a);
       if (!consumos.length && cover <= 0) return '';               // omite quien no consumió ni paga cover
@@ -76,7 +76,7 @@
     const principalId = p.organizadorPrincipalId;
     const breBRaw = (p.pago && p.pago.breB) || (principalId ? (sel.persona(principalId) || {}).breB : null) || '';
     const breB = breBRaw ? String(breBRaw).trim() : '';
-    const llave = breB ? `<div class="informe-llave">🔑 ${e(breB)}</div>` : '';
+    const llave = breB ? `<div class="informe-llave">🔑 Bre-B ${e(breB)}</div>` : '';
     return `<div class="informe-card">
         <div class="informe-head"><span class="informe-brand">Primadapp</span><span class="informe-period">${e(Util.monthYear(p.mesContable))}</span></div>
         <div class="informe-title">${e(p.nombre)}</div>
@@ -577,7 +577,7 @@
       </div>
       <div class="asis-list">
         ${p.asistencias.length
-          ? p.asistencias.map(a => asistenciaCard(p, a, ui)).join('')
+          ? S().asistenciasPorConsumo(p).map(a => asistenciaCard(p, a, ui)).join('')
           : '<div class="empty-soft">Sin asistentes</div>'}
       </div>`;
   }
