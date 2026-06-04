@@ -264,6 +264,16 @@ check('Informe: cover rotulado "Entrada · $cover" (no "Cover")',
   /informe-line"><span>Entrada<\/span><span>\$10\.000/.test(conCover) && !/Cover/.test(conCover));
 Store.actions.toggleCoverExonerado(prm().id, beto.id);   // restaurar exoneración (cover 0) para el resto del flujo
 check('Informe: footer "Generado con Primadapp"', /informe-foot">Generado con Primadapp/.test(informe));
+// Bre-B del principal (snapshot p.pago.breB): línea destacada 🔑 tras el título. Sin breB → omitida.
+check('Informe: sin Bre-B → la línea 🔑 se omite', !/informe-llave/.test(informe));
+const prevBreB = prm().pago.breB;
+prm().pago.breB = 'ana@bre-b';
+const conLlave = window.View.informeTemplateHTML(prm());
+check('Informe: Bre-B como línea 🔑 con el valor directo (no label+valor)', /informe-llave">🔑 ana@bre-b/.test(conLlave));
+check('Informe: la 🔑 va tras el título y antes de los asistentes',
+  conLlave.indexOf('informe-title') < conLlave.indexOf('informe-llave') &&
+  conLlave.indexOf('informe-llave') < conLlave.indexOf('informe-asis'));
+prm().pago.breB = prevBreB || null;   // restaurar el snapshot
 // View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
 check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');
 

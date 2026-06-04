@@ -68,9 +68,14 @@
     const resumen = cerrada
       ? `<div class="informe-resumen gan">Ganancia ${$peso(sel.ganancia(p))}</div>`
       : `<div class="informe-resumen cobrar">Por cobrar ${$peso(sel.informePrincipal(p).saldoPendiente)}</div>`;
+    // Llave Bre-B del principal (mismo dato que la cara Balance: p.pago.breB). Línea destacada bajo el
+    // título — emoji 🔑 como identificador + el valor directo (no label+valor). Si no hay, se omite.
+    const breB = p.pago && p.pago.breB ? String(p.pago.breB).trim() : '';
+    const llave = breB ? `<div class="informe-llave">🔑 ${e(breB)}</div>` : '';
     return `<div class="informe-card">
         <div class="informe-head"><span class="informe-brand">Primadapp</span><span class="informe-period">${e(Util.monthYear(p.mesContable))}</span></div>
         <div class="informe-title">${e(p.nombre)}</div>
+        ${llave}
         <hr class="informe-sep">
         ${lineas}
         <hr class="informe-sep">
