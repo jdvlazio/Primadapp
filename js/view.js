@@ -686,7 +686,9 @@
           <input class="ti" type="number" min="0" step="500" data-ch="cover-invitado" value="${c.invitado}"></label>
       </div>
       <div class="sub">Versión</div>
-      <div class="muted small">${e(build)}</div>`;
+      <div class="muted small">${e(build)}</div>
+      <div class="sub">Legal</div>
+      <div class="muted small"><a class="link-legal" href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a></div>`;
   }
 
   // Sheet a pantalla completa con seg-nav Personas | Ajustes.
@@ -850,7 +852,10 @@
     return `<div class="sheet login-sheet">
         <div class="sheet-head"><div class="sheet-title">${enviado ? 'Escribe el código' : 'Entrar'}</div>
           <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
-        <div class="sheet-body">${cuerpo}</div>
+        <div class="sheet-body">${cuerpo}
+          <p class="login-legal muted small">Al entrar aceptas nuestra
+            <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a>.</p>
+        </div>
       </div>`;
   }
 
