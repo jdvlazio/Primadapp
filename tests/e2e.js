@@ -254,14 +254,17 @@ check('Informe: título = nombre de la primada', new RegExp('informe-title">' + 
 // COMPACTO: productos inline (emoji+nombre+×N) en .informe-prods, SIN subtotal por ítem.
 check('Informe: Beto con su producto inline (emoji + nombre + ×cantidad)', /informe-prods">🍺 Costeñita ×2/.test(informe));
 check('Informe: SIN subtotal por producto (no hay "×2…$7.000" en la fila)', !/×2<\/span><span>\$7\.000/.test(informe));
-check('Informe: total de la persona "Total $7.000"', /informe-total"><span>Total<\/span><b>\$7\.000/.test(informe));
+// Nombre + total en la MISMA fila (.informe-fila), monto teal a la derecha, SIN el label "Total".
+check('Informe: total de la persona = .informe-monto $7.000 (sin label "Total")',
+  /informe-monto">\$7\.000<\/b>/.test(informe) && !/>Total</.test(informe));
 check('Informe: Ana (principal, sin consumo ni cover) OMITIDA', !new RegExp('informe-nombre">' + ana.nombre).test(informe));
 check('Informe ABIERTA: resumen "Por cobrar" en ámbar (.cobrar), no "Ganancia"',
   /informe-resumen cobrar">Por cobrar \$7\.000/.test(informe) && !/informe-resumen gan/.test(informe));
-// El cover se rotula "Cover" (no "Entrada"), como chip inline con su monto. Quito la exoneración → cover 10.000.
+// El cover se rotula "Cover" (no "Entrada") como chip SIN precio (el precio ya está en el Total). Quito la exoneración → cover 10.000.
 Store.actions.toggleCoverExonerado(prm().id, beto.id);
 const conCover = window.View.informeTemplateHTML(prm());
-check('Informe: cover como chip "Cover $X" (no "Entrada")', /· Cover \$10\.000/.test(conCover) && !/Entrada/.test(conCover));
+check('Informe: cover como chip "Cover" SIN precio (no "Cover $X", no "Entrada")',
+  /· Cover<\/div>/.test(conCover) && !/Cover \$/.test(conCover) && !/Entrada/.test(conCover));
 Store.actions.toggleCoverExonerado(prm().id, beto.id);   // restaurar exoneración (cover 0) para el resto del flujo
 check('Informe: footer "Generado con Primadapp"', /informe-foot">Generado con Primadapp/.test(informe));
 // Bre-B del principal (snapshot p.pago.breB): línea destacada 🔑 tras el título. Sin breB → omitida.
@@ -274,6 +277,13 @@ check('Informe: la 🔑 va tras el título y antes de los asistentes',
   conLlave.indexOf('informe-title') < conLlave.indexOf('informe-llave') &&
   conLlave.indexOf('informe-llave') < conLlave.indexOf('informe-asis'));
 prm().pago.breB = prevBreB || null;   // restaurar el snapshot
+// FALLBACK (bug): si el snapshot pago.breB es null pero la PERSONA principal ya tiene Bre-B (se agregó
+// DESPUÉS de crear la primada), el 🔑 igual aparece tomando la llave vigente de la persona.
+prm().pago.breB = null;                                  // snapshot vacío (como una primada vieja)
+Store.actions.setBreBPersona(ana.id, 'ana-nueva@bre-b'); // llave agregada a la persona después
+check('Informe: Bre-B por FALLBACK a la persona principal cuando el snapshot es null',
+  /informe-llave">🔑 ana-nueva@bre-b/.test(window.View.informeTemplateHTML(prm())));
+Store.actions.setBreBPersona(ana.id, '');                // restaurar (persona sin llave)
 // View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
 check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');
 

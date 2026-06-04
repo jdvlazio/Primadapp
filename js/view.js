@@ -54,25 +54,28 @@
       const consumos = sel.resumenConsumoDe(p, a);                 // [{prod, cantidad}]
       const cover = sel.coverDe(p, a);
       if (!consumos.length && cover <= 0) return '';               // omite quien no consumió ni paga cover
-      // COMPACTO (reduce altura con muchas personas): productos en una sola línea inline (emoji+nombre+×N,
-      // SIN subtotal por ítem) + el cover ("Cover $X") como chip; el TOTAL de la persona cierra la sección.
-      // El desglose por ítem ya está en la app — la imagen es el resumen accionable (cuánto debo + Bre-B).
+      // COMPACTO (2 líneas/persona): fila 1 = nombre (izq) + TOTAL teal (der), sin el label "Total" (el
+      // número lo comunica). Fila 2 = productos inline (emoji+nombre+×N · …) + "Cover" como chip SIN precio
+      // (el precio ya está en el Total). Sin subtotal por ítem — el desglose ya está en la app; la imagen es
+      // el resumen accionable (cuánto debo + Bre-B). Personas separadas por una línea fina (CSS).
       const chips = consumos.map(({ prod, cantidad }) => `${e(prod.emoji)} ${e(prod.nombre)} ×${cantidad}`);
-      if (cover > 0) chips.push(`Cover ${$peso(cover)}`);
+      if (cover > 0) chips.push('Cover');
       const detalle = chips.length ? `<div class="informe-prods">${chips.join(' · ')}</div>` : '';
       return `<div class="informe-asis">
-          <div class="informe-nombre">${e(nombrePersona(a.personaId))}</div>
+          <div class="informe-fila"><span class="informe-nombre">${e(nombrePersona(a.personaId))}</span><b class="informe-monto">${$peso(sel.totalAsistencia(p, a))}</b></div>
           ${detalle}
-          <div class="informe-total"><span>Total</span><b>${$peso(sel.totalAsistencia(p, a))}</b></div>
         </div>`;
     }).join('');
     const cerrada = p.estado === 'cerrada';
     const resumen = cerrada
       ? `<div class="informe-resumen gan">Ganancia ${$peso(sel.ganancia(p))}</div>`
       : `<div class="informe-resumen cobrar">Por cobrar ${$peso(sel.informePrincipal(p).saldoPendiente)}</div>`;
-    // Llave Bre-B del principal (mismo dato que la cara Balance: p.pago.breB). Línea destacada bajo el
-    // título — emoji 🔑 como identificador + el valor directo (no label+valor). Si no hay, se omite.
-    const breB = p.pago && p.pago.breB ? String(p.pago.breB).trim() : '';
+    // Llave Bre-B del principal: snapshot p.pago.breB con FALLBACK a la llave VIGENTE de la persona
+    // principal (mismo patrón que pagoBlock) — si la Bre-B se agregó DESPUÉS de crear la primada, el
+    // snapshot es null pero la persona ya la tiene. Línea destacada 🔑 bajo el título; si no hay, se omite.
+    const principalId = p.organizadorPrincipalId;
+    const breBRaw = (p.pago && p.pago.breB) || (principalId ? (sel.persona(principalId) || {}).breB : null) || '';
+    const breB = breBRaw ? String(breBRaw).trim() : '';
     const llave = breB ? `<div class="informe-llave">🔑 ${e(breB)}</div>` : '';
     return `<div class="informe-card">
         <div class="informe-head"><span class="informe-brand">Primadapp</span><span class="informe-period">${e(Util.monthYear(p.mesContable))}</span></div>
