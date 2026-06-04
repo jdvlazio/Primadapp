@@ -254,9 +254,9 @@ check('Informe: título = nombre de la primada', new RegExp('informe-title">' + 
 // COMPACTO: productos inline (emoji+nombre+×N) en .informe-prods, SIN subtotal por ítem.
 check('Informe: Beto con su producto inline (emoji + nombre + ×cantidad)', /informe-prods">🍺 Costeñita ×2/.test(informe));
 check('Informe: SIN subtotal por producto (no hay "×2…$7.000" en la fila)', !/×2<\/span><span>\$7\.000/.test(informe));
-// Nombre + total en la MISMA fila (.informe-fila), monto teal a la derecha, SIN el label "Total".
-check('Informe: total de la persona = .informe-monto $7.000 (sin label "Total")',
-  /informe-monto">\$7\.000<\/b>/.test(informe) && !/>Total</.test(informe));
+// Dos columnas: izquierda (nombre+productos) + TOTAL a la derecha (.informe-total), centrado, SIN label "Total".
+check('Informe: total de la persona = .informe-total $7.000 (sin label "Total")',
+  /informe-total">\$7\.000<\/div>/.test(informe) && !/>Total</.test(informe));
 check('Informe: Ana (principal, sin consumo ni cover) OMITIDA', !new RegExp('informe-nombre">' + ana.nombre).test(informe));
 check('Informe ABIERTA: resumen "Por cobrar" en ámbar (.cobrar), no "Ganancia"',
   /informe-resumen cobrar">Por cobrar \$7\.000/.test(informe) && !/informe-resumen gan/.test(informe));

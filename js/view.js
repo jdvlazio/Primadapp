@@ -61,9 +61,14 @@
       const chips = consumos.map(({ prod, cantidad }) => `${e(prod.emoji)} ${e(prod.nombre)} ×${cantidad}`);
       if (cover > 0) chips.push('Cover');
       const detalle = chips.length ? `<div class="informe-prods">${chips.join(' · ')}</div>` : '';
-      return `<div class="informe-asis">
-          <div class="informe-fila"><span class="informe-nombre">${e(nombrePersona(a.personaId))}</span><b class="informe-monto">${$peso(sel.totalAsistencia(p, a))}</b></div>
-          ${detalle}
+      // Dos columnas: izquierda (nombre + productos) y el TOTAL a la derecha, centrado verticalmente
+      // entre ambos por el align-items:center del flex padre (.informe-persona).
+      return `<div class="informe-asis informe-persona">
+          <div class="informe-left">
+            <div class="informe-nombre">${e(nombrePersona(a.personaId))}</div>
+            ${detalle}
+          </div>
+          <div class="informe-total">${$peso(sel.totalAsistencia(p, a))}</div>
         </div>`;
     }).join('');
     const cerrada = p.estado === 'cerrada';

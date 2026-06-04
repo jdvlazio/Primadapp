@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260604-180712-6bfc13e">
+<meta name="build" content="20260604-181739-10d9460">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -261,13 +261,15 @@
   .informe-title{font-weight:800;font-size:20px;line-height:1.1;color:#0d1716}
   .informe-llave{margin-top:2px;font-weight:500;font-size:12.5px;color:#42514f;word-break:break-all}
   .informe-sep{border:none;border-top:1px solid #e3e8e7;margin:var(--space-2) 0}
-  /* Compacto (2 líneas/persona): fila nombre+total, productos debajo. Personas separadas por línea fina. */
+  /* Compacto: dos columnas por persona — izquierda (nombre + productos) y el TOTAL a la derecha,
+     CENTRADO verticalmente entre ambos (align-items:center). Personas separadas por una línea fina. */
   .informe-asis{padding:5px 0}
   .informe-asis:first-of-type{padding-top:0}
   .informe-asis + .informe-asis{border-top:1px solid #eef2f1}
-  .informe-fila{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-2)}
+  .informe-persona{display:flex;align-items:center;gap:var(--space-2)}
+  .informe-left{flex:1;min-width:0}            /* min-width:0 → el texto largo no empuja el total fuera */
   .informe-nombre{font-weight:700;font-size:14px;color:#0d1716}
-  .informe-monto{font-weight:700;font-size:14px;color:var(--accent);white-space:nowrap}
+  .informe-total{font-weight:700;font-size:14px;color:var(--accent);white-space:nowrap;flex:none}
   /* productos INLINE: emoji+nombre+×N separados por ·, gris suave, un paso más pequeños; sin subtotales. */
   .informe-prods{margin-top:1px;font-size:11px;line-height:1.3;color:#6b7977}
   .informe-resumen{text-align:right;font-weight:800;font-size:19px}
@@ -531,13 +533,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260604-180712-6bfc13e"></script>
-  <script src="js/util.js?v=20260604-180712-6bfc13e"></script>
-  <script src="js/api.js?v=20260604-180712-6bfc13e"></script>
-  <script src="js/auth.js?v=20260604-180712-6bfc13e"></script>
-  <script src="js/store.js?v=20260604-180712-6bfc13e"></script>
-  <script src="js/view.js?v=20260604-180712-6bfc13e"></script>
-  <script src="js/controller.js?v=20260604-180712-6bfc13e"></script>
+  <script src="js/config.js?v=20260604-181739-10d9460"></script>
+  <script src="js/util.js?v=20260604-181739-10d9460"></script>
+  <script src="js/api.js?v=20260604-181739-10d9460"></script>
+  <script src="js/auth.js?v=20260604-181739-10d9460"></script>
+  <script src="js/store.js?v=20260604-181739-10d9460"></script>
+  <script src="js/view.js?v=20260604-181739-10d9460"></script>
+  <script src="js/controller.js?v=20260604-181739-10d9460"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
