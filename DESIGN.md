@@ -28,6 +28,11 @@ Corolarios:
   **componentes duplicados de dos épocas** (caja pesada vs fila liviana); §2 declara cuál
   es el canónico y marca el otro como **LEGADO a eliminar**. Mientras una sección no exista
   aquí, **no es una decisión tomada**.
+- **Menos es más — no repetir entre niveles.** Si un dato ya está disponible **un nivel abajo**
+  (acordeón, lista, desglose), **no se repite arriba** como conteo ni resumen. El elemento de arriba
+  (héroe, cabecera) comunica el **número/dato clave**; el detalle (quiénes, cuánto cada uno) **vive
+  dentro**. Aplica también entre piezas del mismo bloque: el microcopy y el teaser **no repiten** un
+  dato ya visible en el héroe (ver §2.11.1.a).
 
 ---
 
@@ -372,19 +377,21 @@ calculó). El número clave nunca se esconde tras un acorde colapsado; el desglo
 - **`informe` — Recaudo (card clara):** héroe **state-aware POR ESTADO** (no por urgencia):
   - **ABIERTA** → héroe = lo que **falta cobrar** (`saldoPendiente`), tono **ámbar** (`.por-cobrar`). El
     concepto "por cobrar" lo da el **tono**. Teaser = **"Entrega $X al Tesorero"** — solo el **otro** número
-    (lo que se compromete al Tesorero); **no** repite el `saldoPendiente` que ya muestra el héroe. Microcopy
-    `.bal-note` = **contexto** "de N personas" cuando hay deudores; **se omite** si nadie debe.
+    (lo que se compromete al Tesorero); **no** repite el `saldoPendiente` que ya muestra el héroe. **Sin
+    microcopy** (`.bal-note` omitido): el conteo "de N personas" confundía (parecía que faltaba alguien) y
+    **quién** debe ya vive un nivel abajo, en la lista del acordeón → "menos es más" (§0).
   - **CERRADA** → héroe = lo **entregado** al Tesorero (`entregaTesorero`), tono **teal** (`.entregado`).
-    Teaser en pasado: **"Entregó $X al Tesorero"**. Microcopy `.bal-note` = **omitido** (el teaser ya lo dice todo).
-  - Derivación (acorde): Bre-B, recaudo teórico, recupera, recaudado real (terceros/principal), por cobrar, lista de deudores ("Debe", en `.owe`: el "quién debe" sí es protagonista).
+    Teaser en pasado: **"Entregó $X al Tesorero"**. Sin microcopy (el teaser ya lo dice todo).
+  - Derivación (acorde): Bre-B, recaudo teórico, recupera, recaudado real (terceros/principal), por cobrar, lista de deudores ("Debe", en `.owe`: el "quién debe" sí es protagonista, **y vive aquí, no arriba**).
 
-> **REGLA del microcopy (`.bal-note`) Y del teaser — no repetir el héroe.** Ni el microcopy ni el teaser
-> **repiten un dato ya visible en el héroe** (su concepto ni su número). Su función es **añadir lo que el
-> héroe no muestra** (microcopy: contexto — estado/destinatario/condición; teaser: el **otro** número del
-> bloque). **Si no hay nada que añadir, se omite.** Ejemplos: en Recaudo abierta la nota es "de N personas"
-> (quiénes deben), no "Por cobrar" (concepto del héroe); el teaser es "Entrega $X al Tesorero" (el otro número),
-> sin repetir el `saldoPendiente` que ya es el héroe; en Recaudo cerrada la nota se omite. En Ganancia abierta
-> la nota "Provisional — se confirma al cerrar" cumple: añade una **condición**, no repite "Ganancia".
+> **REGLA del microcopy (`.bal-note`) Y del teaser — no repetir el héroe** (caso particular de "menos es más",
+> §0). Ni el microcopy ni el teaser **repiten un dato ya visible en el héroe** (su concepto ni su número), ni
+> **resumen lo que ya está un nivel abajo** (la lista del acordeón). Su función es **añadir lo que el héroe no
+> muestra** (microcopy: una condición global — p. ej. "Provisional"; teaser: el **otro** número del bloque).
+> **Si no hay nada que añadir, se omite.** Ejemplos: el teaser de Recaudo abierta es "Entrega $X al Tesorero"
+> (el otro número), sin repetir el `saldoPendiente` que ya es el héroe; el héroe de Recaudo **no** lleva conteo
+> "de N personas" (quién debe vive en la lista). En Ganancia abierta la nota "Provisional — se confirma al
+> cerrar" sí cumple: añade una **condición** (la cifra puede cambiar), no repite "Ganancia".
 
 **State-aware por `p.estado`** (pura vista; `p.estado` ya llega a `reparto`/`informe`):
 - **ABIERTA** = en vivo → Ganancia lleva nota **"Provisional"** (puede cambiar); Recaudo en **ámbar "Por cobrar"**; `.dot` verde.

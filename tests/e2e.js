@@ -230,10 +230,16 @@ check('Recaudo ABIERTA: el héroe usa tono proceso (.por-cobrar), NO --alert/.ow
 // el OTRO número (lo que se entrega), sin "· Por cobrar $Y".
 check('Recaudo ABIERTA: teaser solo "Entrega … al Tesorero" (no repite el número del héroe)',
   /Entrega .*al Tesorero/.test(q('#screen').innerHTML) && !/al Tesorero · Por cobrar/.test(q('#screen').innerHTML));
-// MICROCOPY no repite el concepto del héroe: la nota añade CONTEXTO ("de N personas"), no "Por cobrar".
-check('Recaudo ABIERTA: microcopy = contexto "de 1 persona" (Beto debe)', /de 1 persona/.test(q('#screen').innerHTML));
+// MENOS ES MÁS: el héroe del Recaudo NO lleva microcopy (el conteo "de N personas" confundía). Quién debe
+// vive un nivel abajo, en la lista del acordeón ("Debe").
+check('Recaudo ABIERTA: el héroe NO muestra conteo "de N personas"', !/de \d+ persona/.test(q('#screen').innerHTML));
 check('Recaudo ABIERTA: el texto "Por cobrar" ya NO aparece (0 veces, acorde colapsado)',
   (q('#screen').innerHTML.match(/Por cobrar/g) || []).length === 0);
+// El detalle de quién debe sigue disponible al abrir el acordeón del Recaudo.
+click('[data-act="toggle-balance"][data-sec="informe"]');
+check('Recaudo: la lista de deudores vive DENTRO del acorde ("Debe" + el deudor)',
+  /Debe/.test(q('#screen').innerHTML) && new RegExp(beto.nombre).test(q('#screen').innerHTML));
+click('[data-act="toggle-balance"][data-sec="informe"]');   // colapsar de nuevo
 check('Recaudo: "provisional" NO aparece en esta tarjeta (sí queda en Ganancia)',
   (q('#screen').innerHTML.match(/provisional/gi) || []).length === 1);   // solo la nota de Ganancia
 click('[data-act="set-cara"][data-cara="operacion"]');
