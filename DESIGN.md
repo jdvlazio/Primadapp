@@ -494,6 +494,7 @@ Desviaciones **intencionales** del canónico, con razón. Aprobadas por el PO.
 | `.ti` / `.sel` / `.step` | `border:2px solid var(--line)` | Inputs y steppers: el borde es affordance de control, permitido (§2.3) |
 | `.tabbar` / `.tab.active` | `flex:none` (hijo flex al fondo de `.app`, NO `position:fixed`), `border-top:1px solid var(--line)`, fondo `var(--paper)`, `padding-bottom:max(env(safe-area-inset-bottom),20px)`. Activo = solo color de acento (sin pill) | Anclada por estructura (el alto de `.app` = `window.innerHeight`), inmune al cold-start de iOS PWA. Ver "App shell y scroll — fix del cold-start" |
 | `.toast` opacidad/blur raw | sombras y alphas a negro | Componentes flotantes (toast, sync-indicator); profundidad sobre oscuro |
+| `.informe-*` (informe compartible PNG) | superficie **CLARA** con literales (`#fff`, `#0d1716`, `#e3e8e7`, …) | **Captura-only**: vive offscreen (`.informe-host`) solo para rasterizarse a imagen vía html2canvas; **no es UI de la app**. El tema es oscuro y no hay token de superficie clara → literales aprobados. Acento/ámbar sí salen de tokens (`--accent`/`--amber`). Fuente Instrument Sans + cola de emoji (`Apple Color Emoji`…) para color en el canvas. Trigger `data-act="compartir-informe"` (ícono `share-2`) en la cabecera, visible si hay consumo/cover. Comparte vía `navigator.share({files})`; fallback = descarga del PNG |
 
 **Badges con borde** (`.badge.warn/.good/.red`): **legado**. Permitidos **sólo** de forma
 transitoria en avisos de sistema (`incompleta`, `Próximamente`) hasta migrarlos a etiqueta

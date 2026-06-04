@@ -34,6 +34,51 @@
   // —los organizadores— es la identidad real). Si el nombre no empieza con "Primada", se muestra tal cual.
   function nombreCorto(nombre) { const n = String(nombre || '').trim(); return n.replace(/^primada\s+/i, '') || n; }
 
+  // ¿La primada tiene algo que mostrar en el informe? (al menos un asistente con consumo o con cover).
+  // Gatea la visibilidad del botón "Compartir informe" en la cabecera.
+  function hayDatosInforme(p) {
+    if (!p || !Array.isArray(p.asistencias)) return false;
+    const sel = S();
+    return p.asistencias.some(a => sel.coverDe(p, a) > 0 || sel.resumenConsumoDe(p, a).length > 0);
+  }
+
+  /* ============================================================
+     INFORME COMPARTIBLE — template HTML (PURO) para capturar como PNG (html2canvas).
+     Superficie CLARA (fuera del tema oscuro). Reusa selectores de Consumos (mismo orden y agregación
+     v6): por persona, productos consumidos (emoji+nombre+×cant+subtotal) + "Entrada" (cover) + Total.
+     Resumen final state-aware: cerrada "Ganancia"; abierta "Por cobrar". Sin roles ni jerga.
+     ============================================================ */
+  function informeTemplateHTML(p) {
+    const sel = S();
+    const lineas = (p.asistencias || []).map(a => {
+      const consumos = sel.resumenConsumoDe(p, a);                 // [{prod, cantidad}]
+      const cover = sel.coverDe(p, a);
+      if (!consumos.length && cover <= 0) return '';               // omite quien no consumió ni paga entrada
+      const prods = consumos.map(({ prod, cantidad }) =>
+        `<div class="informe-line"><span>${e(prod.emoji)} ${e(prod.nombre)} ×${cantidad}</span><span>${$peso((Number(prod.precioVenta) || 0) * cantidad)}</span></div>`
+      ).join('');
+      const entrada = cover > 0 ? `<div class="informe-line"><span>Entrada</span><span>${$peso(cover)}</span></div>` : '';
+      return `<div class="informe-asis">
+          <div class="informe-nombre">${e(nombrePersona(a.personaId))}</div>
+          ${prods}${entrada}
+          <div class="informe-total"><span>Total</span><b>${$peso(sel.totalAsistencia(p, a))}</b></div>
+        </div>`;
+    }).join('');
+    const cerrada = p.estado === 'cerrada';
+    const resumen = cerrada
+      ? `<div class="informe-resumen gan">Ganancia ${$peso(sel.ganancia(p))}</div>`
+      : `<div class="informe-resumen cobrar">Por cobrar ${$peso(sel.informePrincipal(p).saldoPendiente)}</div>`;
+    return `<div class="informe-card">
+        <div class="informe-head"><span class="informe-brand">Primadapp</span><span class="informe-period">${e(Util.monthYear(p.mesContable))}</span></div>
+        <div class="informe-title">${e(p.nombre)}</div>
+        <hr class="informe-sep">
+        ${lineas}
+        <hr class="informe-sep">
+        ${resumen}
+        <div class="informe-foot">Generado con Primadapp</div>
+      </div>`;
+  }
+
   /* ---------- Iconografía: Lucide, SVG inline (ver DESIGN.md › Iconografía) ----------
      Solo los <path>/<line> de cada ícono, copiados de lucide.dev (licencia ISC).
      stroke = currentColor (hereda el color del botón → teal por defecto, --alert en destructivos),
@@ -52,6 +97,7 @@
     'info':       '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
     'eye':        '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
     'edit':       '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+    'share-2':    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
   };
   // icon(name, cls?) → <svg> inline. La clase .icon dimensiona; cls extra opcional.
   function icon(name, cls) {
@@ -85,6 +131,7 @@
         </span>
         <span class="sel-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
       </button>
+      ${hayDatosInforme(p) ? `<button class="icon-btn" data-act="compartir-informe" title="Compartir informe" aria-label="Compartir informe">${icon('share-2')}</button>` : ''}
       <button class="icon-btn" data-act="open-config-primada" data-id="${p.id}" title="Configurar" aria-label="Configurar">${icon('settings-2')}</button>
       ${masNueva}
     </div>`;
@@ -852,6 +899,66 @@
     clearTimeout(toastTimer); toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2400);
   }
 
+  /* ============================================================
+     COMPARTIR INFORME — captura el template (informeTemplateHTML) como PNG y lo comparte.
+     html2canvas se carga LAZY por CDN en el primer uso (no infla el cold-start; el SW no intercepta CDN).
+     Antes de capturar se espera document.fonts para rasterizar Instrument Sans (si no, html2canvas cae a
+     fuente del sistema). Compartir: navigator.share({files}) en móvil; fallback = descarga del PNG.
+     ============================================================ */
+  let _h2cPromise;
+  function loadHtml2Canvas() {
+    if (typeof window !== 'undefined' && window.html2canvas) return Promise.resolve(window.html2canvas);
+    if (_h2cPromise) return _h2cPromise;
+    _h2cPromise = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = () => res(window.html2canvas);
+      s.onerror = () => { _h2cPromise = null; rej(new Error('No se pudo cargar el generador de imagen')); };
+      document.head.appendChild(s);
+    });
+    return _h2cPromise;
+  }
+
+  async function esperarFuentes() {
+    if (typeof document === 'undefined' || !document.fonts) return;
+    try { await document.fonts.load('700 16px "Instrument Sans"'); await document.fonts.load('400 16px "Instrument Sans"'); } catch (e) {}
+    try { await document.fonts.ready; } catch (e) {}
+  }
+
+  // p = primada activa. Construye el template oculto, lo rasteriza y dispara el share sheet (o descarga).
+  async function shareInforme(p) {
+    if (!p) return;
+    let host = null;
+    try {
+      const h2c = await loadHtml2Canvas();
+      host = document.createElement('div');
+      host.className = 'informe-host';
+      host.innerHTML = informeTemplateHTML(p);
+      document.body.appendChild(host);
+      await esperarFuentes();
+      const node = host.firstElementChild;
+      const canvas = await h2c(node, { scale: Math.max(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1), backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      if (!blob) throw new Error('No se pudo generar la imagen');
+      const slug = (p.nombre || 'primada').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'primada';
+      const file = new File([blob], `primada-${slug}.png`, { type: 'image/png' });
+      const nav = typeof navigator !== 'undefined' ? navigator : null;
+      if (nav && nav.share && nav.canShare && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: p.nombre });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;   // el usuario cerró el share sheet → no es error
+      toast(err && err.message ? err.message : 'No se pudo compartir el informe');
+    } finally {
+      if (host) host.remove();
+    }
+  }
+
   // Pantalla de LOGIN (auth gate). Magic link: email + "Entrar". Estados: 'form' | 'sent' | 'error'.
   // Se renderiza en #screen; oculta tabbar/engranaje mientras no haya sesión.
   // Login = HOJA desde abajo (mismo lenguaje que el resto de la app: overlay + sheet), NO full-pantalla.
@@ -917,6 +1024,6 @@
     if (hayError) toast(s.error);
   }
 
-  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, toast };
+  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, toast, shareInforme, informeTemplateHTML };
   if (typeof module !== 'undefined' && module.exports) module.exports = { View: root.View };
 })(typeof window !== 'undefined' ? window : globalThis);

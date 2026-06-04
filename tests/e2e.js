@@ -244,6 +244,29 @@ check('Recaudo: "provisional" NO aparece en esta tarjeta (sí queda en Ganancia)
   (q('#screen').innerHTML.match(/provisional/gi) || []).length === 1);   // solo la nota de Ganancia
 click('[data-act="set-cara"][data-cara="operacion"]');
 
+/* ---------- 7b. Informe compartible (template PNG) ---------- */
+section('Compartir informe: trigger en la cabecera + template HTML (puro)');
+// El botón "Compartir informe" aparece en la cabecera (hay datos: Beto consumió) y vive en ambas caras.
+check('Trigger "Compartir informe" visible con datos', !!q('[data-act="compartir-informe"]'));
+const informe = window.View.informeTemplateHTML(prm());
+check('Informe: marca "Primadapp" + período', /informe-brand">Primadapp/.test(informe) && /Junio 2026/.test(informe));
+check('Informe: título = nombre de la primada', new RegExp('informe-title">' + prm().nombre).test(informe));
+check('Informe: Beto con su producto (emoji + nombre + ×cantidad)', /🍺 Costeñita ×2/.test(informe));
+check('Informe: subtotal del producto (2×3.500 = 7.000)', /×2<\/span><span>\$7\.000/.test(informe));
+check('Informe: total de la persona "Total $7.000"', /informe-total"><span>Total<\/span><b>\$7\.000/.test(informe));
+check('Informe: Ana (principal, sin consumo ni cover) OMITIDA', !new RegExp('informe-nombre">' + ana.nombre).test(informe));
+check('Informe ABIERTA: resumen "Por cobrar" en ámbar (.cobrar), no "Ganancia"',
+  /informe-resumen cobrar">Por cobrar \$7\.000/.test(informe) && !/informe-resumen gan/.test(informe));
+// El cover se rotula "Entrada", no "Cover". Quito la exoneración de Beto → recupera cover 10.000.
+Store.actions.toggleCoverExonerado(prm().id, beto.id);
+const conCover = window.View.informeTemplateHTML(prm());
+check('Informe: cover rotulado "Entrada · $cover" (no "Cover")',
+  /informe-line"><span>Entrada<\/span><span>\$10\.000/.test(conCover) && !/Cover/.test(conCover));
+Store.actions.toggleCoverExonerado(prm().id, beto.id);   // restaurar exoneración (cover 0) para el resto del flujo
+check('Informe: footer "Generado con Primadapp"', /informe-foot">Generado con Primadapp/.test(informe));
+// View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
+check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');
+
 /* ---------- 8. Cerrar congela consumos pero la UI sigue viva ---------- */
 section('Cerrar cuenta (INVARIANTE #4): "Cerrar" salió de Config; congela consumos');
 // P5 lote visual: "Cerrar" YA NO vive en Configuración. Es un CTA contextual que aparece arriba de la

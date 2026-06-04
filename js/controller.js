@@ -209,6 +209,9 @@
       // ----- cara del tab Primadas (Consumos | Balance): navegación, NO escritura (no entra al gate) -----
       case 'set-cara': ui.cara = (b.dataset.cara === 'balance') ? 'balance' : 'operacion'; rerender(); return;
 
+      // ----- compartir informe como imagen (PNG → share sheet / descarga): I/O de vista, NO escritura -----
+      case 'compartir-informe': { const p = Store.select.activePrimada(); if (p && View.shareInforme) View.shareInforme(p); return; }
+
       // ----- wizard "Nueva primada" (3 pasos, estado efímero en ui.wizard) -----
       case 'new-primada':   ui.wizard = nuevoWizard(); rerender(); return;
       case 'wz-cancelar':   ui.wizard = null; rerender(); return;
