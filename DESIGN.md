@@ -324,9 +324,9 @@ AÑO → MES** (reciente arriba; `Store.select.primadasPorAnio`). El **historial
 > N2 = segundo organizador; 1 solo → "Primada {N1}"; 3+ → solo los dos primeros. **Editable** (✎ =
 > `renombrarPrimada`, override manual). Aplica a primadas nuevas; las viejas conservan su nombre.
 
-### 2.11.1 · Conmutador de CARA — Consumos | Resumen (✅ CANÓNICO)
+### 2.11.1 · Conmutador de CARA — Consumos | Balance (✅ CANÓNICO)
 
-**El Resumen ya NO es un tab.** La tabbar inferior tiene **2 tabs** (Primadas · Fondo). "Ver la plata"
+**El Balance ya NO es un tab.** La tabbar inferior tiene **2 tabs** (Primadas · Fondo). "Ver la plata"
 (reparto del fondo + informe del principal) y "operar" (consumos) son **dos CARAS de la misma primada
 activa**, no destinos de navegación global. Se conmutan con un **seg-nav centrado** (`.cara-switch`)
 que vive **bajo el selector** (§2.11), encima de la cara que pinta. Patrón Tricount: separar "ver" de
@@ -335,16 +335,35 @@ que vive **bajo el selector** (§2.11), encima de la cara que pinta. Patrón Tri
 | Elemento | Canónico |
 |---|---|
 | `.cara-switch` | wrapper `display:flex; justify-content:center; margin:var(--space-3) 0 var(--space-4)` — centra el seg-nav y lo separa de la cara |
-| `.seg-nav` › `.seg` | el segmented control estándar (§2.9, mismo que ahorrador\|invitado): **"Consumos"** (`data-cara="operacion"`) \| **"Resumen"** (`data-cara="resumen"`). El activo lleva `.seg.on` |
-| acción | `data-act="set-cara"` — **navegación, NO escritura** (no pasa por el gate de login; un viewer sin sesión conmuta y VE el resumen) |
+| `.seg-nav` › `.seg` | el segmented control estándar (§2.9, mismo que ahorrador\|invitado): **"Consumos"** (`data-cara="operacion"`) \| **"Balance"** (`data-cara="balance"`). El activo lleva `.seg.on` |
+| acción | `data-act="set-cara"` — **navegación, NO escritura** (no pasa por el gate de login; un viewer sin sesión conmuta y VE el Balance) |
 
 **Cara por defecto = ESTADO de la primada** (`fijarCaraPorEstado` en el Controller): una **abierta** abre
-en **Consumos** (operar es lo diario); una **cerrada** abre en **Resumen** (su archivo). Se fija al
+en **Consumos** (operar es lo diario); una **cerrada** abre en **Balance** (su documento final). Se fija al
 **seleccionar / crear / cargar / cerrar / reabrir**. Una cerrada conserva el switch presente y la cara
 **Consumos accesible en solo-lectura** (los steppers quedan deshabilitados por INVARIANTE #4, no se ocultan).
 El **cálculo no cambia** (ganancia/cover/saldos idénticos): es el mismo `reparto` + `informe`, solo se movió
-de un tab a una cara. La identidad (nombre/mes/estado) ya la muestra el selector → la cara Resumen **no
+de un tab a una cara. La identidad (nombre/mes/estado) ya la muestra el selector → la cara Balance **no
 repite cabecera** (se eliminó `.resumen-head`).
+
+#### 2.11.1.a · La cara BALANCE — cifra HÉROE + derivación + state-aware (✅ CANÓNICO)
+
+El Balance son **dos cards** (`balancePrimada` → `reparto` + `informe`), cada una con un **número HÉROE
+SIEMPRE visible** (la cifra que importa, fuera del acorde) y un **acorde con la derivación** (cómo se
+calculó). El número clave nunca se esconde tras un acorde colapsado; el desglose sí.
+
+| Elemento | Canónico |
+|---|---|
+| `.bal-hero` | bloque superior de la card: `.bal-label` (etiqueta + `.dot` de estado) sobre `.bal-amount` (cifra grande, `font-weight:800; font-size:34px`, iguala al wordmark — sin tokens nuevos) y `.bal-note` opcional |
+| `.bal-amount.owe` | la cifra héroe en `--alert` cuando representa deuda (Pendiente) |
+| `.bal-toggle` | la fila acorde (`.acc-head` + `data-act="toggle-balance"`, `data-sec="reparto"\|"informe"`), separada del héroe por `border-top`. El desglove (`.acc-body`) sigue **toggleable** (`ui.balance` = Set de secciones abiertas), **colapsado por defecto** |
+
+- **`reparto` (card oscura):** héroe = **Ganancia**. Derivación: cover, margen, ahorradores, parte igual, sobrante, lista por persona.
+- **`informe` (card clara):** héroe **state-aware** → **Pendiente** (en `--alert`) cuando hay saldo > 0 **y** la primada está **abierta** (urgencia de acción); **Entrega al Tesorero** cuando saldo = 0 **o** la primada está **cerrada** (resultado). Derivación: Bre-B, recaudo teórico, recupera, recaudado real (terceros/principal), pendiente, lista de deudores.
+
+**State-aware por `p.estado`** (pura vista; `p.estado` ya llega a `reparto`/`informe`):
+- **ABIERTA** = en vivo, provisional → `.bal-note` "Provisional — se confirma al cerrar" (reparto) / "· provisional" (informe); `.dot` verde.
+- **CERRADA** = documento final → **sin** nota provisional; héroe del informe = Entrega; `.dot.closed` (gris). Reutiliza el `.dot`/`.dot.closed` del selector, sin componentes nuevos.
 
 ### 2.12 · Pago BINARIO — "Pagar" + hoja con la llave Bre-B (✅ CANÓNICO)
 
@@ -418,7 +437,7 @@ La capitalización se decide por **ROL del texto**, no por capricho. Cuatro cate
 | Categoría | Regla | Cuándo | Ejemplos |
 |---|---|---|---|
 | **MAYÚSCULA** (vía CSS `text-transform`) | TODO MAYÚSCULAS | títulos de sección (`.h2`, `.fld`), etiquetas de campo | ASISTENTES · PRODUCTOS · AHORRADOR (campo) |
-| **Title Case** | Cada Palabra | nombres propios y términos del glosario, tabs, nombres de persona/primada | Resumen · Primadas · Fondo · Principal · Cover · Tesorero · Primada Juan |
+| **Title Case** | Cada Palabra | nombres propios y términos del glosario, tabs, nombres de persona/primada | Balance · Primadas · Fondo · Principal · Cover · Tesorero · Primada Juan |
 | **Sentence case** | Solo la primera | acciones/botones, estados vacíos, toasts, confirmaciones, hints | Crear primada · Agregar · Sin asistentes · Primada creada · ¿Borrar la primada? |
 | **minúscula** | todo minúscula | fragmentos que se concatenan en una oración | · del principal · sin principal |
 

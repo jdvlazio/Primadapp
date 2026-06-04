@@ -50,19 +50,21 @@
   // - overlay 'add-asis': hoja simple para agregar asistentes del directorio
   // - configAsis / configProd: Sets de filas-acordeón expandidas en el overlay Configurar
   //   (mismo patrón que personasAbiertas; clon del componente de Personas)
-  // - cara: CARA visible del tab Primadas — 'operacion' (Consumos) | 'resumen'. El Resumen dejó de ser
-  //   un tab: es una cara de la primada activa. Default por ESTADO (cerrada → 'resumen', abierta →
+  // - cara: CARA visible del tab Primadas — 'operacion' (Consumos) | 'balance' (Balance). El Balance dejó
+  //   de ser un tab: es una cara de la primada activa. Default por ESTADO (cerrada → 'balance', abierta →
   //   'operacion'), fijada al seleccionar/crear/cargar/cerrar/reabrir vía fijarCaraPorEstado().
+  // - balance: Set de cards-acordeón del Balance abiertas ('reparto'|'informe'); el héroe (cifra grande) va
+  //   SIEMPRE visible fuera del acorde, el desglose (derivación) dentro.
   const ui = { tab: 'primadas', cara: 'operacion', overlay: null, abiertos: new Set(), pickProd: null, wizard: null,
                personasAbiertas: new Set(), nuevaPersona: false,
                configAsis: new Set(), configProd: new Set(), pagarPid: null,
-               resumen: new Set(), auditPid: null, apuntadores: {}, presentes: [],
+               balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
                loginEstado: 'form', loginEmail: '' };
   let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
   let miEmail = null;         // email de la sesión (para presence "quién está apuntando")
 
   // Acciones que ESCRIBEN datos de dominio (gate invertido: sin sesión se abre el login en vez de mutar).
-  // Lectura/navegación (tabs, selector, abrir tarjetas, colapsar Resumen, Configurar, copiar llave,
+  // Lectura/navegación (tabs, selector, abrir tarjetas, colapsar Balance, Configurar, copiar llave,
   // open-pagar) NO están aquí: la app es usable en LECTURA con solo el link. seleccionar-primada es local.
   const WRITE_ACTS = new Set([
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
@@ -129,11 +131,11 @@
   function activeId() { const p = Store.select.activePrimada(); return p ? p.id : null; }
 
   // La CARA por defecto de Primadas sale del ESTADO de la primada activa: una cerrada abre en su
-  // 'resumen' (archivo, solo-lectura); una abierta abre en 'operacion' (Consumos). Se fija al cambiar
-  // de primada activa (seleccionar/crear/cargar) y al cerrar/reabrir. set-cara la conmuta a mano.
+  // 'balance' (documento final, solo-lectura); una abierta abre en 'operacion' (Consumos). Se fija al
+  // cambiar de primada activa (seleccionar/crear/cargar) y al cerrar/reabrir. set-cara la conmuta a mano.
   function fijarCaraPorEstado() {
     const p = Store.select.activePrimada();
-    ui.cara = (p && p.estado === 'cerrada') ? 'resumen' : 'operacion';
+    ui.cara = (p && p.estado === 'cerrada') ? 'balance' : 'operacion';
   }
 
   /* ---------- Clicks (delegados en document) ---------- */
@@ -204,8 +206,8 @@
       // ----- selector de primada (navegación: abre la hoja agrupada por año→mes) -----
       case 'open-selector': ui.overlay = 'selector-primada'; rerender(); return;
 
-      // ----- cara del tab Primadas (Consumos | Resumen): navegación, NO escritura (no entra al gate) -----
-      case 'set-cara': ui.cara = (b.dataset.cara === 'resumen') ? 'resumen' : 'operacion'; rerender(); return;
+      // ----- cara del tab Primadas (Consumos | Balance): navegación, NO escritura (no entra al gate) -----
+      case 'set-cara': ui.cara = (b.dataset.cara === 'balance') ? 'balance' : 'operacion'; rerender(); return;
 
       // ----- wizard "Nueva primada" (3 pasos, estado efímero en ui.wizard) -----
       case 'new-primada':   ui.wizard = nuevoWizard(); rerender(); return;
@@ -260,7 +262,7 @@
       // Acciones destructivas: con confirmación (la cuenta cerrada congela consumos).
       // cerrar/reabrir cambian el ESTADO → la cara por defecto cambia. La acción commitea y dispara un
       // rerender por el subscribe, pero con la cara aún vieja; fijamos la cara y RE-renderizamos explícito
-      // (return) para que el pintado final refleje el nuevo estado (cerrada → 'resumen', abierta → 'operacion').
+      // (return) para que el pintado final refleje el nuevo estado (cerrada → 'balance', abierta → 'operacion').
       case 'cerrar-primada':
         if (!root.confirm || root.confirm('¿Cerrar la cuenta?')) {
           A.cerrarPrimada(id); fijarCaraPorEstado(); View.toast('Cuenta cerrada'); rerender();
@@ -301,10 +303,10 @@
         }
         rerender(); return;
       }
-      // ----- Resumen: cards-acordeón colapsadas por defecto -----
-      case 'toggle-resumen': {
+      // ----- Balance: desglose (derivación) de cada card-acordeón, colapsado por defecto -----
+      case 'toggle-balance': {
         const sec = b.dataset.sec;
-        if (ui.resumen.has(sec)) ui.resumen.delete(sec); else ui.resumen.add(sec);
+        if (ui.balance.has(sec)) ui.balance.delete(sec); else ui.balance.add(sec);
         rerender(); return;
       }
       // ----- chip-picker "+ Agregar" producto al asistente -----

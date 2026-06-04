@@ -189,10 +189,20 @@ eq('Ana (principal) sin cover', Store.select.coverDe(prm(), anaAsis()), 0);
 
 // Ganancia ANTES de exonerar: cover 10000 + margen 2*(3500-2500)=2000 → 12000
 eq('Ganancia = cover + margen (12.000)', Store.select.ganancia(prm()), 12000);
-// El reparto YA NO vive en la cara Consumos (operar) → ahora en la CARA Resumen (ver la plata).
+// El reparto YA NO vive en la cara Consumos (operar) → ahora en la CARA Balance (ver la plata).
 check('Reparto NO está en la cara Consumos', !/Ganancia/.test(q('#screen').innerHTML));
-click('[data-act="set-cara"][data-cara="resumen"]');
-check('Reparto visible en la cara Resumen', /Ganancia/.test(q('#screen').innerHTML));
+click('[data-act="set-cara"][data-cara="balance"]');
+check('Reparto visible en la cara Balance', /Ganancia/.test(q('#screen').innerHTML));
+// HERO NUMBER: la cifra protagonista (.bal-amount) está SIEMPRE visible, sin abrir el acorde.
+check('Balance: cifra héroe (.bal-amount) visible sin tocar el acorde', !!q('.bal-amount'));
+check('Balance: el desglose (acc-body) está OCULTO por defecto', !q('.bal-card .acc-body') && !q('.acc-body'));
+// STATE-AWARE: primada ABIERTA → nota provisional bajo el héroe.
+check('Balance ABIERTA: nota "Provisional" bajo el héroe', /Provisional/.test(q('#screen').innerHTML));
+// Abrir el acorde del reparto → aparece el desglose (Cover/Margen/Sobrante…).
+click('[data-act="toggle-balance"][data-sec="reparto"]');
+check('Toggle reparto: el desglose se muestra (Sobrante en el acc-body)', /Sobrante/.test(q('#screen').innerHTML));
+click('[data-act="toggle-balance"][data-sec="reparto"]');   // colapsar de nuevo
+check('Toggle reparto: el desglose se oculta otra vez', !/Sobrante/.test(q('#screen').innerHTML));
 click('[data-act="set-cara"][data-cara="operacion"]');   // volver a operar
 
 // El cover (exonerar/cobrar) también es CONFIGURACIÓN → en Configurar, sección Asistentes.
@@ -203,16 +213,18 @@ eq('Cover de Beto ahora 0', Store.select.coverDe(prm(), betoAsis()), 0);
 eq('Ganancia baja al margen puro (2.000)', Store.select.ganancia(prm()), 2000);
 click('[data-act="close-overlay"]');
 
-/* ---------- 7. Resumen e informe del principal ---------- */
-section('Resumen de ganancia + informe del principal');
+/* ---------- 7. Balance: ganancia e informe del principal ---------- */
+section('Balance: ganancia + informe del principal');
 const inf = Store.select.informePrincipal(prm());
 check('Informe completo (ya hay principal)', inf.incompleta === false);
 eq('Entrega al Tesorero = ganancia', inf.entregaTesorero, Store.select.ganancia(prm()));
 eq('Parte igual a la única ahorradora (Ana) = ganancia', Store.select.parteIgual(prm()), 2000);
 eq('Sobrante indivisible = 0', Store.select.sobranteFondo(prm()), 0);
-// El informe también vive ahora en la cara Resumen (no en la operación).
-click('[data-act="set-cara"][data-cara="resumen"]');
-check('Informe del principal renderizado con el nombre (cara Resumen)', /Principal — Ana/.test(q('#screen').innerHTML));
+// El informe también vive ahora en la cara Balance (no en la operación).
+click('[data-act="set-cara"][data-cara="balance"]');
+check('Informe del principal renderizado con el nombre (cara Balance)', /Principal — Ana/.test(q('#screen').innerHTML));
+// Beto debe (cover 0, pero 2 cervezas = 7.000 sin pagar) → el HÉROE del informe es "Pendiente" (urgencia).
+check('Informe ABIERTA con deuda: héroe = "Pendiente"', /Pendiente/.test(q('#screen').innerHTML));
 click('[data-act="set-cara"][data-cara="operacion"]');
 
 /* ---------- 8. Cerrar congela consumos pero la UI sigue viva ---------- */
@@ -227,7 +239,7 @@ click('[data-act="close-overlay"]');
 // El modelo permite cerrar con deuda (la UI lo gatea tras el CTA); aquí cerramos por acción para
 // probar el congelado con un deudor pendiente (escenario de pago-tras-cerrar en 8b).
 Store.actions.cerrarPrimada(prm().id);
-click('[data-act="set-cara"][data-cara="resumen"]'); click('[data-act="set-cara"][data-cara="operacion"]');   // forzar re-render de la operación
+click('[data-act="set-cara"][data-cara="balance"]'); click('[data-act="set-cara"][data-cara="operacion"]');   // forzar re-render de la operación
 eq('Primada cerrada', prm().estado, 'cerrada');
 const before = cervezas();
 const plus = q(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
@@ -259,20 +271,23 @@ eq('Re-marcado pagado (persistencia)', betoAsis().pagado, true);
 section('CTA "Todos pagaron · Cerrar primada" aparece y cierra (P5)');
 // Beto ya pagó → nadie debe (saldoPendiente 0) y hubo plata → el CTA debe ofrecerse en la operación.
 Store.actions.reabrirPrimada(prm().id);
-click('[data-act="set-cara"][data-cara="resumen"]'); click('[data-act="set-cara"][data-cara="operacion"]');   // re-render de la operación
+click('[data-act="set-cara"][data-cara="balance"]'); click('[data-act="set-cara"][data-cara="operacion"]');   // re-render de la operación
 eq('Reabierta para probar el CTA', prm().estado, 'abierta');
 check('Todos saldados (saldo pendiente 0)', Store.select.informePrincipal(prm()).saldoPendiente === 0);
 const cta = q('[data-act="cerrar-primada"]');
 check('CTA "Cerrar" presente cuando todos pagaron', !!cta && /Todos pagaron/.test(cta.textContent));
 click(cta);                                                      // cerrar por el CTA real
 eq('Primada cerrada vía CTA', prm().estado, 'cerrada');
-// CARA por estado (refactor Resumen→cara): al cerrar, la primada ABRE en su Resumen (archivo),
+// CARA por estado (refactor Resumen→Balance): al cerrar, la primada ABRE en su Balance (documento final),
 // con el switch presente y la cara Consumos accesible (congelada). El cálculo no cambia.
-check('Cerrada → cara Resumen visible (reparto)', /Ganancia/.test(q('#screen').innerHTML));
-check('Switch de cara presente (Consumos | Resumen)',
-  !!q('[data-act="set-cara"][data-cara="operacion"]') && !!q('[data-act="set-cara"][data-cara="resumen"]'));
-check('Seg Resumen marcado activo (on) al abrir cerrada',
-  /class="seg on"[^>]*data-cara="resumen"/.test(q('#screen').innerHTML));
+check('Cerrada → cara Balance visible (reparto)', /Ganancia/.test(q('#screen').innerHTML));
+check('Switch de cara presente (Consumos | Balance)',
+  !!q('[data-act="set-cara"][data-cara="operacion"]') && !!q('[data-act="set-cara"][data-cara="balance"]'));
+check('Seg Balance marcado activo (on) al abrir cerrada',
+  /class="seg on"[^>]*data-cara="balance"/.test(q('#screen').innerHTML));
+// STATE-AWARE en CERRADA: documento final → SIN nota provisional; el héroe del informe es "Entrega al Tesorero".
+check('Cerrada: SIN nota "Provisional"', !/Provisional/.test(q('#screen').innerHTML));
+check('Cerrada: héroe del informe = "Entrega al Tesorero"', /Entrega al Tesorero/.test(q('#screen').innerHTML));
 click('[data-act="set-cara"][data-cara="operacion"]');           // la cara Consumos sigue accesible…
 check('Cara Consumos accesible con la cuenta cerrada', /Asistentes/.test(q('#screen').innerHTML));
 const congelado = q(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
@@ -304,7 +319,7 @@ click('[data-act="close-overlay"]');
 check('Pantalla cerrada', q('#overlay').hidden);
 
 /* ---------- 9. Navegación de tabs ---------- */
-section('Navegación: tabs Resumen/Fondo (Próximamente)');
+section('Navegación: tab Fondo (Próximamente)');
 click('[data-tab="fondo"]');
 check('Tab Fondo muestra Próximamente', /Próximamente/.test(q('#screen').innerHTML));
 click('[data-tab="primadas"]');

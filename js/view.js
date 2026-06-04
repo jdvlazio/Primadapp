@@ -310,7 +310,7 @@
     const abierto = ui && ui.abiertos && ui.abiertos.has(a.personaId);
 
     // Cabecera-resumen (operar): el total visible es SOLO consumo + cover (el dato de un vistazo).
-    // El saldo/deuda es "ver la plata" → vive en el tab Resumen, no aquí.
+    // El saldo/deuda es "ver la plata" → vive en la cara Balance, no aquí.
     const cabecera = `<button class="acc-head" data-act="toggle-asis" data-pid="${a.personaId}" aria-expanded="${abierto ? 'true' : 'false'}">
         <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
         <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b> ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
@@ -410,32 +410,34 @@
     </div>`;
   }
 
-  // Card-acordeón de Resumen: COLAPSADA por defecto (titular de un vistazo) + se expande al tocar.
-  // El detalle es denso ("ver la plata"); el titular basta para el día a día. ui.resumen = Set de
-  // secciones abiertas ('reparto'|'informe').
+  // Bloque REPARTO del Balance. El HÉROE (Ganancia, cifra grande) va SIEMPRE visible fuera del acorde;
+  // el desglose (cómo se calculó) vive dentro del acc-body toggleable (ui.balance = Set de secciones
+  // abiertas, 'reparto'|'informe'). State-aware: ABIERTA marca la cifra como provisional; CERRADA no.
+  // Mismos selectores → cifras idénticas (no se duplica el cálculo).
   function reparto(p, ui) {
     const sel = S();
     const gan = sel.ganancia(p);
     const ahorr = sel.asistenciasAhorradoras(p);
-    const abierto = ui && ui.resumen && ui.resumen.has('reparto');
-    const subTeaser = ahorr.length
-      ? `${$peso(gan)} · parte igual ${$peso(sel.parteIgual(p))}`
-      : `${$peso(gan)}`;
-    const head = `<button class="acc-head" data-act="toggle-resumen" data-sec="reparto" aria-expanded="${abierto ? 'true' : 'false'}">
-        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-        <span class="acc-id-stack">
-          <span class="acc-id"><b>Ganancia</b></span>
-          <span class="acc-sub">${subTeaser}</span>
-        </span>
-      </button>`;
-    if (!abierto) return `<div class="card dark acc-card">${head}</div>`;
     const pi = sel.parteIgual(p);
     const sob = sel.sobranteFondo(p);
+    const abierto = ui && ui.balance && ui.balance.has('reparto');
+    const cerrada = p.estado === 'cerrada';
+    const teaser = ahorr.length
+      ? `parte igual ${$peso(pi)} · ${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'}`
+      : 'sin ahorradores';
     const lista = ahorr.length
       ? ahorr.map(a => `<div class="kv"><span>${e(nombrePersona(a.personaId))}</span><b>${$peso(pi)}</b></div>`).join('')
       : `<div class="muted small">Sin ahorradores</div>`;
-    return `<div class="card dark acc-card open">${head}
-      <div class="acc-body">
+    const hero = `<div class="bal-hero">
+        <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Ganancia</div>
+        <div class="bal-amount">${$peso(gan)}</div>
+        ${cerrada ? '' : `<div class="bal-note">Provisional — se confirma al cerrar</div>`}
+      </div>`;
+    const toggle = `<button class="acc-head bal-toggle" data-act="toggle-balance" data-sec="reparto" aria-expanded="${abierto ? 'true' : 'false'}">
+        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
+        <span class="acc-sub">${teaser}</span>
+      </button>`;
+    const body = abierto ? `<div class="acc-body">
         <div class="kv"><span>Cover</span><b>${$peso(sel.coverCobrado(p))}</b></div>
         <div class="kv"><span>Margen</span><b>${$peso(sel.margenTotal(p))}</b></div>
         <div class="kv total"><span>Ganancia</span><b>${$peso(gan)}</b></div>
@@ -444,10 +446,13 @@
         <div class="kv"><span>Sobrante</span><b>${$peso(sob)}</b></div>
         <div class="sub">Por persona</div>
         ${lista}
-      </div>
-    </div>`;
+      </div>` : '';
+    return `<div class="card dark acc-card ${abierto ? 'open' : ''}">${hero}${toggle}${body}</div>`;
   }
 
+  // Bloque INFORME DEL PRINCIPAL del Balance. HÉROE state-aware: si hay deuda y la primada está ABIERTA →
+  // "Pendiente" (urgencia de acción, en rojo); si el saldo es 0 O la primada está CERRADA → "Entrega al
+  // Tesorero" (resultado). El desglose (Bre-B, recaudos, deudores) va dentro del acc-body toggleable.
   function informe(p, ui) {
     const sel = S();
     const inf = sel.informePrincipal(p);
@@ -458,21 +463,28 @@
       </div>`;
     }
     const prinId = p.organizadorPrincipalId;
-    const abierto = ui && ui.resumen && ui.resumen.has('informe');
-    const head = `<button class="acc-head" data-act="toggle-resumen" data-sec="informe" aria-expanded="${abierto ? 'true' : 'false'}">
-        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-        <span class="acc-id-stack">
-          <span class="acc-id"><b>Principal — ${e(nombrePersona(prinId))}</b></span>
-          <span class="acc-sub">Entrega ${$peso(inf.entregaTesorero)} · Pendiente ${$peso(inf.saldoPendiente)}</span>
-        </span>
-      </button>`;
-    if (!abierto) return `<div class="card acc-card">${head}</div>`;
+    const abierto = ui && ui.balance && ui.balance.has('informe');
+    const cerrada = p.estado === 'cerrada';
+    const heroEsPendiente = inf.saldoPendiente > 0 && !cerrada;   // urgencia solo mientras está en flujo
+    const heroLabel = heroEsPendiente ? 'Pendiente' : 'Entrega al Tesorero';
+    const heroAmount = heroEsPendiente ? inf.saldoPendiente : inf.entregaTesorero;
     const deud = sel.deudores(p).filter(d => d.personaId !== prinId);
+    const teaser = heroEsPendiente
+      ? `Entrega ${$peso(inf.entregaTesorero)} al Tesorero`
+      : (deud.length ? `${deud.length} ${deud.length === 1 ? 'deudor' : 'deudores'} · ${$peso(inf.saldoPendiente)}` : 'Todos al día');
     const deudList = deud.length
       ? deud.map(d => `<div class="kv"><span>${e(nombrePersona(d.personaId))}</span><b class="owe">${$peso(d.saldo)}</b></div>`).join('')
       : `<div class="muted small">Nadie debe</div>`;
-    return `<div class="card acc-card open">${head}
-      <div class="acc-body">
+    const hero = `<div class="bal-hero">
+        <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Principal — ${e(nombrePersona(prinId))}</div>
+        <div class="bal-amount ${heroEsPendiente ? 'owe' : ''}">${$peso(heroAmount)}</div>
+        <div class="bal-note">${heroLabel}${cerrada ? '' : ' · provisional'}</div>
+      </div>`;
+    const toggle = `<button class="acc-head bal-toggle" data-act="toggle-balance" data-sec="informe" aria-expanded="${abierto ? 'true' : 'false'}">
+        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
+        <span class="acc-sub">${teaser}</span>
+      </button>`;
+    const body = abierto ? `<div class="acc-body">
         <div class="kv"><span>Bre-B</span><b>${p.pago.breB ? e(p.pago.breB) : '—'}</b></div>
         <div class="kv"><span>Recaudo teórico</span><b>${$peso(inf.recaudadoTeorico)}</b></div>
         <div class="kv"><span>Recupera</span><b>${$peso(inf.recuperaPrincipal)}</b></div>
@@ -483,12 +495,12 @@
         <div class="kv"><span>Pendiente</span><b class="${inf.saldoPendiente > 0 ? 'owe' : ''}">${$peso(inf.saldoPendiente)}</b></div>
         <div class="sub">Debe</div>
         ${deudList}
-      </div>
-    </div>`;
+      </div>` : '';
+    return `<div class="card acc-card ${abierto ? 'open' : ''}">${hero}${toggle}${body}</div>`;
   }
 
   // Tab Primadas = solo OPERAR: asistencias (registrar consumo). La identidad (mes/nombre/estado) y
-  // la navegación viven en el SELECTOR de arriba; la config tras el engranaje; la plata en RESUMEN.
+  // la navegación viven en el SELECTOR de arriba; la config tras el engranaje; la plata en BALANCE.
   function primadaDetalle(p, ui) {
     // CTA contextual para CERRAR (P5 lote visual): NO vive en Configuración. Aparece como banner arriba
     // de la operación SOLO cuando ya hubo plata y TODOS saldaron (saldoPendiente 0 = nadie debe; el
@@ -595,22 +607,24 @@
         <button class="btn auto mt-3" data-act="new-primada">${icon('plus-circle')}Crear primada</button>
       </div>`;
     if (!activa) return `${primadaSelectorRow(state, ui)}${vacio}`;
-    // El RESUMEN ya NO es un tab: es una CARA de la primada (junto a la operación). Se conmuta con un
-    // seg-nav. ui.cara = 'operacion' | 'resumen'. Una cerrada abre en 'resumen' (su archivo); la cara
-    // 'Consumos' sigue accesible en solo-lectura (la operación ya congela edición si está cerrada).
-    const cara = (ui && ui.cara === 'resumen') ? 'resumen' : 'operacion';
+    // El BALANCE ya NO es un tab: es una CARA de la primada (junto a la operación). Se conmuta con un
+    // seg-nav. ui.cara = 'operacion' | 'balance'. Una cerrada abre en 'balance' (su documento final); la
+    // cara 'Consumos' sigue accesible en solo-lectura (la operación ya congela edición si está cerrada).
+    const cara = (ui && ui.cara === 'balance') ? 'balance' : 'operacion';
     const seg = (key, label) => `<button class="seg ${cara === key ? 'on' : ''}" data-act="set-cara" data-cara="${key}">${label}</button>`;
-    const switcher = `<div class="cara-switch"><div class="seg-nav">${seg('operacion', 'Consumos')}${seg('resumen', 'Resumen')}</div></div>`;
-    const face = cara === 'resumen' ? resumenPrimada(activa, ui) : primadaDetalle(activa, ui);
+    const switcher = `<div class="cara-switch"><div class="seg-nav">${seg('operacion', 'Consumos')}${seg('balance', 'Balance')}</div></div>`;
+    const face = cara === 'balance' ? balancePrimada(activa, ui) : primadaDetalle(activa, ui);
     return `${primadaSelectorRow(state, ui)}${switcher}${face}`;
   }
 
   /* ============================================================
-     RESUMEN — CARA de la primada (no es destino propio): reparto del fondo + informe del principal.
+     BALANCE — CARA de la primada (no es destino propio): reparto del fondo + informe del principal.
      Mismos selectores que antes → ganancia/cover/saldos idénticos. La identidad (nombre/mes/estado) ya
-     la muestra el selector de arriba, así que aquí no se repite cabecera.
+     la muestra el selector de arriba, así que aquí no se repite cabecera. Cada bloque lleva su CIFRA
+     HÉROE (grande, SIEMPRE visible) + la derivación dentro de un acorde toggleable. El render bifurca por
+     p.estado: ABIERTA = provisional (en vivo); CERRADA = documento final (sin etiqueta provisional).
      ============================================================ */
-  function resumenPrimada(p, ui) {
+  function balancePrimada(p, ui) {
     return `${reparto(p, ui)}${informe(p, ui)}`;
   }
 
@@ -808,7 +822,7 @@
         t.classList.toggle('active', t.dataset.tab === ui.tab));
     }
 
-    // 2) contenido del tab. El Resumen ya NO es un tab: es una CARA dentro de Primadas (ver tabPrimadas).
+    // 2) contenido del tab. El Balance ya NO es un tab: es una CARA dentro de Primadas (ver tabPrimadas).
     let html;
     if (!state)                  html = '<div class="empty-soft">Cargando…</div>';   // primer pintado: aún hidratando (load async)
     else if (ui.tab === 'fondo') html = placeholder('Fondo', 'Tesorería');

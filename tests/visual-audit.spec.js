@@ -42,11 +42,11 @@ test.describe('Evidencia visual', () => {
     await expect(page.locator(SEL.nuevaPrimada)).toBeVisible();
   });
 
-  test('V2 — cara Resumen (ya no es tab: se conmuta dentro de Primadas)', async ({ page }) => {
+  test('V2 — cara Balance (ya no es tab: se conmuta dentro de Primadas)', async ({ page }) => {
     await appConPrimadaAbierta(page);
-    await page.click(SEL.cara('resumen'));
-    await page.screenshot({ path: `${VISUAL}/resumen.png`, fullPage: false });
-    await expect(page.locator(`${SEL.cara('resumen')}.on`)).toBeVisible();
+    await page.click(SEL.cara('balance'));
+    await page.screenshot({ path: `${VISUAL}/balance.png`, fullPage: false });
+    await expect(page.locator(`${SEL.cara('balance')}.on`)).toBeVisible();
     await expect(page.locator(SEL.screen)).toContainText('Ganancia');
   });
 
