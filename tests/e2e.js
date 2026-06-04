@@ -292,7 +292,14 @@ check('Reparto no cambió: Beto sigue sin contar como ahorradora (snapshot)',
 // Editar la llave Bre-B desde el directorio
 click('[data-act="overlay-tab"][data-overlay="ajustes"]');
 check('Seg-nav cambia a Ajustes (cover)', /Cover/.test(q('#overlay').innerHTML));
-click('[data-act="overlay-tab"][data-overlay="personas"]');
+check('Ajustes enlaza la Política de Privacidad', !!q('#overlay a[href="privacy.html"]'));
+// FASE 2b: "Borrar mi cuenta" (Apple 5.1.1(v)) SOLO con sesión. Sin sesión (modo local en jsdom): ausente.
+check('Sin sesión: Ajustes NO ofrece "Borrar mi cuenta"', !q('[data-act="borrar-mi-cuenta"]'));
+// La View es pura (state, ui)→DOM: con ui.sesion=true el botón aparece (gate de UI; el RPC lo gatea el server).
+window.View.render(st(), Object.assign({}, window.Controller._ui, { overlay: 'ajustes', sesion: true }));
+check('Con sesión: aparece "Borrar mi cuenta"', !!q('[data-act="borrar-mi-cuenta"]'));
+check('La nota aclara que las primadas se conservan', /se conservan/.test(q('#overlay').innerHTML));
+click('[data-act="overlay-tab"][data-overlay="personas"]');   // vuelve por el flujo real (rerender resetea sesion)
 click('[data-act="close-overlay"]');
 check('Pantalla cerrada', q('#overlay').hidden);
 

@@ -674,10 +674,17 @@
     return `${filas}<div class="prow-foot">${alta}</div>`;
   }
 
-  function ajustesBody(state) {
+  function ajustesBody(state, ui) {
     const c = state.settings.cover;
     // Build incrustado (meta sellado) → para confirmar de un vistazo qué versión corre en el device.
     const build = (typeof document !== 'undefined' && (document.querySelector('meta[name="build"]') || {}).content) || '—';
+    // "Borrar mi cuenta" (Apple 5.1.1(v)): SOLO con sesión. Revoca el acceso; el libro de las primadas se
+    // conserva (es colectivo). Distinto de cerrar una primada. La acción la gatea el RPC (último admin, etc.).
+    const cuenta = (ui && ui.sesion)
+      ? `<div class="sub danger-sub">Cuenta</div>
+         <button class="mini danger" data-act="borrar-mi-cuenta">${icon('trash-2')}Borrar mi cuenta</button>
+         <div class="muted small">Se elimina tu acceso (correo). Las cuentas de las primadas se conservan.</div>`
+      : '';
     return `<div class="sub">Cover</div>
       <div class="grid2">
         <label class="fld"><span>Ahorrador</span>
@@ -688,7 +695,8 @@
       <div class="sub">Versión</div>
       <div class="muted small">${e(build)}</div>
       <div class="sub">Legal</div>
-      <div class="muted small"><a class="link-legal" href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a></div>`;
+      <div class="muted small"><a class="link-legal" href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a></div>
+      ${cuenta}`;
   }
 
   // Sheet a pantalla completa con seg-nav Personas | Ajustes.
@@ -772,7 +780,7 @@
 
   function overlaySheet(active, state, ui) {
     const seg = (key, label) => `<button class="seg ${active === key ? 'on' : ''}" data-act="overlay-tab" data-overlay="${key}">${label}</button>`;
-    const body = active === 'ajustes' ? ajustesBody(state) : personasBody(state, ui);
+    const body = active === 'ajustes' ? ajustesBody(state, ui) : personasBody(state, ui);
     return `<div class="sheet full">
       <div class="sheet-head">
         <div class="seg-nav">${seg('personas', 'Personas')}${seg('ajustes', 'Ajustes')}</div>

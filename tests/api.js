@@ -49,9 +49,14 @@ function makeFakeSupabase() {
   function thenable(result) { return { then: (res) => Promise.resolve(result).then(res) }; }
   function write(store, rowOrRows) { const arr = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows]; arr.forEach(r => store.set(r.id, JSON.parse(JSON.stringify(r)))); return thenable({ data: arr, error: null }); }
   const channels = [];
+  const rpcCalls = []; let rpcResult = { data: null, error: null };
   return {
     _tablas: tablas,
     _channels: channels,
+    // RPC fake (delete_own_account, etc.): registra la llamada y devuelve el resultado configurado.
+    _rpcCalls: rpcCalls,
+    _setRpcResult(r) { rpcResult = r; },
+    rpc(name, params) { rpcCalls.push({ name, params: params || null }); return thenable(rpcResult); },
     // Realtime fake: channel().on().subscribe(cb) → cb('SUBSCRIBED'); _emit(payload) simula un cambio.
     channel(name, opts) {
       const hs = []; const presenceCbs = []; const presence = {};
@@ -350,6 +355,28 @@ section('load() async contra Supabase (fake en memoria)');
     check('presence: cada meta trae _key', ult.every(m => '_key' in m));
     let ok = true; try { pres.setMeta({ apuntando: 123 }); pres.unsubscribe(); } catch (e) { ok = false; }
     check('presence: setMeta/unsubscribe no lanzan', ok);
+  }
+
+  /* ====================== 10. Borrado de cuenta (FASE 2b): deleteOwnAccount ====================== */
+  section('Borrado de cuenta (Apple 5.1.1(v)): deleteOwnAccount → RPC delete_own_account');
+  {
+    const fake = makeFakeSupabase();
+    Api.init({ client: fake });
+    // Éxito: invoca el RPC correcto y no lanza.
+    fake._setRpcResult({ data: null, error: null });
+    let ok = true; try { await Api.deleteOwnAccount(); } catch (e) { ok = false; }
+    check('deleteOwnAccount no lanza en éxito', ok);
+    eq('llama al RPC delete_own_account', fake._rpcCalls[fake._rpcCalls.length - 1].name, 'delete_own_account');
+
+    // Rechazo del RPC (p. ej. último admin) → propaga el mensaje para el toast.
+    fake._setRpcResult({ data: null, error: { message: 'No puedes borrar la única cuenta admin' } });
+    let msg = null; try { await Api.deleteOwnAccount(); } catch (e) { msg = e.message; }
+    check('rechazo del RPC propaga el mensaje (último admin)', !!msg && /única cuenta admin/.test(msg));
+
+    // Sin backend (modo local) → lanza sin tocar RPC.
+    Api.init({});
+    let threw = false; try { await Api.deleteOwnAccount(); } catch (e) { threw = true; }
+    check('sin backend → deleteOwnAccount lanza (no hay nube)', threw);
   }
 
   /* ---------- Resumen ---------- */

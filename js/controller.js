@@ -68,11 +68,12 @@
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
     'add-asistencia', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus', 'add-item',
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'add-persona', 'set-estado-persona',
+    'borrar-mi-cuenta',
   ]);
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
   function pedirLogin() { ui.overlay = 'login'; ui.loginEstado = 'form'; rerender(); }
 
-  function rerender() { View.render(Store.select.state(), ui); sincronizarVivo(); sincronizarPresencia(); }
+  function rerender() { ui.sesion = sesionActiva; View.render(Store.select.state(), ui); sincronizarVivo(); sincronizarPresencia(); }
 
   // PRESENCE (Fase C): publica mi presencia en la primada ACTIVA y mantiene ui.presentes (los OTROS).
   // "Auto-coordinación, no bloqueo": solo informa quién está y quién apunta. Re-suscribe al cambiar de
@@ -187,6 +188,18 @@
         return;
       }
       case 'login-reset': ui.loginEstado = 'form'; rerender(); return;
+
+      // Borrar mi cuenta (Apple 5.1.1(v)): revoca el login + anonimiza la auditoría; el libro colectivo
+      // (primadas/consumos) se CONSERVA. RPC delete_own_account. Tras el éxito, signOut → el onChange
+      // del gate recarga en modo LECTURA. Distinto de "Cerrar primada" (saldar) y de "Cerrar cuenta".
+      case 'borrar-mi-cuenta': {
+        if (root.confirm && !root.confirm('¿Borrar tu cuenta? Se elimina tu acceso (correo). Las cuentas de las primadas se conservan.')) return;
+        b.disabled = true;
+        Promise.resolve(root.Api && root.Api.deleteOwnAccount && root.Api.deleteOwnAccount())
+          .then(() => { View.toast('Cuenta borrada'); if (Auth && Auth.signOut) Auth.signOut(); })
+          .catch((err) => { b.disabled = false; View.toast(err && err.message ? err.message : 'No se pudo borrar la cuenta'); });
+        return;
+      }
 
       // ----- selector de primada (navegación: abre la hoja agrupada por año→mes) -----
       case 'open-selector': ui.overlay = 'selector-primada'; rerender(); return;

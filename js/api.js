@@ -236,6 +236,15 @@
       const map = {}; (res.data || []).forEach(r => { map[r.user_id] = r.email; }); return map;
     } catch (e) { return {}; }
   }
+  // Borra la cuenta del usuario en sesión (Apple 5.1.1(v)): RPC delete_own_account (SECURITY DEFINER).
+  // Anonimiza sus consumos (apuntado_por→NULL, fila INTACTA) y borra profiles + auth.users. NO toca el
+  // libro colectivo → saldos de primadas cerradas idénticos. Lanza si no hay backend o si el RPC rechaza
+  // (p. ej. "única cuenta admin"). El controller hace signOut + recarga tras el éxito.
+  async function deleteOwnAccount() {
+    if (mode !== 'supabase' || !client) throw new Error('Borrado no disponible sin backend');
+    const res = await run(client.rpc('delete_own_account'), 'deleteOwnAccount');
+    return res.data;
+  }
   function subscribeConsumos(primadaId, opts) {
     opts = opts || {};
     if (mode !== 'supabase' || !client || typeof client.channel !== 'function') return function () {};
@@ -285,7 +294,7 @@
   }
 
   const Api = {
-    init, load, commit, fetchConsumos, fetchApuntadores, subscribeConsumos, subscribePresence,
+    init, load, commit, fetchConsumos, fetchApuntadores, deleteOwnAccount, subscribeConsumos, subscribePresence,
     onQueueChange, flush, queueState: function () { return { pendientes: cola.length, error: colaError }; },
     mode: function () { return mode; },
     // Cambia el modo de DATOS sin tocar el client de auth: 'supabase' solo si hay client. Permite
