@@ -57,8 +57,8 @@
   }
 
   // ui = estado EFÍMERO (no dominio, no se persiste):
-  // - abiertos: Set de personaId con tarjeta-acordeón de asistente expandida (multiabierto)
-  // - pickProd: personaId con el chip-picker "+ Agregar" abierto (uno a la vez)
+  // - activaPid: personaId de la fila ACTIVA en el tab Consumos (Modelo 3, lista viva; UNA a la vez).
+  //   Al activarse, sus productos salen inline como chips (apuntar en 1 tap) + el bloque de pago. null = ninguna.
   // - personasAbiertas: Set de personaId con la fila de persona expandida (edición inline)
   // - nuevaPersona: form "Agregar persona" desplegado al pie del overlay Personas
   // - overlay 'add-asis': hoja simple para agregar asistentes del directorio
@@ -71,7 +71,7 @@
   //   SIEMPRE visible fuera del acorde, el desglose (derivación) dentro.
   // - programar: estado del flujo LIGERO "Programar primada" (overlay 'programar'): { principalId, coorg[],
   //   mesContable, fecha }. Null cuando está cerrado. No pasa por el Store (UI pura) hasta crear.
-  const ui = { tab: 'primadas', cara: 'operacion', overlay: null, abiertos: new Set(), pickProd: null, wizard: null, programar: null,
+  const ui = { tab: 'primadas', cara: 'operacion', overlay: null, activaPid: null, wizard: null, programar: null,
                personasAbiertas: new Set(), nuevaPersona: false,
                configTab: 'asistentes', configProd: new Set(), pagarPid: null,
                balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
@@ -84,7 +84,7 @@
   // open-pagar) NO están aquí: la app es usable en LECTURA con solo el link. seleccionar-primada es local.
   const WRITE_ACTS = new Set([
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
-    'add-asistencia', 'add-asistencia-cortesia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus', 'add-item',
+    'add-asistencia', 'add-asistencia-cortesia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus',
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'add-persona', 'set-estado-persona',
     'borrar-mi-cuenta', 'prog-crear', 'abrir-primada',
   ]);
@@ -333,16 +333,17 @@
       case 'hacer-principal':  tryAction(() => A.setRol(prm, pid, 'principal')); break;
       // "Quitar" / [✕] vive en Configurar (no en operación) y pide confirmación.
       case 'remove-asistencia':
-        if (!root.confirm || root.confirm('¿Quitar al asistente?')) { A.removeAsistencia(prm, pid); ui.abiertos.delete(pid); }
+        if (!root.confirm || root.confirm('¿Quitar al asistente?')) { A.removeAsistencia(prm, pid); if (ui.activaPid === pid) ui.activaPid = null; }
         break;
       case 'toggle-exonerado':  A.toggleCoverExonerado(prm, pid); break;
+      // MODELO 3 — Lista viva: el chip (consumido o disponible) usa item-plus/minus directo (changeItem).
+      // El disponible 0→1 también es item-plus (ya no hay "add-item" ni picker aparte).
       case 'item-plus':         A.changeItem(prm, pid, b.dataset.prod, +1); marcarApuntando(); break;
       case 'item-minus':        A.changeItem(prm, pid, b.dataset.prod, -1); marcarApuntando(); break;
 
-      // ----- acordeón de asistencias (estado efímero de UI) -----
-      case 'toggle-asis': {
-        if (ui.abiertos.has(pid)) { ui.abiertos.delete(pid); if (ui.pickProd === pid) ui.pickProd = null; }
-        else ui.abiertos.add(pid);
+      // ----- Lista viva: activar/colapsar la persona (UNA a la vez). Tap otra reemplaza (colapsa la anterior). -----
+      case 'activar-asis': {
+        ui.activaPid = (ui.activaPid === pid) ? null : pid;
         rerender(); return;
       }
       // ----- Auditoría (C2): detalle por evento bajo demanda (lectura; carga quién→email una vez) -----
@@ -359,17 +360,6 @@
         const sec = b.dataset.sec;
         if (ui.balance.has(sec)) ui.balance.delete(sec); else ui.balance.add(sec);
         rerender(); return;
-      }
-      // ----- chip-picker "+ Agregar" producto al asistente -----
-      case 'open-pickprod':  ui.pickProd = pid; rerender(); return;
-      case 'close-pickprod': if (ui.pickProd === pid) ui.pickProd = null; rerender(); return;
-      case 'add-item': {
-        A.changeItem(prm, pid, b.dataset.prod, +1); marcarApuntando();   // 0→1: aparece con stepper
-        // si ya no quedan productos por agregar, cerramos el picker
-        const p = Store.select.activePrimada();
-        const a = p && p.asistencias.find(x => x.personaId === pid);
-        if (a && Store.select.disponiblesPara(p, a).length === 0) ui.pickProd = null;
-        break;
       }
 
       // ----- gestión de productos del evento (en el overlay Configurar) -----

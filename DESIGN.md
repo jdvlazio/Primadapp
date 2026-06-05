@@ -187,6 +187,34 @@ cuerpo usan **espacio o línea tenue**, no `dashed`.
 - Principal → **dot teal + palabra** (no badge, no borde de fila).
 - Debe → **color en el número** (no borde, no fondo).
 
+> **Dos variantes de fila** (mismo lenguaje, distinta interacción): el **acordeón** (`.acc-head` + caret +
+> `.acc-body`) lo usan el **Directorio** (§2.9) y **Configurar › Productos** (§2.8). El **tab Consumos** usa la
+> **Lista viva** (§2.1.2) — sin caret, sin `.acc-body`.
+
+### 2.1.2 · Tab Consumos — LISTA VIVA (Modelo 3) (✅ CANÓNICO)
+
+**Por qué.** Apuntar un consumo es la acción **más frecuente** durante una primada (fiesta, gente llegando).
+El acordeón costaba 3-4 taps (abrir → "+ Consumo" → chip → "+"). La lista viva lo baja a **2 taps la primera vez,
+1 las siguientes** — sin sacar de contexto al resto de la lista.
+
+**Interacción:** cada asistente es una **fila siempre visible** (nombre + total), **sin caret**. Tap en la fila =
+**activar** (`activar-asis`, `ui.activaPid`, **UNA sola activa**; tap otra colapsa la anterior). Al activarse, sus
+productos aparecen **inline** como chips + el bloque de **pago** debajo.
+
+| Elemento | Canónico |
+|---|---|
+| **Fila** (`.asis-fila`) | flex, `min-height:var(--tap-row)`, **sin caret**; tap = `activar-asis`. Activa: `.asis-fila.on` (fondo `--paper-2`) |
+| **Identidad** (`.asis-fila-id`) | igual que §2.1 (nombre primario, rol tenue, dot+palabra del principal). **SALDADA**: `.saldado` → **nombre en teal** (`--accent`) + check (`.asis-check`) — refuerzo del registro "resuelto" (§1) |
+| **Total** (`.acc-amt`) | a la derecha, siempre visible; se actualiza EN VIVO al apuntar |
+| **Reveal** (`.asis-reveal`) | solo en la activa: chips (arriba, apuntar = frecuente) + pago (footer, saldar = menos frecuente). Entra con `accIn` |
+| **Chip CONSUMIDO** (`.chip.has`) | stepper compacto, borde **teal**: cuerpo `emoji ×N` (`.chip-plus`) = **+1** (gesto dominante); `−` chico subordinado (`.chip-minus`, divisor a la derecha) = **−1** (corrección). Mismo `item-plus`/`item-minus` |
+| **Chip DISPONIBLE** (`.chip`) | emoji + nombre + precio; tap = **+1** (0→1, pasa a consumido). Mismo `item-plus` (ya no hay "add-item" ni picker aparte) |
+| **Cerrada** | chips de **solo lectura** (`.chip.has.ro`, sin +/−); pago SIGUE activo (INVARIANTE #4) |
+| **Auditoría** (ⓘ) | `toggle-auditoria` dentro del reveal (igual que antes) |
+
+**Orden:** por mayor consumo (`asistenciasPorConsumo`, DESC). **Decisión:** se **acepta el re-orden en vivo** — al
++1 la persona puede subir de posición (sin congelar). Rol/cover/quitar siguen siendo **Configuración** (§2.8), no viven aquí.
+
 ### 2.1.L · Caja de asistente pesada (❌ LEGADO — eliminar)
 
 Implementación actual a reemplazar por 2.1:

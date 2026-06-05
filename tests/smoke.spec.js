@@ -62,7 +62,7 @@ test('S5 — se crea una primada (wizard completo) y aparece su detalle', async 
   // Se creó 1 primada; el selector (con "Mes Año") y la fila del principal están en pantalla.
   expect(await contarPrimadas(page)).toBe(1);
   await expect(page.locator(SEL.selMain).first()).toBeVisible();
-  await expect(page.locator(SEL.accHead).first()).toBeVisible();
+  await expect(page.locator(SEL.asisFila).first()).toBeVisible();
 });
 
 test('S6 — el switch de cara (Consumos | Balance) conmuta el contenido', async ({ page }) => {
@@ -71,12 +71,12 @@ test('S6 — el switch de cara (Consumos | Balance) conmuta el contenido', async
   await crearPrimada(page, 'Ana');
   // Recién creada (abierta) → abre en la cara Consumos: se ven los Asistentes, no el reparto.
   await expect(page.locator(SEL.cara('operacion'))).toBeVisible();
-  await expect(page.locator(SEL.accHead).first()).toBeVisible();
+  await expect(page.locator(SEL.asisFila).first()).toBeVisible();
   // Conmutar a Balance → aparece el reparto del fondo (no es un tab, es una cara).
   await page.click(SEL.cara('balance'));
   await expect(page.locator(`${SEL.cara('balance')}.on`)).toBeVisible();
   await expect(page.locator(SEL.screen)).toContainText('Ganancia');
   // Volver a Consumos.
   await page.click(SEL.cara('operacion'));
-  await expect(page.locator(SEL.accHead).first()).toBeVisible();
+  await expect(page.locator(SEL.asisFila).first()).toBeVisible();
 });

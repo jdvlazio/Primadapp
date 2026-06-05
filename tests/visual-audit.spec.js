@@ -29,7 +29,7 @@ async function appConPrimadaAbierta(page) {
     { nombre: 'Caro', estado: 'invitado' },
   ]);
   await crearPrimada(page, 'Ana');
-  await page.locator(SEL.accHead).first().click();   // expande el acordeón del principal
+  await page.locator(SEL.asisFila).first().click();   // activa la primera persona (reveal inline, lista viva)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,10 +64,11 @@ test.describe('Evidencia visual', () => {
     await page.screenshot({ path: `${VISUAL}/wizard.png`, fullPage: false });
   });
 
-  test('V5 — detalle de primada con asistente expandido', async ({ page }) => {
+  test('V5 — detalle de primada con persona activa (reveal inline)', async ({ page }) => {
     await appConPrimadaAbierta(page);
     await page.screenshot({ path: `${VISUAL}/primada-detalle.png`, fullPage: false });
-    await expect(page.locator(SEL.accHead).first()).toBeVisible();
+    await expect(page.locator(SEL.asisFila).first()).toBeVisible();
+    await expect(page.locator('.asis-reveal').first()).toBeVisible();   // lista viva: chips inline al activar
   });
 });
 
@@ -171,8 +172,8 @@ test.describe('Conformidad DESIGN.md — rediseño aplicado', () => {
   test('D2 — principal marcado con punto+texto, NO badge con borde (§2.1)', async ({ page }) => {
     await appConPrimadaAbierta(page);
     const ident = await page.evaluate(() => ({
-      badges: document.querySelectorAll('.acc-id .badge').length,
-      dotPrin: document.querySelectorAll('.acc-id .dot.prin').length,
+      badges: document.querySelectorAll('.asis-fila-id .badge').length,
+      dotPrin: document.querySelectorAll('.asis-fila-id .dot.prin').length,
     }));
     expect(ident.badges).toBe(0);     // cero badges en la identidad
     expect(ident.dotPrin).toBeGreaterThan(0); // el principal lleva punto teal
@@ -214,7 +215,7 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     await appConPrimadaAbierta(page);
     expect(await page.locator('#screen .prodrow').count()).toBe(0);
     expect(await page.locator('[data-act="toggle-panel-productos"]').count()).toBe(0);
-    expect(await page.locator('#screen .acc-head').count()).toBeGreaterThan(0); // sí hay asistentes
+    expect(await page.locator('#screen .asis-fila').count()).toBeGreaterThan(0); // sí hay asistentes (lista viva)
   });
 
   test('E2 — Configurar: productos como filas-acordeón (clon Personas); costo/venta al expandir', async ({ page }) => {
@@ -446,7 +447,7 @@ test.describe('Pagar (binario) + llave Bre-B', () => {
       S.actions.changeItem(p.id, beto.id, p.productos[0].id, 1);
       return beto.id;
     });
-    await page.click(`#screen [data-act="toggle-asis"][data-pid="${betoId}"]`);   // expandir su tarjeta
+    await page.click(`#screen [data-act="activar-asis"][data-pid="${betoId}"]`);   // activar su fila (reveal con pago)
     await expect(page.locator(`[data-act="open-pagar"][data-pid="${betoId}"]`)).toBeVisible();
     await page.click(`[data-act="open-pagar"][data-pid="${betoId}"]`);
     // la hoja muestra la llave Bre-B del principal

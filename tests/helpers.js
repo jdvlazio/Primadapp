@@ -25,7 +25,8 @@ const SEL = {
   wzSiguiente: '[data-act="wz-siguiente"]',
   wzCrear: '[data-act="wz-crear"]',
   wzCancelar: '[data-act="wz-cancelar"]',
-  accHead: '.acc-head',     // cabecera de fila de asistente (acordeón)
+  accHead: '.acc-head',     // cabecera de fila-acordeón (Configurar Productos / Personas)
+  asisFila: '.asis-fila',   // fila de asistente en el tab Consumos (Modelo 3, lista viva; tap = activar)
   prmName: '.prm-name',     // nombre de la primada activa (dashboard Balance)
   cara: (key) => `[data-act="set-cara"][data-cara="${key}"]`,   // switch de cara (Consumos | Balance)
 };

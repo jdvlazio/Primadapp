@@ -78,12 +78,12 @@ function setVal(elOrSel, value) {
   el.value = value;
   el.dispatchEvent(new window.Event('change', { bubbles: true }));
 }
-// Acordeón: las tarjetas nacen CERRADAS; rol/cover/steppers/abonos viven en el .acc-body expandido.
-// abrir(pid) es idempotente: togglea solo si está cerrada (sin .acc-body para ese pid).
-function abrir(pid) {
-  const head = q(`.acc-head[data-pid="${pid}"]`);
-  if (!head) throw new Error('abrir: no existe la cabecera de ' + pid);
-  if (!head.closest('.asis').querySelector('.acc-body')) click(head);
+// MODELO 3 — Lista viva: la fila del asistente está SIEMPRE visible; tap = activar (reveal inline con
+// chips + pago). activar(pid) es idempotente: activa solo si no está ya activa (sin .asis-reveal en su .asis).
+function activar(pid) {
+  const fila = q(`.asis-fila[data-pid="${pid}"]`);
+  if (!fila) throw new Error('activar: no existe la fila de ' + pid);
+  if (!fila.closest('.asis').querySelector('.asis-reveal')) click(fila);
 }
 
 /* ============================================================ */
@@ -156,20 +156,21 @@ check('Snapshot de la llave Bre-B del principal en pago', 'breB' in prm().pago);
 check('Sin "Hacer principal" una vez completa', !q('[data-act="hacer-principal"]'));
 click('[data-act="close-overlay"]');
 
-/* ---------- 5. Consumos ± (progressive disclosure) ---------- */
-section('Consumos: primer ítem por el chip-picker, luego steppers ±');
+/* ---------- 5. Consumos ± (Lista viva: chips inline) ---------- */
+section('Consumos (Lista viva): tap persona → chips; tap chip disponible = +1; chip consumido +/−');
 // v6: la cantidad se cuenta desde consumos[] (Σ filas), no desde el viejo items{}.
 const cervezas = () => (prm().consumos || []).filter(c => c.personaId === beto.id && c.productoId === 'cerveza').reduce((n, c) => n + (c.cantidad || 1), 0);
-abrir(beto.id);   // idempotente: asegura su tarjeta expandida
-// Progressive disclosure: sin cantidad>0 NO hay stepper; el primer consumo entra por "+ Agregar" → chip.
-click(`[data-act="open-pickprod"][data-pid="${beto.id}"]`);
-click(`[data-act="add-item"][data-pid="${beto.id}"][data-prod="cerveza"]`);   // 0→1 vía chip (INSERT fila)
-eq('Beto lleva 1 cerveza (agregada por chip)', cervezas(), 1);
-// Ya con cantidad>0 aparece el stepper: subir a 2 con +
+activar(beto.id);   // tap persona → reveal con chips inline (idempotente)
+check('Lista viva: al activar aparece el reveal con chips', !!q(`.asis-fila[data-pid="${beto.id}"].on`) && !!q('.chips-viva'));
+// Modelo 3: el primer consumo entra por el chip DISPONIBLE (tap = +1 = INSERT fila); mismo data-act item-plus.
+click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);   // 0→1
+eq('Beto lleva 1 cerveza (chip disponible → +1)', cervezas(), 1);
+check('El chip pasó a CONSUMIDO (.chip.has con ×N)', !!q(`.chip.has [data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`));
+// El chip consumido: cuerpo = +1, − chico = −1 (mismo data-act item-plus/item-minus).
 click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
-eq('Beto lleva 2 cervezas', cervezas(), 2);
+eq('Beto lleva 2 cervezas (tap chip = +1)', cervezas(), 2);
 click(`[data-act="item-minus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
-eq('Stepper baja a 1 (borró la fila más reciente)', cervezas(), 1);
+eq('El − corrige a 1 (borró la fila más reciente)', cervezas(), 1);
 click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);   // de vuelta a 2
 
 // Auditoría (C2): el detalle por evento NO se exhibe; el ⓘ lo abre bajo demanda.
@@ -296,7 +297,7 @@ check('View.shareInforme expuesta', typeof window.View.shareInforme === 'functio
 section('Orden por consumo: el que más debe, primero (cara Consumos + informe)');
 click('[data-act="set-cara"][data-cara="operacion"]');   // volver a la cara Consumos
 // Beto (2 cervezas = 7.000, exonerado) vs Ana (principal, 0) → Beto arriba en la lista.
-const ordenDom = qa('[data-act="toggle-asis"]').map(el => el.dataset.pid);
+const ordenDom = qa('[data-act="activar-asis"]').map(el => el.dataset.pid);
 check('Consumos: mayor total primero (Beto $7.000 antes que Ana $0)',
   ordenDom.indexOf(beto.id) >= 0 && ordenDom.indexOf(beto.id) < ordenDom.indexOf(ana.id));
 // Informe: pendientes primero, saldadas al final. Doy a Ana un consumo (3.500) para que aparezca.
@@ -328,16 +329,17 @@ Store.actions.cerrarPrimada(prm().id);
 click('[data-act="set-cara"][data-cara="balance"]'); click('[data-act="set-cara"][data-cara="operacion"]');   // forzar re-render de la operación
 eq('Primada cerrada', prm().estado, 'cerrada');
 const before = cervezas();
-const plus = q(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
-check('Steppers deshabilitados al cerrar', !!plus && plus.disabled === true);
-if (plus) click(plus);   // aunque hagamos click, la acción debe ignorarlo
-eq('Consumo congelado tras cerrar', cervezas(), before);
+activar(beto.id);                                                // ver sus chips (solo lectura en cerrada)
+check('Cerrada: sin chips +/− para apuntar (consumo congelado en la UI)',
+  !q(`[data-act="item-plus"][data-pid="${beto.id}"]`) && !q(`[data-act="item-minus"][data-pid="${beto.id}"]`));
+Store.actions.changeItem(prm().id, beto.id, 'cerveza', +1);      // y el modelo ignora el intento directo
+eq('Consumo congelado tras cerrar (changeItem no-op en cerrada)', cervezas(), before);
 
 /* ---------- 8b. Pago BINARIO vía UI con la cuenta CERRADA (INVARIANTE #4) ---------- */
 section('Pago: "Pagar" → hoja con llave → "Ya pagué", con la primada cerrada');
 // Beto exonerado, 2 cervezas → total 7.000, saldo 7.000 (no pagado)
 eq('Saldo de Beto antes de pagar = 7.000', Store.select.saldoDe(prm(), betoAsis()), 7000);
-abrir(beto.id);                                            // la UI de pago vive en la tarjeta expandida
+activar(beto.id);                                          // la UI de pago vive en el reveal de la persona activa
 click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);   // abre la hoja "Pagar"
 check('Hoja Pagar abierta (aún cerrada la primada)', !q('#overlay').hidden && /sheet-title">Pagar a/.test(q('#overlay').innerHTML));
 click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`); // "Ya pagué"
@@ -355,11 +357,12 @@ eq('Re-marcado pagado (persistencia)', betoAsis().pagado, true);
 
 /* ---------- 8b·3. Feedback visual del pago: check en Consumos + Recaudo no oculta saldados ---------- */
 section('Pago saldado: check en la tarjeta Consumos + Recaudo lista al saldado (nadie desaparece)');
-// Beto saldado (saldo 0, total 7.000>0). En la cara Consumos su tarjeta debe llevar un check junto al nombre.
-click('[data-act="set-cara"][data-cara="operacion"]'); abrir(beto.id);
-const betoCard = q(`[data-act="toggle-asis"][data-pid="${beto.id}"]`).closest('.acc') || q('#screen');
+// Beto saldado (saldo 0, total 7.000>0). En la cara Consumos su fila debe llevar check + nombre teal.
+click('[data-act="set-cara"][data-cara="operacion"]'); activar(beto.id);
 check('Consumos: Beto saldado muestra .asis-check junto al nombre',
-  /asis-check/.test(q('#screen').querySelector(`[data-act="toggle-asis"][data-pid="${beto.id}"]`).innerHTML));
+  /asis-check/.test(q('#screen').querySelector(`[data-act="activar-asis"][data-pid="${beto.id}"]`).innerHTML));
+check('Consumos: la fila saldada lleva el nombre en teal (.asis-fila-id.saldado)',
+  !!q('#screen').querySelector(`.asis-fila[data-pid="${beto.id}"] .asis-fila-id.saldado`));
 // Recaudo: Beto NO desaparece — aparece al final como saldado (.kv.saldada con check), no como deudor ámbar.
 click('[data-act="set-cara"][data-cara="balance"]');
 click('[data-act="toggle-balance"][data-sec="informe"]');   // expandir el acorde del Recaudo (la lista vive dentro)
@@ -401,8 +404,10 @@ check('Cerrada Recaudo: teaser en pasado "Entregó … al Tesorero"', /Entregó 
 check('Cerrada Recaudo: sin "Por cobrar"', !/Por cobrar/.test(q('#screen').innerHTML));
 click('[data-act="set-cara"][data-cara="operacion"]');           // la cara Consumos sigue accesible…
 check('Cara Consumos accesible con la cuenta cerrada', /Asistentes/.test(q('#screen').innerHTML));
-const congelado = q(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
-check('…pero congelada (steppers deshabilitados)', !!congelado && congelado.disabled === true);
+activar(beto.id);                                                // activar para ver sus chips (solo lectura)
+check('…pero congelada: sin chips +/− (consumo solo-lectura)',
+  !q(`[data-act="item-plus"][data-pid="${beto.id}"]`) && !q(`[data-act="item-minus"][data-pid="${beto.id}"]`));
+check('Cerrada: el consumo se ve como chip de solo lectura (.chip.has.ro)', !!q('.chip.has.ro'));
 
 /* ---------- 8c. Directorio: cambiar estado NO reescribe snapshots (INVARIANTE #1) vía UI ---------- */
 section('Directorio: cambiar estado vigente conserva la historia (INV#1)');

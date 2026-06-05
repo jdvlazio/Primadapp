@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260605-150916-a270f46">
+<meta name="build" content="20260605-155620-5349149">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -322,15 +322,22 @@
   .asis-id{font-size:15px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
   .cover{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2)}
   .cover b{color:var(--ink)}
-  .prods{display:flex;flex-direction:column;gap:var(--space-1)}
-  .prod{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:13px;padding:var(--space-1) 0}
-  .prod.has{font-weight:700}
-  .prod-name i{color:var(--ink-soft);font-style:normal;font-size:11px}
-  .stepper{display:flex;align-items:center;gap:var(--space-2)}
-  .step{display:flex;align-items:center;justify-content:center;width:var(--tap-sec);height:var(--tap-sec);border-radius:var(--radius-md);border:1px solid var(--line);background:var(--paper);color:var(--ink);font-size:17px;font-weight:700;cursor:pointer;line-height:1}
-  .step:active{transform:scale(.9)}
-  .step:disabled{opacity:.4;cursor:default}
-  .qty{min-width:16px;text-align:center;font-size:14px}
+  /* MODELO 3 — Lista viva (tab Consumos). Fila SIEMPRE visible, SIN caret; tap = activar (reveal inline). */
+  .asis-fila{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);width:100%;background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-3)}
+  .asis-fila.on{background:var(--paper-2)}
+  .asis-fila:active{background:var(--paper-2)}
+  .asis-fila-id{flex:1;min-width:0;font-size:15px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  .asis-fila-id.saldado b{color:var(--accent)}            /* saldada: nombre en teal (resuelto) + check */
+  /* REVEAL de la persona activa: chips (apuntar) ARRIBA + pago (footer). */
+  .asis-reveal{padding:0 var(--space-3) var(--space-3);animation:accIn .18s ease}
+  .chips-viva{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+  /* chip CONSUMIDO = stepper compacto (borde teal): cuerpo "emoji ×N" = +1; − chico subordinado = −1. */
+  .chip.has{padding:0;overflow:hidden;border-color:var(--accent)}
+  .chip.has .chip-plus{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:var(--space-2) var(--space-3)}
+  .chip.has .chip-minus{display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap-sec);width:var(--tap-sec);background:transparent;border:none;border-right:1px solid var(--line);cursor:pointer;color:var(--ink-soft);font-size:17px;line-height:1}
+  .chip.has .chip-minus:active,.chip.has .chip-plus:active{transform:scale(.9)}
+  .chip-q{font-variant-numeric:tabular-nums}
+  .chip.has.ro{padding:var(--space-2) var(--space-3);border-color:var(--line)}   /* cerrada: solo lectura */
   .consumo-vacio{padding:var(--space-1) 0}
   /* Auditoría (C2): botón ⓘ discreto + panel colapsado (hora · producto · quién apuntó). */
   .aud-btn{margin-top:var(--space-2);color:var(--ink-soft)}
@@ -341,10 +348,7 @@
   .aud-hora{color:var(--ink-soft);font-variant-numeric:tabular-nums;flex:none;width:44px}
   .aud-prod{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .aud-quien{color:var(--ink-soft);flex:none;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* chip-picker "+ Agregar" */
-  .addprod{margin-top:var(--space-2)}
-  .prodpick{margin-top:var(--space-2);background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--radius-md);padding:var(--space-2)}
-  .prodpick-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)}
+  /* chips: catálogo del wizard (co-organizadores) + productos DISPONIBLES en la lista viva (tap = +1). */
   .chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
   .chip{display:inline-flex;align-items:center;gap:var(--space-2);min-height:var(--tap-sec);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--line);background:var(--paper-2);color:var(--ink);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3)}
   .chip:active{transform:scale(.95)}
@@ -578,13 +582,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260605-150916-a270f46"></script>
-  <script src="js/util.js?v=20260605-150916-a270f46"></script>
-  <script src="js/api.js?v=20260605-150916-a270f46"></script>
-  <script src="js/auth.js?v=20260605-150916-a270f46"></script>
-  <script src="js/store.js?v=20260605-150916-a270f46"></script>
-  <script src="js/view.js?v=20260605-150916-a270f46"></script>
-  <script src="js/controller.js?v=20260605-150916-a270f46"></script>
+  <script src="js/config.js?v=20260605-155620-5349149"></script>
+  <script src="js/util.js?v=20260605-155620-5349149"></script>
+  <script src="js/api.js?v=20260605-155620-5349149"></script>
+  <script src="js/auth.js?v=20260605-155620-5349149"></script>
+  <script src="js/store.js?v=20260605-155620-5349149"></script>
+  <script src="js/view.js?v=20260605-155620-5349149"></script>
+  <script src="js/controller.js?v=20260605-155620-5349149"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

@@ -284,31 +284,34 @@
 
   // Progressive disclosure: SOLO lo consumido (cantidad>0) con stepper. Bajar a 0 lo quita
   // (vuelve a estar disponible en el chip picker). Vacío → mensaje, no tarjeta en blanco.
-  function consumoBloque(p, a, ui) {
+  // MODELO 3 — Lista viva: los productos de la persona ACTIVA se muestran INLINE como CHIPS (no acordeón
+  // + stepper). Dos tipos de chip, en una sola fila que envuelve:
+  //   · CONSUMIDO (`.chip.has`): emoji + ×cantidad. El cuerpo es +1 (gesto frecuente); un `−` chico
+  //     subordinado hace −1 (corrección). Solo aparece en la persona activa (es el único lugar con chips).
+  //   · DISPONIBLE (`.chip`): emoji + nombre + precio; tap = +1 (0→1 → pasa a ser consumido).
+  // CERRADA: chips de solo lectura (sin +/−); si no consumió, "Sin consumo".
+  function chipsConsumoViva(p, a, ui) {
     const cerrada = p.estado === 'cerrada';
-    const dis = cerrada ? 'disabled' : '';
     const consumidos = S().consumidosDe(p, a);
-    const filas = consumidos.map(prod => {
+    const disponibles = S().disponiblesPara(p, a);
+    const chipsCons = consumidos.map(prod => {
       const q = S().cantidadDe(p, a, prod);   // v6: cantidad = Σ filas de consumo
-      return `<div class="prod has">
-        <span class="prod-name">${e(prod.emoji)} ${e(prod.nombre)} <i>${$peso(prod.precioVenta)}</i></span>
-        <span class="stepper">
-          <button class="step" data-act="item-minus" data-pid="${a.personaId}" data-prod="${prod.id}" ${dis} aria-label="menos">−</button>
-          <b class="qty">${q}</b>
-          <button class="step" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" ${dis} aria-label="más">+</button>
-        </span>
-      </div>`;
+      if (cerrada) return `<span class="chip has ro">${e(prod.emoji)} <b class="chip-q">×${q}</b></span>`;
+      return `<span class="chip has">
+          <button class="chip-minus" data-act="item-minus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: menos">−</button>
+          <button class="chip-plus" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más">${e(prod.emoji)} <b class="chip-q">×${q}</b></button>
+        </span>`;
     }).join('');
-    // Estado vacío sin etiqueta: si está abierta, el botón "+ Agregar" ya comunica el estado;
-    // solo cuando está CERRADA (sin botón) se muestra "Sin consumo" como estado mínimo.
-    const cuerpo = consumidos.length ? `<div class="prods">${filas}</div>`
-      : (cerrada ? `<div class="muted small consumo-vacio">Sin consumo</div>` : '');
+    const chipsDisp = cerrada ? '' : disponibles.map(prod =>
+      `<button class="chip" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}">${e(prod.emoji)} ${e(prod.nombre)} <i>${$peso(prod.precioVenta)}</i></button>`
+    ).join('');
+    const vacio = (cerrada && !consumidos.length) ? '<div class="muted small consumo-vacio">Sin consumo</div>' : '';
     // AUDITORÍA (C2): el detalle por evento (hora + quién apuntó) NO se exhibe; se pide con el ⓘ.
     const auditOpen = ui && ui.auditPid === a.personaId;
     const auditBtn = consumidos.length
       ? `<button class="xmini aud-btn ${auditOpen ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpen ? 'true' : 'false'}" aria-label="Detalle por evento">${icon('info', 'sm')}</button>`
       : '';
-    return `${cuerpo}${pickProductos(p, a, ui)}${auditBtn}${auditOpen ? auditoriaPanel(p, a, ui) : ''}`;
+    return `<div class="chips-viva">${chipsCons}${chipsDisp}${vacio}</div>${auditBtn}${auditOpen ? auditoriaPanel(p, a, ui) : ''}`;
   }
 
   // Panel de AUDITORÍA (colapsado tras el ⓘ): cada consumo con su HORA + producto + QUIÉN lo apuntó
@@ -325,52 +328,26 @@
     return `<div class="aud-panel"><div class="aud-head">Detalle · hora · quién apuntó</div>${filas}</div>`;
   }
 
-  // "+ Agregar": chips del catálogo de ESA primada que aún no consume. Tap = changeItem(+1) → pasa a stepper.
-  // Sin "+ Agregar" si la primada está cerrada (solo-lectura) o si ya agregó todo.
-  function pickProductos(p, a, ui) {
-    if (p.estado === 'cerrada') return '';
-    const disponibles = S().disponiblesPara(p, a);
-    if (!disponibles.length) return '';
-    const abierto = ui && ui.pickProd === a.personaId;
-    if (!abierto) {
-      return `<button class="mini ghost addprod" data-act="open-pickprod" data-pid="${a.personaId}">${icon('plus-circle')}Consumo</button>`;
-    }
-    const chips = disponibles.map(prod =>
-      `<button class="chip" data-act="add-item" data-pid="${a.personaId}" data-prod="${prod.id}">${e(prod.emoji)} ${e(prod.nombre)} <i>${$peso(prod.precioVenta)}</i></button>`
-    ).join('');
-    return `<div class="prodpick">
-      <div class="prodpick-head"><span class="muted small">Producto</span>
-        <button class="xmini" data-act="close-pickprod" data-pid="${a.personaId}" aria-label="cerrar">${icon('x')}</button></div>
-      <div class="chips">${chips}</div>
-    </div>`;
-  }
-
-  // ACORDEÓN del asistente. Cerrado (default): una línea resumen (nombre + total, y saldo si debe).
-  // Abierto (ui.abiertos tiene su id): detalle completo — rol, cover, consumo (progressive disclosure), abonos.
-  function asistenciaCard(p, a, ui) {
+  // MODELO 3 — Lista viva: la fila del asistente está SIEMPRE visible (nombre + total), sin chevron ni
+  // acordeón. Tap en la fila = ACTIVAR (única activa a la vez, `ui.activaPid`); al activarse, sus productos
+  // aparecen INLINE debajo como chips (apuntar en 1 tap) + el bloque de PAGO como footer. El resto de la
+  // lista sigue visible. SALDADA: check teal + NOMBRE en teal (escalera de color: teal = resuelto).
+  function asistenteFilaViva(p, a, ui) {
     const total = S().totalAsistencia(p, a);
     const esPrin = S().esPrincipal(p, a);
-    const abierto = ui && ui.abiertos && ui.abiertos.has(a.personaId);
-    // SALDADO: saldo 0 y SÍ tenía algo que saldar (total>0). Check discreto junto al nombre (feedback visible
-    // del pago). La tarjeta sigue completa — el consumo existió. Quien debe (saldo>0) no cambia.
+    const activa = ui && ui.activaPid === a.personaId;
     const saldado = S().saldoDe(p, a) === 0 && total > 0;
-
-    // Cabecera-resumen (operar): el total visible es SOLO consumo + cover (el dato de un vistazo).
-    // El saldo/deuda es "ver la plata" → vive en la cara Balance, no aquí.
-    const cabecera = `<button class="acc-head" data-act="toggle-asis" data-pid="${a.personaId}" aria-expanded="${abierto ? 'true' : 'false'}">
-        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-        <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b>${saldado ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : ''} ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
+    const fila = `<button class="asis-fila ${activa ? 'on' : ''}" data-act="activar-asis" data-pid="${a.personaId}" aria-expanded="${activa ? 'true' : 'false'}">
+        <span class="asis-fila-id ${saldado ? 'saldado' : ''}"><b>${e(nombrePersona(a.personaId))}</b>${saldado ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : ''} ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
         <span class="acc-amt">${$peso(total)}</span>
       </button>`;
-
-    if (!abierto) return `<div class="asis">${cabecera}</div>`;
-
-    // OPERACIÓN = mínima: SOLO consumo + PAGO. El rol, el cover y "Quitar" son CONFIGURACIÓN
-    // y viven en el overlay "Configurar primada" (sección Asistentes), no aquí.
-    return `<div class="asis open">
-      ${cabecera}
-      <div class="acc-body">
-        ${consumoBloque(p, a, ui)}
+    if (!activa) return `<div class="asis">${fila}</div>`;
+    // REVEAL de la persona activa: chips (apuntar) ARRIBA, PAGO abajo (saldar = menos frecuente). El rol,
+    // el cover y "Quitar" son CONFIGURACIÓN (overlay Configurar › Asistentes), no aquí.
+    return `<div class="asis on">
+      ${fila}
+      <div class="asis-reveal">
+        ${chipsConsumoViva(p, a, ui)}
         ${pagoBlock(p, a)}
       </div>
     </div>`;
@@ -576,7 +553,7 @@
       </div>
       <div class="asis-list">
         ${p.asistencias.length
-          ? S().asistenciasPorConsumo(p).map(a => asistenciaCard(p, a, ui)).join('')
+          ? S().asistenciasPorConsumo(p).map(a => asistenteFilaViva(p, a, ui)).join('')
           : '<div class="empty-soft">Sin asistentes</div>'}
       </div>`;
   }
