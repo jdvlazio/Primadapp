@@ -450,7 +450,7 @@ Cuatro señales, todas **presentación pura** (los cálculos no cambian; `saldoD
 |---|---|---|
 | **Toast positivo** | al marcar `pagado` que deja saldo 0 | `View.toast('✓ {Nombre} saldado', 'ok')` → `.toast.ok` (`--pos-bg`/`--pos`, tono celebratorio, tokens existentes) |
 | **Check en la tarjeta** | cara Consumos, `asistenciaCard` | persona con `saldoDe === 0 && total > 0` lleva `.asis-check` (ícono `check`, teal) junto al `<b>` del nombre. Discreto; la tarjeta sigue completa. Saldo>0 no cambia |
-| **Lista de cobro completa** | Recaudo (Balance), acorde "Debe" | **nadie desaparece**: PENDIENTES (`saldo>0`) arriba con monto **ámbar** (`.kv b.pend`); SALDADAS (terceros `pagado`, `saldo 0`) al **final**, `.kv.saldada` = check teal + nombre **gris** (`--ink-soft`). Jerarquía pendiente→saldado |
+| **Lista de cobro completa** | Recaudo (Balance), acorde "Debe" | **nadie desaparece**: PENDIENTES (`saldo>0`) arriba con monto que falta en **ámbar** (`.kv b.pend`); SALDADAS (terceros `pagado`, `saldo 0`) al **final**, `.kv.saldada` = check teal + nombre **gris** (`--ink-soft`) + **el monto que pagó** (su total) en **teal** (`.kv b.pagado`, `--accent` = saldado, NO ámbar). El **valor nunca desaparece**: se lee cuánto debe / cuánto aportó cada quien. Jerarquía pendiente→saldado |
 | **Check en el PNG** | `informeTemplateHTML` | pendientes (saldo>0) primero; saldadas (saldo 0) al **final** con `✓` (`.informe-check`, teal) delante del nombre. El total sigue teal. El documento refleja el estado COMPLETO del cobro |
 
 - El check usa el mismo criterio en app y PNG: `saldoDe === 0 && total > 0` (incluye al **principal**, auto-saldado).

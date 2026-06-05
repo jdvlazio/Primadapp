@@ -579,11 +579,12 @@
     const teaser = cerrada
       ? `Entregó ${$peso(inf.entregaTesorero)} al Tesorero`
       : `Entrega ${$peso(inf.entregaTesorero)} al Tesorero`;
-    // Lista de cobro COMPLETA (nadie desaparece): PENDIENTES (saldo>0, ámbar) arriba; SALDADAS (terceros que
-    // ya pagaron, saldo 0) abajo, con check teal + nombre gris. Estado de un vistazo sin contar ausencias.
+    // Lista de cobro COMPLETA (nadie desaparece): PENDIENTES (saldo>0, ámbar = lo que falta) arriba; SALDADAS
+    // (terceros que ya pagaron, saldo 0) abajo, con check teal + nombre gris + el MONTO que pagaron (su total,
+    // en teal = saldado, NO ámbar). El valor NO desaparece: se lee cuánto aportó cada quien de un vistazo.
     const saldadas = (p.asistencias || []).filter(a => a.personaId !== prinId && a.pagado && sel.totalAsistencia(p, a) > 0);
     const pendList = deud.map(d => `<div class="kv"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('');
-    const saldList = saldadas.map(a => `<div class="kv saldada"><span><span class="asis-check">${icon('check', 'sm')}</span> ${e(nombrePersona(a.personaId))}</span></div>`).join('');
+    const saldList = saldadas.map(a => `<div class="kv saldada"><span><span class="asis-check">${icon('check', 'sm')}</span> ${e(nombrePersona(a.personaId))}</span><b class="pagado">${$peso(sel.totalAsistencia(p, a))}</b></div>`).join('');
     const deudList = (deud.length || saldadas.length) ? (pendList + saldList) : `<div class="muted small">Nadie debe</div>`;
     const hero = `<div class="bal-hero">
         <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Recaudo</div>

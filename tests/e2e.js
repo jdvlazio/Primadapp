@@ -360,6 +360,11 @@ check('Recaudo: bloque saldadas presente (.kv.saldada) con Beto y un check',
   /kv saldada/.test(recaudo) && new RegExp('kv saldada[^]*asis-check[^]*' + beto.nombre).test(recaudo));
 check('Recaudo: Beto ya NO figura como pendiente con monto ámbar (.pend)',
   !new RegExp(beto.nombre + '</span><b class="pend"').test(recaudo));
+// El VALOR no desaparece: la fila saldada muestra el monto que pagó (su total) en teal (.pagado).
+const totalBeto = Store.select.totalAsistencia(prm(), betoAsis());
+const pesoRe = window.Util.peso(totalBeto).replace(/[.$]/g, '\\$&');   // escapa $ y . para el RegExp
+check('Recaudo: saldado conserva el monto pagado (.kv.saldada con <b class="pagado"> + total de Beto)',
+  new RegExp('kv saldada"><span>[^]*' + beto.nombre + '</span><b class="pagado">' + pesoRe).test(recaudo));
 click('[data-act="toggle-balance"][data-sec="informe"]');   // colapsar de nuevo (no contaminar tests posteriores)
 
 /* ---------- 8b·2. CTA contextual "Todos pagaron · Cerrar primada" (P5 lote visual) ---------- */
