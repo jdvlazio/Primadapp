@@ -217,92 +217,69 @@
 
   // Overlay de CONFIGURACIÓN de la primada (escondido tras el engranaje de la cabecera).
   // Edición de una sola vez + acciones destructivas (cerrar/reabrir, borrar) con confirmación.
+  // Overlay "Configurar primada" = DOS tabs operativos sobre el evento activo (seg-nav interno):
+  // Asistentes (participación, lista compacta) | Productos (precios). NADA MÁS. La identidad
+  // (nombre/fecha/mes) se fija al crear/programar; el calendario y las acciones administrativas
+  // (programar, reabrir, eliminar) viven en el GEAR GLOBAL › tab Primadas. ui.configTab = pestaña activa.
   function configPrimadaSheet(state, ui) {
     const p = S().activePrimada();
     if (!p) return `<div class="sheet full"><div class="sheet-head"><div class="sheet-title">Configurar</div>
       <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
       <div class="empty-soft">Sin primada</div></div>`;
-    const cerrada = p.estado === 'cerrada';
-    const ro = cerrada ? 'disabled' : '';
-    // Hogar ordenado de TODA la configuración de una vez. Secciones separadas por AIRE (.sub),
-    // sin divisores. Identidad → Productos (edición de precios) → Cuenta → Eliminar (destructivo).
+    const tab = (ui && ui.configTab === 'productos') ? 'productos' : 'asistentes';
+    const seg = (key, label, n) => `<button class="seg ${tab === key ? 'on' : ''}" data-act="config-tab" data-ctab="${key}">${label} <span class="muted">${n}</span></button>`;
+    const body = tab === 'productos' ? productosConfig(p, ui) : asistentesListaCompacta(p, ui);
     return `<div class="sheet full">
       <div class="sheet-head">
-        <div class="sheet-title">Configurar primada</div>
+        <div class="seg-nav">${seg('asistentes', 'Asistentes', p.asistencias.length)}${seg('productos', 'Productos', p.productos.length)}</div>
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button>
       </div>
-      <div class="sheet-body">
-        <section class="cfg-sec">
-          <label class="fld"><span>Nombre</span>
-            <input class="ti name" data-ch="rename-primada" data-id="${p.id}" value="${e(p.nombre)}" ${ro} maxlength="40" aria-label="Nombre de la primada"></label>
-          <div class="grid2">
-            <label class="fld"><span>Fecha</span>
-              <input class="ti" type="date" data-ch="fecha-primada" data-id="${p.id}" value="${e(p.fecha)}" ${ro}></label>
-            <label class="fld"><span>Mes contable</span>
-              <input class="ti" type="month" data-ch="mes-primada" data-id="${p.id}" value="${e(p.mesContable)}" ${ro}></label>
-          </div>
-        </section>
-
-        <section class="cfg-sec">
-          <div class="sub">Asistentes <span class="muted">(${p.asistencias.length})</span></div>
-          ${asistentesConfig(p, ui)}
-        </section>
-
-        <section class="cfg-sec">
-          <div class="sub">Productos <span class="muted">(${p.productos.length})</span></div>
-          ${productosConfig(p, ui)}
-        </section>
-
-        ${cerrada ? `<section class="cfg-sec">
-          <div class="sub">Cuenta</div>
-          <button class="mini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>
-        </section>` : ''}
-
-        <section class="cfg-sec">
-          <div class="sub">Próxima primada</div>
-          <div class="muted small">Agendá la siguiente para que el grupo sepa cuándo es (sin abrirla todavía).</div>
-          <button class="mini ghost mt-3" data-act="open-programar">${icon('plus-circle')}Programar próxima</button>
-        </section>
-
-        <section class="cfg-sec">
-          <div class="sub danger-sub">Eliminar</div>
-          <button class="mini danger" data-act="borrar-primada" data-id="${p.id}">${icon('trash-2')}Borrar</button>
-        </section>
-      </div>
+      <div class="sheet-body">${body}</div>
     </div>`;
   }
 
-  // Sección "Asistentes" del overlay Configurar: CLON del componente de Personas (mismas clases).
-  // Cada asistente es una FILA ACORDEÓN (.prow + .acc-head + .acc-id-stack); colapsada = línea liviana
-  // sin caja; abierta = .acc-body con rol, cover y quitar. Indistinguible de la fila de Personas.
-  function asistentesConfig(p, ui) {
-    if (!p.asistencias.length) return '<div class="empty-soft">Sin asistentes</div>';
-    return `<div class="prow-list">${p.asistencias.map(a => asistenteConfigRow(p, a, ui)).join('')}</div>`;
-  }
-  function asistenteConfigRow(p, a, ui) {
+  // Tab ASISTENTES: lista COMPACTA agrupada (Ahorradores / Invitados). PRINCIPIO "muestra la excepción,
+  // no la regla": el cover común al grupo va UNA vez en el encabezado; la fila solo marca lo que DIFIERE
+  // (`Sin cover` cuando el cover efectivo de la persona es 0 — exonerado o cover-free por rol). Sin
+  // acordeón, sin rol por fila (el rol se fija al crear). El principal lleva su dot sutil. [✕] quita de
+  // la primada (no del directorio). Cerrada: lista visible, acciones deshabilitadas. Si la primada está
+  // INCOMPLETA (sin principal, p.ej. migrada) → fix mínimo: botón "Hacer principal" en cada ahorrador.
+  function asistentesListaCompacta(p, ui) {
+    if (!p.asistencias.length) return `<div class="empty-soft">Sin asistentes</div>${addAsisFoot(p)}`;
     const cerrada = p.estado === 'cerrada';
+    const incompleta = S().primadaIncompleta(p);
+    const grupo = (estado, titulo) => {
+      const filas = p.asistencias.filter(a => a.estadoEnEseMomento === estado);
+      if (!filas.length) return '';
+      // cover del grupo: una asistencia sintética no-exonerada de ese estado → coverDe (settings si
+      // abierta, snapshot si cerrada). Una sola cifra para todo el grupo.
+      const coverGrupo = S().coverDe(p, { estadoEnEseMomento: estado, rol: 'asistente', coverExonerado: false });
+      const head = `<div class="grp-head"><span class="grp-titulo">${titulo}</span>${coverGrupo > 0 ? `<span class="grp-cover">Cover ${$peso(coverGrupo)}</span>` : ''}</div>`;
+      const items = filas.map(a => asistenteFilaCompacta(p, a, coverGrupo, cerrada, incompleta)).join('');
+      return `${head}<div class="asis-compact-list">${items}</div>`;
+    };
+    const aviso = incompleta
+      ? `<div class="cfg-aviso">${badge('falta principal', 'warn')} Asigná quién organiza para completar la primada.</div>`
+      : '';
+    return `${aviso}${grupo('ahorrador', 'Ahorradores')}${grupo('invitado', 'Invitados')}${addAsisFoot(p)}`;
+  }
+  function asistenteFilaCompacta(p, a, coverGrupo, cerrada, incompleta) {
     const esPrin = S().esPrincipal(p, a);
-    const abierto = ui && ui.configAsis && ui.configAsis.has(a.personaId);
-    // línea 2 (tenue): rol + resumen de cover, igual que el dato secundario de la fila de Persona.
-    const sub = a.rol === 'asistente'
-      ? (a.coverExonerado ? 'Cover exonerado' : 'Cover ' + $peso(S().coverDe(p, a)))
-      : 'Sin cover';
-    const cabecera = `<button class="acc-head" data-act="toggle-cfg-asis" data-pid="${a.personaId}" aria-expanded="${abierto ? 'true' : 'false'}">
-        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-        <span class="acc-id-stack">
-          <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b> ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
-          <span class="acc-sub">${cap(a.rol)} · ${sub}</span>
-        </span>
-      </button>`;
-    if (!abierto) return `<div class="prow">${cabecera}</div>`;
-    return `<div class="prow open">
-      ${cabecera}
-      <div class="acc-body">
-        <div class="fld"><span>Rol</span>${rolSelect(p, a)}</div>
-        ${a.rol === 'asistente' ? coverLinea(p, a) : ''}
-        <button class="mini danger" data-act="remove-asistencia" data-pid="${a.personaId}" ${cerrada ? 'disabled' : ''}>${icon('trash-2', 'sm')}Quitar</button>
-      </div>
+    // EXCEPCIÓN: el cover efectivo de la persona difiere del grupo (0 vs >0) → exonerado o cover-free por rol.
+    const sinCover = coverGrupo > 0 && S().coverDe(p, a) === 0;
+    // Fix mínimo: solo mientras la primada esté incompleta y la persona sea ahorrador (INVARIANTE #2).
+    const puedePrincipal = incompleta && !cerrada && a.estadoEnEseMomento === 'ahorrador' && !esPrin;
+    return `<div class="asis-compact">
+      <span class="asis-compact-id">${esPrin ? '<span class="dot prin" title="Principal"></span>' : '<span class="dot neutral"></span>'}<b>${e(nombrePersona(a.personaId))}</b>${sinCover ? '<span class="sin-cover">Sin cover</span>' : ''}</span>
+      <span class="asis-compact-acc">
+        ${puedePrincipal ? `<button class="xmini hacer-prin" data-act="hacer-principal" data-pid="${a.personaId}">Hacer principal</button>` : ''}
+        <button class="xmini" data-act="remove-asistencia" data-pid="${a.personaId}" ${cerrada ? 'disabled' : ''} aria-label="Quitar de la primada">${icon('x')}</button>
+      </span>
     </div>`;
+  }
+  function addAsisFoot(p) {
+    if (p.estado === 'cerrada') return '';
+    return `<div class="prow-foot"><button class="add-link" data-act="open-add-asis">${icon('plus-circle')}Agregar asistente</button></div>`;
   }
 
   // Progressive disclosure: SOLO lo consumido (cantidad>0) con stepper. Bajar a 0 lo quita
@@ -366,38 +343,6 @@
         <button class="xmini" data-act="close-pickprod" data-pid="${a.personaId}" aria-label="cerrar">${icon('x')}</button></div>
       <div class="chips">${chips}</div>
     </div>`;
-  }
-
-  function coverLinea(p, a) {
-    const cerrada = p.estado === 'cerrada';
-    const dis = cerrada ? 'disabled' : '';
-    if (a.rol !== 'asistente') {
-      // El rol ya lo muestra el selector de arriba → aquí solo lo que aporta (sin repetir el rol, sin itálica).
-      return `<div class="cover">Sin cover</div>`;
-    }
-    const cv = S().coverDe(p, a);
-    if (a.coverExonerado) {
-      return `<div class="cover">Cover <b>exonerado</b>
-        <button class="link-inline" data-act="toggle-exonerado" data-pid="${a.personaId}" ${dis}>Cobrar</button></div>`;
-    }
-    return `<div class="cover">Cover <b>${$peso(cv)}</b>
-      <button class="link-inline" data-act="toggle-exonerado" data-pid="${a.personaId}" ${dis}>Exonerar</button></div>`;
-  }
-
-  function rolSelect(p, a) {
-    const cerrada = p.estado === 'cerrada';
-    const esAhorrador = a.estadoEnEseMomento === 'ahorrador';
-    // INVARIANTE #2: solo un snapshot 'ahorrador' puede ser principal → la opción se deshabilita si no.
-    const opt = (val, label) => {
-      const disabled = (val === 'principal' && !esAhorrador) ? 'disabled' : '';
-      const sel = a.rol === val ? 'selected' : '';
-      return `<option value="${val}" ${sel} ${disabled}>${label}</option>`;
-    };
-    return `<select class="sel rol" data-ch="rol" data-pid="${a.personaId}" data-id="${p.id}" ${cerrada ? 'disabled' : ''}>
-      ${opt('asistente', 'Asistente')}
-      ${opt('organizador', 'Organizador')}
-      ${opt('principal', 'Principal')}
-    </select>`;
   }
 
   // ACORDEÓN del asistente. Cerrado (default): una línea resumen (nombre + total, y saldo si debe).
@@ -493,11 +438,17 @@
       <div class="empty-soft">Sin primada</div></div>`;
     const dentro = new Set(p.asistencias.map(a => a.personaId));
     const fuera = S().personasOrdenadas().filter(per => !dentro.has(per.id));
+    // Cada fila ofrece DOS formas de agregar: normal (cobra el cover del grupo) o "Sin cover" (cortesía:
+    // niños/invitados de cortesía). La exoneración se DECIDE aquí, al agregar — la lista compacta de
+    // Configurar solo la muestra, no la edita (decisión de producto). Tras agregar, la fila desaparece.
     const filas = fuera.length
-      ? fuera.map(per => `<button class="addrow" data-act="add-asistencia" data-pid="${per.id}">
+      ? fuera.map(per => `<div class="addrow">
           <span class="acc-id"><b>${e(per.nombre)}</b> ${rolTag(per.estado)}</span>
-          <span class="addrow-plus">${icon('plus-circle')}</span>
-        </button>`).join('')
+          <span class="addrow-acc">
+            <button class="xmini cortesia" data-act="add-asistencia-cortesia" data-pid="${per.id}">Sin cover</button>
+            <button class="mini" data-act="add-asistencia" data-pid="${per.id}">${icon('plus-circle')}Agregar</button>
+          </span>
+        </div>`).join('')
       : '<div class="empty-soft">Ya están todos</div>';
     return `<div class="sheet full">
       <div class="sheet-head">
@@ -715,8 +666,12 @@
       <div class="card">
         <div class="prog-badge"><span class="dot prog"></span>Programada · ${e(Util.monthYear(p.mesContable))}</div>
         <div class="kv"><span>Organizadores</span><b>${nOrg}</b></div>
-        <label class="fld mt-3"><span>Fecha ${p.fecha ? '' : '(por definir)'}</span>
-          <input class="ti" type="date" data-ch="confirmar-fecha" data-id="${p.id}" value="${e(p.fecha)}"></label>
+        <div class="grid2 mt-3">
+          <label class="fld"><span>Fecha ${p.fecha ? '' : '(por definir)'}</span>
+            <input class="ti" type="date" data-ch="confirmar-fecha" data-id="${p.id}" value="${e(p.fecha)}"></label>
+          <label class="fld"><span>Mes contable</span>
+            <input class="ti" type="month" data-ch="confirmar-mes" data-id="${p.id}" value="${e(p.mesContable)}"></label>
+        </div>
       </div>
       <button class="btn auto mt-3" data-act="abrir-primada" data-id="${p.id}">${icon('log-in')}Abrir primada</button>
       <div class="prog-borrar"><button class="mini danger" data-act="borrar-primada" data-id="${p.id}">${icon('trash-2')}Borrar</button></div>
@@ -957,15 +912,62 @@
     </div>`;
   }
 
+  // GEAR GLOBAL = capa ADMINISTRATIVA del grupo: TRES tabs (Personas | Primadas | Ajustes). Distinto del
+  // gear de la primada (2 tabs operativos sobre el evento activo). El tab Primadas es el calendario +
+  // historial + acciones sobre las primadas (programar, eliminar, reabrir) — lo que salió de Configurar.
   function overlaySheet(active, state, ui) {
     const seg = (key, label) => `<button class="seg ${active === key ? 'on' : ''}" data-act="overlay-tab" data-overlay="${key}">${label}</button>`;
-    const body = active === 'ajustes' ? ajustesBody(state, ui) : personasBody(state, ui);
+    const body = active === 'ajustes' ? ajustesBody(state, ui)
+      : (active === 'primadas' ? primadasAdminBody(state, ui) : personasBody(state, ui));
     return `<div class="sheet full">
       <div class="sheet-head">
-        <div class="seg-nav">${seg('personas', 'Personas')}${seg('ajustes', 'Ajustes')}</div>
+        <div class="seg-nav">${seg('personas', 'Personas')}${seg('primadas', 'Primadas')}${seg('ajustes', 'Ajustes')}</div>
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button>
       </div>
       <div class="sheet-body">${body}</div>
+    </div>`;
+  }
+
+  // Tab PRIMADAS del gear global: "Programar próxima" arriba + lista de TODAS las primadas (Próximas
+  // ámbar · Activa teal · Pasadas gris) con acciones administrativas por fila: Eliminar (destructiva) y
+  // Reabrir (cerradas). Reusa el agrupado del selector; aquí las filas NO navegan, EDITAN el calendario.
+  function primadasAdminBody(state, ui) {
+    const sel = S();
+    const activeId = state.activePrimadaId;
+    const proximas = sel.primadasProgramadas();
+    const grupos = sel.primadasPorAnio();                       // ya excluye programadas
+    const activa = sel.activePrimada();
+    const activaHist = activa && activa.estado !== 'programada';
+    const pasadas = grupos.map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId) }))
+      .filter(g => g.primadas.length);
+    const secProx = proximas.length
+      ? `<div class="sub">Próximas</div>${proximas.map(p => primadaAdminFila(p, activeId)).join('')}` : '';
+    const secActiva = activaHist
+      ? `<div class="sub">Activa</div>${primadaAdminFila(activa, activeId)}` : '';
+    const secPasadas = pasadas.length
+      ? `<div class="sub">Pasadas</div>` + pasadas.map(g =>
+          `<div class="sel-subanio">${e(g.anio)}</div>${g.primadas.map(p => primadaAdminFila(p, activeId)).join('')}`).join('') : '';
+    const vacio = (!secProx && !secActiva && !secPasadas) ? '<div class="empty-soft">Sin primadas</div>' : '';
+    return `<button class="add-link" data-act="open-programar">${icon('plus-circle')}Programar próxima</button>
+      ${secProx}${secActiva}${secPasadas}${vacio}`;
+  }
+  // Fila administrativa: nombre + mes/fecha + estado · acciones (Reabrir si cerrada, Eliminar siempre con
+  // confirmación). Eliminar la ACTIVA en operación lleva data-activa para una advertencia más fuerte.
+  function primadaAdminFila(p, activeId) {
+    const sel = S();
+    const prog = p.estado === 'programada';
+    const cerrada = p.estado === 'cerrada';
+    const dotCls = prog ? 'prog' : (cerrada ? 'closed' : 'open');
+    const meta = prog
+      ? (p.fecha ? e(Util.fechaDia(p.fecha)) : 'fecha por definir')
+      : `${e(Util.monthName(p.mesContable))} · ${$peso(sel.recaudado(p))}`;
+    const esActiva = p.id === activeId;
+    return `<div class="padm-fila">
+      <span class="padm-id"><span class="dot ${dotCls}"></span><b>${e(nombreCorto(p.nombre))}</b> <span class="padm-meta">${meta}</span></span>
+      <span class="padm-acc">
+        ${cerrada ? `<button class="xmini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>` : ''}
+        <button class="xmini danger" data-act="borrar-primada" data-id="${p.id}" ${esActiva ? 'data-activa="1"' : ''} aria-label="Eliminar primada">${icon('trash-2', 'sm')}</button>
+      </span>
     </div>`;
   }
 
@@ -1002,7 +1004,7 @@
     else if (ui.overlay === 'programar')                       els.overlay.innerHTML = programarSheet(state, ui);
     else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
-    else if (ui.overlay === 'personas' || ui.overlay === 'ajustes') els.overlay.innerHTML = overlaySheet(ui.overlay, state, ui);
+    else if (ui.overlay === 'personas' || ui.overlay === 'primadas' || ui.overlay === 'ajustes') els.overlay.innerHTML = overlaySheet(ui.overlay, state, ui);
     else                                                        els.overlay.innerHTML = '';
     els.overlay.hidden = !(ui.wizard || ui.overlay);
   }

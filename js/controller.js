@@ -62,8 +62,8 @@
   // - personasAbiertas: Set de personaId con la fila de persona expandida (edición inline)
   // - nuevaPersona: form "Agregar persona" desplegado al pie del overlay Personas
   // - overlay 'add-asis': hoja simple para agregar asistentes del directorio
-  // - configAsis / configProd: Sets de filas-acordeón expandidas en el overlay Configurar
-  //   (mismo patrón que personasAbiertas; clon del componente de Personas)
+  // - configTab: pestaña activa del overlay Configurar primada ('asistentes' | 'productos')
+  // - configProd: Set de filas-acordeón de PRODUCTO expandidas en Configurar (clon de Personas)
   // - cara: CARA visible del tab Primadas — 'operacion' (Consumos) | 'balance' (Balance). El Balance dejó
   //   de ser un tab: es una cara de la primada activa. Default por ESTADO (cerrada → 'balance', abierta →
   //   'operacion'), fijada al seleccionar/crear/cargar/cerrar/reabrir vía fijarCaraPorEstado().
@@ -73,7 +73,7 @@
   //   mesContable, fecha }. Null cuando está cerrado. No pasa por el Store (UI pura) hasta crear.
   const ui = { tab: 'primadas', cara: 'operacion', overlay: null, abiertos: new Set(), pickProd: null, wizard: null, programar: null,
                personasAbiertas: new Set(), nuevaPersona: false,
-               configAsis: new Set(), configProd: new Set(), pagarPid: null,
+               configTab: 'asistentes', configProd: new Set(), pagarPid: null,
                balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
                loginEstado: 'form', loginEmail: '' };
   let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
@@ -84,7 +84,7 @@
   // open-pagar) NO están aquí: la app es usable en LECTURA con solo el link. seleccionar-primada es local.
   const WRITE_ACTS = new Set([
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
-    'add-asistencia', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus', 'add-item',
+    'add-asistencia', 'add-asistencia-cortesia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus', 'add-item',
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'add-persona', 'set-estado-persona',
     'borrar-mi-cuenta', 'prog-crear', 'abrir-primada',
   ]);
@@ -302,7 +302,9 @@
       // Elegir una primada desde la hoja del selector: activa y cierra la hoja.
       case 'select-primada':   A.seleccionarPrimada(id); fijarCaraPorEstado(); ui.overlay = null; rerender(); return;
       // Config de la primada (escondida tras el engranaje de la cabecera).
-      case 'open-config-primada': ui.overlay = 'config-primada'; rerender(); return;
+      case 'open-config-primada': ui.overlay = 'config-primada'; ui.configTab = 'asistentes'; rerender(); return;
+      // Conmuta la pestaña interna de Configurar primada (Asistentes | Productos).
+      case 'config-tab':       ui.configTab = (b.dataset.ctab === 'productos') ? 'productos' : 'asistentes'; rerender(); return;
       // Acciones destructivas: con confirmación (la cuenta cerrada congela consumos).
       // cerrar/reabrir cambian el ESTADO → la cara por defecto cambia. La acción commitea y dispara un
       // rerender por el subscribe, pero con la cara aún vieja; fijamos la cara y RE-renderizamos explícito
@@ -324,7 +326,12 @@
       case 'open-add-asis': ui.overlay = 'add-asis'; rerender(); return;
       // En la hoja: cada fila lleva data-pid → agregar y quedarse en la hoja para sumar varios.
       case 'add-asistencia': { if (pid) A.addAsistencia(prm, pid); break; }
-      // "Quitar" vive en Configurar (no en operación) y pide confirmación.
+      // "Sin cover" (cortesía): la exoneración se DECIDE al agregar (niños/cortesía). Agrega + exonera.
+      case 'add-asistencia-cortesia': { if (pid) { A.addAsistencia(prm, pid); A.toggleCoverExonerado(prm, pid); } break; }
+      // "Hacer principal" (fix mínimo de primada incompleta): asigna el rol principal a un ahorrador.
+      // INVARIANTE #2: setRol('principal') lanza si el snapshot no es ahorrador → tryAction avisa.
+      case 'hacer-principal':  tryAction(() => A.setRol(prm, pid, 'principal')); break;
+      // "Quitar" / [✕] vive en Configurar (no en operación) y pide confirmación.
       case 'remove-asistencia':
         if (!root.confirm || root.confirm('¿Quitar al asistente?')) { A.removeAsistencia(prm, pid); ui.abiertos.delete(pid); }
         break;
@@ -407,11 +414,8 @@
         if (ui.personasAbiertas.has(pid)) ui.personasAbiertas.delete(pid); else ui.personasAbiertas.add(pid);
         rerender(); return;
       }
-      // Configurar: fila-acordeón de asistente / producto (clon de la fila de Persona, multiabierto).
-      case 'toggle-cfg-asis': {
-        if (ui.configAsis.has(pid)) ui.configAsis.delete(pid); else ui.configAsis.add(pid);
-        rerender(); return;
-      }
+      // Configurar: fila-acordeón de PRODUCTO (clon de la fila de Persona, multiabierto). Los asistentes
+      // ya no son acordeón (lista compacta) → no hay toggle-cfg-asis.
       case 'toggle-cfg-prod': {
         if (ui.configProd.has(id)) ui.configProd.delete(id); else ui.configProd.add(id);
         rerender(); return;
@@ -462,7 +466,9 @@
       case 'fecha-primada':  A.setFecha(id, v); break;
       // Confirmar/cambiar la fecha de una PROGRAMADA → setFecha + RE-RENDER (para reflejar "por definir"→fecha).
       case 'confirmar-fecha': A.setFecha(id, v); rerender(); break;
-      case 'mes-primada':    A.setMesContable(id, v); break;
+      // Mes contable de una PROGRAMADA (editable hasta abrir; junto a la fecha en su cara). Re-render para
+      // refrescar el badge "Programada · MesAño". Post-apertura ya no hay UI de mes (se fija al abrir).
+      case 'confirmar-mes':  A.setMesContable(id, v); rerender(); break;
       // INVARIANTE #2: setRol('principal') lanza si el snapshot no es ahorrador → atrapamos y avisamos.
       case 'rol':            tryAction(() => A.setRol(prm, pid, v)); break;
       case 'rename-persona': A.renombrarPersona(pid, v); break;

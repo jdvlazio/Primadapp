@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260605-133543-7d5242e">
+<meta name="build" content="20260605-145249-892db3c">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -134,6 +134,7 @@
   .dot{display:inline-block;width:var(--space-2);height:var(--space-2);border-radius:50%;background:var(--pos);margin-right:var(--space-1);vertical-align:middle}
   .dot.closed{background:var(--ink-soft)}
   .dot.prin{background:var(--accent)}                 /* punto del principal (teal) */
+  .dot.neutral{background:var(--ink-soft)}            /* bullet neutro (no-principal en la lista compacta) */
   .dot.prog{background:var(--amber)}                  /* punto de PROGRAMADA (agendada, aún sin abrir) */
   /* etiqueta de rol / estado en texto tenue (reemplaza los badges con borde en la identidad) */
   .rol-tag{color:var(--ink-soft);font-weight:400;font-size:12px}
@@ -493,15 +494,40 @@
 
   /* Hoja "Agregar asistente": filas tappables del directorio (un toque agrega). */
   .addrow-list{display:flex;flex-direction:column}
-  .addrow{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);width:100%;background:transparent;border:none;border-bottom:1px solid var(--line-soft);cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-3)}
+  /* Fila "Agregar asistente": nombre a la izq + DOS acciones a la der (Sin cover · Agregar). Ya no es un
+     botón de ancho completo (decisión: la exoneración se elige al agregar). */
+  .addrow{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);border-bottom:1px solid var(--line-soft);padding:var(--space-2) var(--space-1)}
   .addrow:last-child{border-bottom:none}
-  .addrow:active{background:var(--paper-2)}
-  .addrow-plus{flex:none;color:var(--accent);display:inline-flex;align-items:center}
+  .addrow .acc-id{flex:1;min-width:0}
+  .addrow-acc{flex:none;display:flex;align-items:center;gap:var(--space-2)}
+  .addrow-acc .cortesia{color:var(--ink-soft);font-weight:600}
 
-  /* Sección "Asistentes" en Configurar: filas-acordeón .prow + .acc-* (clon de Personas, mismas
-     clases — ver bloque "Directorio de personas"). El cover dentro del .acc-body abierto: */
-  .prow .acc-body .cover{margin:0}
-  .prow .acc-body .cover .link-inline{font-size:12px}
+  /* Configurar primada › tab ASISTENTES — lista COMPACTA agrupada. Encabezado de grupo = título + cover
+     UNA vez ("muestra la excepción, no la regla"). Filas livianas: dot + nombre + excepción + acciones. */
+  .cfg-aviso{display:flex;align-items:center;gap:var(--space-2);font-size:13px;color:var(--ink-soft);margin-bottom:var(--space-3);line-height:1.4}
+  .grp-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);margin:var(--space-4) 0 var(--space-1)}
+  .grp-head:first-child{margin-top:0}
+  .grp-titulo{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);font-weight:700}
+  .grp-cover{font-size:12px;color:var(--ink-soft)}
+  .asis-compact-list{display:flex;flex-direction:column}
+  .asis-compact{display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-row);border-bottom:1px solid var(--line-soft);padding:var(--space-1) var(--space-1)}
+  .asis-compact:last-child{border-bottom:none}
+  .asis-compact-id{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2)}
+  .asis-compact-id .dot{flex:none}
+  .asis-compact-id b{font-weight:700}
+  .sin-cover{font-size:11px;color:var(--ink-soft);background:var(--paper-3);border-radius:var(--radius-sm);padding:1px var(--space-2)}
+  .asis-compact-acc{flex:none;display:flex;align-items:center;gap:var(--space-1)}
+  .hacer-prin{color:var(--accent);font-weight:700;white-space:nowrap}
+
+  /* Gear global › tab PRIMADAS — filas administrativas (NO navegan, editan el calendario): nombre + meta
+     + acciones (Reabrir / Eliminar). */
+  .padm-fila{display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-row);border-bottom:1px solid var(--line-soft);padding:var(--space-1) var(--space-1)}
+  .padm-fila:last-child{border-bottom:none}
+  .padm-id{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2);overflow:hidden}
+  .padm-id b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .padm-meta{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+  .padm-acc{flex:none;display:flex;align-items:center;gap:var(--space-1)}
+  .padm-acc .xmini.danger{color:var(--alert)}
 
   [hidden]{display:none !important}
 </style>
@@ -552,13 +578,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260605-133543-7d5242e"></script>
-  <script src="js/util.js?v=20260605-133543-7d5242e"></script>
-  <script src="js/api.js?v=20260605-133543-7d5242e"></script>
-  <script src="js/auth.js?v=20260605-133543-7d5242e"></script>
-  <script src="js/store.js?v=20260605-133543-7d5242e"></script>
-  <script src="js/view.js?v=20260605-133543-7d5242e"></script>
-  <script src="js/controller.js?v=20260605-133543-7d5242e"></script>
+  <script src="js/config.js?v=20260605-145249-892db3c"></script>
+  <script src="js/util.js?v=20260605-145249-892db3c"></script>
+  <script src="js/api.js?v=20260605-145249-892db3c"></script>
+  <script src="js/auth.js?v=20260605-145249-892db3c"></script>
+  <script src="js/store.js?v=20260605-145249-892db3c"></script>
+  <script src="js/view.js?v=20260605-145249-892db3c"></script>
+  <script src="js/controller.js?v=20260605-145249-892db3c"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

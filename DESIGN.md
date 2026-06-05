@@ -249,33 +249,56 @@ Estado de una primada = **punto de color** (`.dot` / `.dot.closed`) + texto (`.e
 **No** un badge con borde. Abierta → `--pos`; cerrada → `--ink-soft`. Mismo patrón en el
 detalle (`.prm-meta`) y en el historial (`.estado-tag`).
 
-### 2.8 · Productos y asistentes en Configurar = CLON del componente de Personas (✅ CANÓNICO)
+### 2.8 · Configurar primada = DOS tabs operativos (Asistentes · Productos) (✅ CANÓNICO)
 
-Vive **solo** en el overlay Configurar (no en el tab Primadas). **Regla:** las filas de asistente y
-de producto usan EXACTAMENTE las mismas clases que la fila de Personas (§2.9) — son el mismo
-componente acordeón, no unas "cajas livianas" propias. Configurar y Personas son **indistinguibles**
-en estilo de fila/campo. Antes Configurar mostraba TODO expandido (un muro de cajas con borde);
-ahora es una lista de filas-línea colapsadas, idéntica a Personas.
+**Dos capas de configuración, fronteras claras** (principio: *una sola intención por pantalla*):
+- **Gear de la PRIMADA** (`settings-2` en el selector) → `configPrimadaSheet`: **dos tabs operativos** sobre el
+  **evento activo** — **Asistentes** (participación) · **Productos** (precios). **Nada más.** Sin identidad
+  (nombre/fecha/mes), sin acciones administrativas. seg-nav interno (`data-act="config-tab"` + `data-ctab`;
+  ⚠️ NO `data-tab` — colisiona con la tabbar inferior, §2.11). `ui.configTab` = pestaña activa (default `asistentes`).
+- **Gear GLOBAL** (`⚙` en el header) → capa administrativa del grupo (3 tabs, §2.8.1).
 
-> **Sección "Próxima primada" (al final de Configurar).** Crear/programar es una decisión administrativa →
-> vive en Configuración, no en el selector (que es navegación pura, §2.11). Una `.cfg-sec` con `.sub`
-> "Próxima primada" + nota + botón **"Programar próxima"** (`open-programar`) que abre la hoja LIGERA
-> `programarSheet` (organizadores + mes + fecha opcional; NO el wizard de 3 pasos). Crea una `estado:'programada'`
-> y la vuelve la activa (ver su cara mínima en §2.11). El "+" de la cabecera sigue siendo "Nueva (abierta ya)".
+**Tab ASISTENTES — lista COMPACTA agrupada (NO acordeón).** Principio **"muestra la excepción, no la regla":**
+el cover común al grupo va UNA vez en el encabezado; la fila solo marca lo que DIFIERE.
+- Grupos por `estadoEnEseMomento`: `Ahorradores · Cover $X` / `Invitados · Cover $X` (`.grp-head` = título +
+  `coverDe` del grupo, una cifra). Fila `.asis-compact` = `● Nombre [✕]`. El **principal** lleva `dot.prin` (teal);
+  el resto `dot.neutral` (gris).
+- **Excepción `Sin cover`** (`.sin-cover`, chip tenue) SOLO si `coverDe(p,a) === 0` con cover de grupo > 0 — cubre
+  de forma coherente al **exonerado** Y a **organizadores/principal** (cover-free por rol). No se edita aquí.
+- **Rol = solo al crear** (wizard/programar). El ÚNICO caso editable es el **fix mínimo**: si la primada está
+  **incompleta** (sin principal), aparece un aviso (`.cfg-aviso` + `badge('falta principal','warn')`) y un botón
+  **"Hacer principal"** (`.hacer-prin`, `data-act="hacer-principal"`) en cada fila de **ahorrador** (INVARIANTE #2).
+- `[✕]` = `remove-asistencia` (quita de la primada, no del directorio; confirmación). `+ Agregar asistente`
+  (`.add-link`, `open-add-asis`). **Cerrada**: lista visible, acciones deshabilitadas.
 
-| Clase (compartida con Personas §2.9) | Uso en Configurar |
+**Exoneración = se decide al AGREGAR** (`addAsisSheet`): cada fila ofrece add normal **o** **"Sin cover"**
+(`.cortesia`, `add-asistencia-cortesia` → agrega + exonera). La lista compacta solo la MUESTRA. *(Quitar la
+cortesía a alguien ya agregado: hoy = quitar y re-agregar; deuda técnica menor.)*
+
+**Tab PRODUCTOS — CLON del componente de Personas (§2.9), SIN cambios.** Las filas de producto usan EXACTAMENTE
+las mismas clases que la fila de Personas — mismo componente acordeón.
+
+| Clase (compartida con Personas §2.9) | Uso en el tab Productos |
 |---|---|
 | `.prow-list` / `.prow` | contenedor + fila acordeón (sin caja; separación por línea tenue `border-bottom`) |
-| `.acc-head` + `.acc-caret` + `.acc-id-stack` (`.acc-id` + `.acc-sub`) | cabecera colapsada: **asistente** = nombre+rol (arriba) · rol·cover (tenue, abajo); **producto** = emoji+nombre · `Venta $X · margen $Y` (tenue) |
-| `.acc-body` | al expandir: **asistente** = Rol (`.fld`+`select.sel`) + cover + Quitar (`.mini.danger`); **producto** = Costo/Venta (`.grid2`+`.fld`+`.ti`) + Quitar |
+| `.acc-head` + `.acc-caret` + `.acc-id-stack` (`.acc-id` + `.acc-sub`) | cabecera colapsada: emoji+nombre · `Venta $X · margen $Y` (tenue) |
+| `.acc-body` | al expandir: Costo/Venta (`.grid2`+`.fld`+`.ti`) + Quitar (`.mini.danger`) |
 | `.prow-foot` / `.prow-new` | alta de producto nuevo, igual que "Agregar persona" |
-| toggles | `data-act="toggle-cfg-asis"` / `toggle-cfg-prod` (mismo patrón que `toggle-persona`) |
+| toggle | `data-act="toggle-cfg-prod"` (mismo patrón que `toggle-persona`) |
 
-**❌ ELIMINADAS** (clases pesadas propias de Configurar, ya no existen): `.prodmgmt`, `.prodrow`,
-`.prodrow-name`, `.prodnew`, `.cfg-asis*`. **`.prodrow-f`/`.ti.num`/`.ti.emoji`** se conservan: las usa
-el **wizard** (`.wz-prodrow`, productos en 2 líneas con costo/venta compactos de 96px, separados por aire).
+**❌ ELIMINADAS** (el acordeón de asistente de Configurar ya no existe): `toggle-cfg-asis`, `asistenteConfigRow`,
+`coverLinea`, `rolSelect` (el `select.sel` de rol desapareció). La lógica de precios y de cover **no** cambia;
+solo **dónde** se editan (rol → creación; exoneración → Agregar; identidad → creación/programada).
 
-La lógica de precios (costo/venta, margen) **no** cambia con esta anatomía; solo **dónde** se edita.
+### 2.8.1 · Gear GLOBAL = capa administrativa del grupo, TRES tabs (✅ CANÓNICO)
+
+`overlaySheet` con seg-nav **Personas | Primadas | Ajustes** (`data-act="overlay-tab"` + `data-overlay`).
+- **Personas** (§2.9) — directorio. **Ajustes** — cover vigente, versión, legal, cuenta.
+- **Primadas** (`primadasAdminBody`) — el **calendario + historial + acciones** sobre las primadas (lo que salió
+  de Configurar): **"Programar próxima"** arriba (`.add-link`, `open-programar` → hoja ligera `programarSheet`) +
+  lista de TODAS agrupada (**Próximas** ámbar · **Activa** teal · **Pasadas** gris). Cada fila `.padm-fila` (NO
+  navega, EDITA): nombre + meta + acciones **Reabrir** (cerradas) y **Eliminar** (`borrar-primada`, confirmación;
+  `data-activa` en la activa para advertencia más fuerte). El **selector** (§2.11) sigue siendo navegación pura.
 
 ### 2.9 · Fila de persona — Directorio (✅ CANÓNICO)
 

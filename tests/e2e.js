@@ -138,22 +138,22 @@ check('Snapshot inmutable: Ana=ahorrador, Beto=invitado en la asistencia',
   prm().asistencias.find(a => a.personaId === beto.id).estadoEnEseMomento === 'invitado');
 
 /* ---------- 4. Asignar principal (INVARIANTE #2) ---------- */
-section('Asignar principal — invariante "principal siempre ahorrador"');
-// El ROL es CONFIGURACIÓN: vive en el overlay "Configurar primada" (sección Asistentes), no en operación.
+section('Asignar principal — fix mínimo en Configurar › Asistentes (primada incompleta)');
+// El ROL se fija al crear; el ÚNICO caso editable es asignar el principal de una primada INCOMPLETA
+// (lista compacta agrupada, sin acordeón). Configurar abre en el tab Asistentes.
 click(`[data-act="open-config-primada"][data-id="${prm().id}"]`);
-check('Sección Asistentes en Configurar', /Asistentes/.test(q('#overlay').innerHTML));
-// Filas de asistente = acordeón (clon de Personas): expandir para acceder a rol/cover.
-click(`[data-act="toggle-cfg-asis"][data-pid="${ana.id}"]`);
-setVal(`select[data-ch="rol"][data-pid="${ana.id}"]`, 'principal');
+check('Configurar abre en tab Asistentes (lista agrupada)',
+  /data-act="config-tab" data-ctab="asistentes"/.test(q('#overlay').innerHTML) && /Ahorradores/.test(q('#overlay').innerHTML));
+check('Aviso "falta principal" visible (incompleta)', /falta principal/.test(q('#overlay').innerHTML));
+// Beto es INVITADO → la UI NO le ofrece "Hacer principal" (INVARIANTE #2 por construcción).
+check('Beto (invitado) SIN botón "Hacer principal"', !q(`[data-act="hacer-principal"][data-pid="${beto.id}"]`));
+// Ana es ahorrador → sí se le ofrece. Click la hace principal.
+click(`[data-act="hacer-principal"][data-pid="${ana.id}"]`);
 eq('Ana es el principal', prm().organizadorPrincipalId, ana.id);
 check('Ya no está incompleta', !Store.select.primadaIncompleta(prm()));
 check('Snapshot de la llave Bre-B del principal en pago', 'breB' in prm().pago);
-
-// Intentar hacer principal a Beto (invitado) → debe rechazarse por invariante
-click(`[data-act="toggle-cfg-asis"][data-pid="${beto.id}"]`);
-setVal(`select[data-ch="rol"][data-pid="${beto.id}"]`, 'principal');
-eq('Beto NO pudo ser principal (sigue Ana)', prm().organizadorPrincipalId, ana.id);
-check('Render se recuperó tras el error (config sigue con 2 asistentes)', qa('[data-act="toggle-cfg-asis"]').length === 2);
+// Completa → ya no hay botones "Hacer principal" (rol fijo tras asignar).
+check('Sin "Hacer principal" una vez completa', !q('[data-act="hacer-principal"]'));
 click('[data-act="close-overlay"]');
 
 /* ---------- 5. Consumos ± (progressive disclosure) ---------- */
@@ -205,12 +205,16 @@ click('[data-act="toggle-balance"][data-sec="reparto"]');   // colapsar de nuevo
 check('Toggle reparto: el desglose se oculta otra vez', !/Sobrante/.test(q('#screen').innerHTML));
 click('[data-act="set-cara"][data-cara="operacion"]');   // volver a operar
 
-// El cover (exonerar/cobrar) también es CONFIGURACIÓN → en Configurar, sección Asistentes.
-click(`[data-act="open-config-primada"][data-id="${prm().id}"]`);
-click(`[data-act="toggle-exonerado"][data-pid="${beto.id}"]`);
+// Exoneración: la decisión vive al AGREGAR (acción add-asistencia-cortesia). Beto ya está agregado y
+// CON consumos, así que aquí aplicamos la exoneración por la MISMA acción de modelo que usa la cortesía
+// (toggleCoverExonerado) para verificar el EFECTO en el cálculo. La cara compacta la MUESTRA, no la edita.
+Store.actions.toggleCoverExonerado(prm().id, beto.id);
 check('Beto exonerado', betoAsis().coverExonerado === true);
 eq('Cover de Beto ahora 0', Store.select.coverDe(prm(), betoAsis()), 0);
 eq('Ganancia baja al margen puro (2.000)', Store.select.ganancia(prm()), 2000);
+// La lista compacta de Configurar MUESTRA la excepción "Sin cover" (no la edita).
+click(`[data-act="open-config-primada"][data-id="${prm().id}"]`);
+check('Configurar › Asistentes marca "Sin cover" en el exonerado', /Sin cover/.test(q('#overlay').innerHTML));
 click('[data-act="close-overlay"]');
 
 /* ---------- 7. Balance: Ganancia y Recaudo ---------- */
@@ -311,8 +315,11 @@ section('Cerrar cuenta (INVARIANTE #4): "Cerrar" salió de Config; congela consu
 // operación SOLO cuando todos saldaron. Mientras Beto deba (7.000), el CTA NO está y Config no lo ofrece.
 check('CTA "Cerrar" ausente mientras Beto debe', !q('[data-act="cerrar-primada"]'));
 click(`[data-act="open-config-primada"][data-id="${prm().id}"]`);
-check('Overlay de config abierto', !q('#overlay').hidden && /Configurar primada/.test(q('#overlay').innerHTML));
+check('Overlay de config abierto (2 tabs: Asistentes | Productos)',
+  !q('#overlay').hidden && !!q('[data-act="config-tab"][data-ctab="asistentes"]') && !!q('[data-act="config-tab"][data-ctab="productos"]'));
 check('Config ya NO ofrece "Cerrar"', !/data-act="cerrar-primada"/.test(q('#overlay').innerHTML));
+check('Config ya NO ofrece "Borrar" ni "Programar" (movidos al gear global)',
+  !/data-act="borrar-primada"/.test(q('#overlay').innerHTML) && !/data-act="open-programar"/.test(q('#overlay').innerHTML));
 click('[data-act="close-overlay"]');
 // El modelo permite cerrar con deuda (la UI lo gatea tras el CTA); aquí cerramos por acción para
 // probar el congelado con un deudor pendiente (escenario de pago-tras-cerrar en 8b).
@@ -515,9 +522,14 @@ const activaId = Store.select.activePrimada().id;
 click('[data-act="open-selector"]');
 check('Selector SIN "Programar" (navegación pura)', !q('#overlay').hidden && !q('[data-act="open-programar"]'));
 click('[data-act="close-overlay"]');
-// "Programar próxima" vive en CONFIGURACIÓN (engranaje de la primada activa abierta).
-click(`[data-act="open-config-primada"][data-id="${activaId}"]`);
-check('Config tiene sección "Próxima primada" con "Programar"', /Próxima primada/.test(q('#overlay').innerHTML) && !!q('[data-act="open-programar"]'));
+// "Programar próxima" se MOVIÓ al GEAR GLOBAL › tab Primadas (capa administrativa del grupo).
+click('#gearBtn');
+check('Gear global: 3 tabs (Personas | Primadas | Ajustes)',
+  !q('#overlay').hidden && !!q('[data-act="overlay-tab"][data-overlay="primadas"]')
+  && !!q('[data-act="overlay-tab"][data-overlay="personas"]') && !!q('[data-act="overlay-tab"][data-overlay="ajustes"]'));
+click('[data-act="overlay-tab"][data-overlay="primadas"]');
+check('Gear › Primadas: "Programar próxima" presente', !!q('[data-act="open-programar"]'));
+check('Gear › Primadas: lista con acción Eliminar (borrar-primada)', /data-act="borrar-primada"/.test(q('#overlay').innerHTML));
 click('[data-act="open-programar"]');
 check('Hoja ligera "Programar primada" abierta', /sheet-title">Programar primada/.test(q('#overlay').innerHTML));
 check('No pide productos (flujo ligero, no el wizard)', !/wz-title">Productos/.test(q('#overlay').innerHTML) && !!q('#prog-mes'));

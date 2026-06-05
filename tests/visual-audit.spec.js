@@ -222,6 +222,7 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     await crearPrimada(page, 'Ana');
     await page.click('[data-act="open-config-primada"]');
     await expect(page.locator('.overlay')).toBeVisible();
+    await page.click('.overlay [data-act="config-tab"][data-ctab="productos"]'); // tab Productos
     // Filas de producto = mismas clases que Personas (.prow + .acc-head). Colapsadas: sin inputs.
     expect(await page.locator('.overlay .prow').count()).toBeGreaterThan(0);
     expect(await page.locator('.overlay [data-ch="costo-producto"]').count()).toBe(0); // colapsado
@@ -231,17 +232,18 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     await expect(page.locator('.overlay [data-ch="venta-producto"]').first()).toBeVisible();
   });
 
-  test('E2b — Configurar y Personas usan las MISMAS clases de fila/campo (acc-head + .prow)', async ({ page }) => {
+  test('E2b — Configurar: Asistentes = lista compacta; Productos = filas .prow (clon Personas)', async ({ page }) => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
     await crearPrimada(page, 'Ana');
-    // Configurar: asistentes y productos son filas .prow con .acc-head (idéntico a Personas).
     await page.click('[data-act="open-config-primada"]');
+    // Tab ASISTENTES (default): lista COMPACTA agrupada, SIN acordeón de asistente.
+    expect(await page.locator('.overlay .asis-compact').count()).toBeGreaterThan(0);
+    expect(await page.locator('.overlay [data-act="toggle-cfg-asis"]').count()).toBe(0);
+    // Tab PRODUCTOS: filas .prow + .acc-head (clon de Personas).
+    await page.click('.overlay [data-act="config-tab"][data-ctab="productos"]');
     expect(await page.locator('.overlay .prow .acc-head').count()).toBeGreaterThan(0);
-    expect(await page.locator('.overlay [data-act="toggle-cfg-asis"]').count()).toBeGreaterThan(0);
     expect(await page.locator('.overlay [data-act="toggle-cfg-prod"]').count()).toBeGreaterThan(0);
-    // ya NO existen las clases pesadas propias de Configurar
-    expect(await page.locator('.overlay .cfg-asis, .overlay .prodmgmt, .overlay .prodrow').count()).toBe(0);
     await page.click('[data-act="close-overlay"]');
     // Personas: mismas clases .prow + .acc-head.
     await page.click('#gearBtn');
@@ -275,8 +277,10 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
 
   test('E4 — los <select> usan appearance:none + chevron (no flechas nativas)', async ({ page }) => {
     await appConPrimadaAbierta(page);
-    await page.click('[data-act="open-config-primada"]'); // el select de rol vive en Configurar (sección Asistentes)
-    await page.locator('.overlay [data-act="toggle-cfg-asis"]').first().click(); // expandir la fila-acordeón
+    // El select de rol salió de Configurar; usamos el select de estado del alta de Personas (mismas clases).
+    await page.click('#gearBtn');
+    await page.click('[data-act="overlay-tab"][data-overlay="personas"]');
+    await page.click('.overlay [data-act="open-nueva-persona"]');
     const sel = page.locator('.overlay select.sel').first();
     await expect(sel).toBeVisible();
     const css = await sel.evaluate(el => ({ ap: getComputedStyle(el).appearance, bg: getComputedStyle(el).backgroundImage }));
@@ -303,12 +307,11 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
       const S = window.Store, st = S.select.state(), p = st.primadas[0];
       st.personas.forEach(per => { if (per.id !== p.organizadorPrincipalId) S.actions.addAsistencia(p.id, per.id); });
     });
-    await page.click('[data-act="open-config-primada"]');
-    const rows = page.locator('.overlay [data-act="toggle-cfg-asis"]'); // filas-acordeón de asistente
+    await page.click('[data-act="open-config-primada"]');       // tab Asistentes (default)
+    const rows = page.locator('.overlay .asis-compact');        // filas compactas de asistente
     const before = await rows.count();
     expect(before).toBeGreaterThan(1);
-    await rows.last().click();                                          // expandir el último (no principal)
-    await page.locator('.overlay [data-act="remove-asistencia"]').last().click(); // quitar (en el .acc-body)
+    await page.locator('.overlay [data-act="remove-asistencia"]').last().click(); // [✕] directo en la fila
     await expect(rows).toHaveCount(before - 1);
   });
 

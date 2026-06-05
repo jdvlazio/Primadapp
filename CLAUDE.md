@@ -202,9 +202,21 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     **cifra héroe siempre visible** + desglose en acorde: **Ganancia** (resultado del grupo, "Provisional" en abierta) y
     **Recaudo** (proceso de cobro; ABIERTA = "Por cobrar" en ámbar, CERRADA = "Entregado" en teal). State-aware por `p.estado`.
   - **Fondo** — tesorería futura, estado **"Próximamente"**.
-- **Detrás del engranaje (⚙ en el encabezado) — NO son tabs:**
-  - **Personas** — directorio (alta, cambio de estado invitado↔ahorrador, `breB`). También se accede **al agregar un asistente**.
-  - **Ajustes** — cover vigente, productos por defecto.
+- **DOS capas de configuración, fronteras claras** (principio: *una sola intención por pantalla; muestra la
+  excepción, no la regla*). Ver `DESIGN.md` §2.8 / §2.8.1:
+  - **Gear de la PRIMADA** (ícono `settings-2` en el selector) → `configPrimadaSheet` = **DOS tabs operativos**
+    sobre el evento activo: **Asistentes** (participación: lista compacta agrupada por estado, cover en el
+    encabezado una vez, `Sin cover` solo en la excepción; alta/baja; **rol fijo al crear** salvo el fix
+    "Hacer principal" si está incompleta) y **Productos** (precios, clon de Personas). **Nada más** (sin
+    identidad, sin acciones administrativas). seg-nav con `data-ctab` (NO `data-tab`: colisiona con la tabbar).
+  - **Gear GLOBAL (⚙ en el encabezado) — TRES tabs (NO 2):**
+    - **Personas** — directorio (alta, cambio de estado invitado↔ahorrador, `breB`). También al agregar un asistente.
+    - **Primadas** — capa administrativa del calendario/historial: **"Programar próxima"** + lista de TODAS
+      (Próximas/Activa/Pasadas) con **Eliminar** y **Reabrir** (cerradas). Aquí viven las acciones que salieron de Configurar.
+    - **Ajustes** — cover vigente, versión, legal, cuenta.
+  - **Identidad de la primada** (nombre/fecha/mes) se fija al **crear/programar**. El **mes contable** sigue
+    editable desde la **cara de la programada** (junto a la fecha) hasta abrirla; **post-apertura se fija** (un
+    error de mes en una abierta = borrar y recrear, caso rarísimo y aceptable).
 - Toda feature nueva debe caber en esta navegación. Si no cabe → **pausar y consultar** (no inventar un tercer tab).
 
 ## Modelo de datos (esquema v6 — DEFINITIVO)
