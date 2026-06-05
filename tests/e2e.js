@@ -227,9 +227,10 @@ eq('Sobrante indivisible = 0', Store.select.sobranteFondo(prm()), 0);
 // La 2ª tarjeta se llama RECAUDO (proceso de cobro), sin nombre ni rol.
 click('[data-act="set-cara"][data-cara="balance"]');
 check('2ª tarjeta titulada "Recaudo" (sin nombre/rol)', /Recaudo/.test(q('#screen').innerHTML) && !/Principal — Ana/.test(q('#screen').innerHTML));
-// Beto debe (cover 0, pero 2 cervezas = 7.000 sin pagar) → ABIERTA: héroe en tono proceso "por-cobrar".
-check('Recaudo ABIERTA: el héroe usa tono proceso (.por-cobrar), NO --alert/.owe',
-  /class="bal-amount por-cobrar"/.test(q('#screen').innerHTML) && !/bal-amount owe/.test(q('#screen').innerHTML));
+// Beto debe (cover 0, pero 2 cervezas = 7.000 sin pagar) → ABIERTA: héroe en registro PENDIENTE ámbar
+// (.por-cobrar). NO destructivo (salmón) ni "entregado" (teal): la deuda es proceso, no alarma (DESIGN.md §1).
+check('Recaudo ABIERTA: el héroe usa el registro pendiente ámbar (.por-cobrar), no "entregado"',
+  /class="bal-amount por-cobrar"/.test(q('#screen').innerHTML) && !/bal-amount entregado/.test(q('#screen').innerHTML));
 // El TEASER no repite el héroe: el héroe ya es el "por cobrar" (saldoPendiente) → el teaser solo añade
 // el OTRO número (lo que se entrega), sin "· Por cobrar $Y".
 check('Recaudo ABIERTA: teaser solo "Entrega … al Tesorero" (no repite el número del héroe)',

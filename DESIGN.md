@@ -65,11 +65,32 @@ Valores resueltos, extraídos de `:root` en `index.html`. **Son la única fuente
 | `--accent` (alias `--red`) | `#2DD4BF` | **Acento** — botón primario, foco, activo, ganancia, punto del principal |
 | `--accent-ink` | `#0d1716` | Texto **sobre** el acento (nunca blanco) |
 | `--red-deep` | `#14b8a6` | Teal de énfasis (hover, monto de ganancia) |
-| `--pos` (alias `--green`) | `#4DD9A0` | **Pagó / positivo** — texto (check de abono) |
+| `--pos` (alias `--green`) | `#4DD9A0` | **Pagó / éxito puntual** — texto (check de pago, toast saldado) |
 | `--pos-bg` | `#103028` | Pagó / positivo — fondo |
-| `--alert` | `#F08C8C` | **Debe / destructivo** — texto del saldo, botón borrar |
-| `--alert-bg` | `#3a1818` | Debe / alerta — fondo |
-| `--amber` | `#e0b341` | Aviso / "incompleta" / "Próximamente" |
+| `--amber` | `#e0b341` | **Pendiente / en proceso** — por cobrar, los que deben, programada, incompleta, "Próximamente" |
+| `--alert` | `#F08C8C` | **Destructivo / error** — botón borrar, error de sync. **NO** para deuda (eso es ámbar) |
+| `--alert-bg` | `#3a1818` | Destructivo / error — fondo |
+
+#### Semántica de estado — escalera de 4 registros (✅ CANÓNICO)
+
+**Regla:** cada color de estado es **un registro emocional, no una decoración**. Antes de pintar un dato,
+ubicá en cuál de los cuatro cae. No mezclar registros (el error histórico: la deuda saltaba entre ámbar y
+salmón). El **copy** debe coincidir con el registro del color (ver "Voz y tono", §7).
+
+| Registro | Token | Significado | Lo usa | Tono del copy |
+|---|---|---|---|---|
+| **Resuelto / definitivo** | `--accent` (teal) | cerrado, primario, valor logrado | Ganancia, "Entregado", activo, principal, acción primaria, **monto ya pagado** (`.pagado`) | afirmativo, en pasado/presente |
+| **Éxito puntual** | `--pos` (verde) | confirmación de una acción que acaba de salir bien | check de pago, toast "✓ saldado" | celebratorio, breve |
+| **Pendiente / en proceso** | `--amber` (ámbar) | algo abierto que **falta resolver** — **normal y esperado**, NI error NI urgencia | **Por cobrar** (héroe), **los que deben** (`.pend`), **programada** (`.dot.prog`), **incompleta / "Próximamente"** (`.badge.warn`) | **neutral y prospectivo** ("Por cobrar", "Programada", "Falta principal") — **nunca** alarmista |
+| **Destructivo / error** | `--alert` (salmón) | acción irreversible o fallo real — **STOP** | Borrar (`.mini.danger`, `.danger-sub`), error de sync (`.sync-indicator.err`) | de advertencia, confirmación explícita |
+
+**Por qué la deuda es ÁMBAR y no salmón** (decisión ratificada): cobrar es un **proceso normal en curso**, no un
+error ni una emergencia. Pintar "los que deben" en salmón leería como alarma/culpa; en ámbar lee como
+"pendiente de cerrar", coherente con el héroe **"Por cobrar"**. El salmón se **reserva** para lo que el usuario
+no puede deshacer (borrar) o lo que está roto (sync). El `--alert` **no** colorea montos de deuda.
+
+> ⚠️ **Anti-patrón (corregido):** existía un `.owe{color:var(--alert)}` (saldo deudor en salmón) que quedó como
+> **CSS muerto** al mover la deuda a ámbar — eliminado. Si vuelve a hacer falta un "número de deuda", va en ámbar (`.pend`).
 
 ### Espaciado (escala fija) — REGLA: ceñido al contenido
 **Principio (global, no negociable):** la app es **compacta y minimalista**. Márgenes, paddings y
@@ -644,6 +665,10 @@ sistema, **bórralo**).
 - **Títulos de sección:** sustantivo + conteo (`Asistentes (0)`, `Productos (4)`).
 - **Toasts:** confirmación corta en pasado/sustantivo (`Primada creada`, `Abono registrado`).
 - **Confirmaciones:** pregunta de una idea (`¿Borrar la primada?`), sin explicar consecuencias.
+- **El copy coincide con el REGISTRO del color** (escalera de estado, §1). Lo **ámbar** (pendiente / en
+  proceso) se nombra **neutral y prospectivo** — `Por cobrar`, `Programada`, `Falta principal`,
+  `Próximamente` — **nunca** alarmista (`¡Deuda!`, `¡Atrasado!`). El lenguaje de **alarma/stop** se reserva
+  para lo **salmón** (destructivo/error: `¿Borrar la primada?`). Un dato pendiente no se dramatiza: se etiqueta.
 - **Una idea por texto.** Sin emoji decorativo en estado.
 
 **Glosario (una palabra por concepto, igual en toda la app):** Primada · Principal ·

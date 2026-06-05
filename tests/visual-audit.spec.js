@@ -135,19 +135,20 @@ test.describe('Conformidad DESIGN.md — verde', () => {
     expect(r.tabbarBottom).toBe(r.innerHeight);     // queda pegada al borde inferior físico
   });
 
-  test('C5 — saldo en deuda usa color en el NÚMERO, no borde de fila (§2.1 / §3)', async ({ page }) => {
-    // El selector .owe (saldo deudor) debe colorear el texto con --alert, nunca un borde.
+  test('C5 — deuda/pendiente = ÁMBAR en el NÚMERO, no borde (DESIGN.md §1 escalera de estado)', async ({ page }) => {
+    // Semántica ratificada: la DEUDA / lo pendiente es ÁMBAR (proceso normal), NO salmón (alarma).
+    // El monto que falta cobrar (.kv b.pend) colorea el TEXTO del número con --amber, nunca un borde.
     await abrirApp(page);
-    const owe = await page.evaluate(() => {
-      // crea regla efímera para leer el color canónico de .owe sin depender de datos
-      const probe = document.createElement('b');
-      probe.className = 'owe';
-      document.body.appendChild(probe);
-      const c = getComputedStyle(probe).color;
-      probe.remove();
-      return c;
+    const c = await page.evaluate(() => {
+      const kv = document.createElement('div'); kv.className = 'kv';
+      const b = document.createElement('b'); b.className = 'pend'; kv.appendChild(b);
+      document.body.appendChild(kv);
+      const out = { color: getComputedStyle(b).color, border: getComputedStyle(b).borderStyle };
+      kv.remove();
+      return out;
     });
-    expect(owe).toBe('rgb(240, 140, 140)'); // --alert #F08C8C
+    expect(c.color).toBe('rgb(224, 179, 65)'); // --amber #e0b341 (pendiente / en proceso)
+    expect(c.border).toBe('none');             // color en el número, NO borde de fila
   });
 });
 
