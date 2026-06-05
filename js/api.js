@@ -33,7 +33,7 @@
     return {
       id: p.id,
       nombre: p.nombre,
-      fecha: p.fecha,
+      fecha: p.fecha || null,           // PROGRAMADA sin fecha → '' en memoria → NULL en la columna DATE
       mes_contable: p.mesContable,
       organizador_principal_id: (p.organizadorPrincipalId != null ? p.organizadorPrincipalId : null),
       estado: p.estado,

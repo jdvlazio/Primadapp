@@ -315,14 +315,28 @@ mostrara "Junio", dos primadas de junio serían idénticas). Helper de Vista: `n
 - **`+`** (`.icon-btn.nueva`, ~32px, `new-primada`): abre el wizard de 3 pasos. **Secundario** — ícono
   pequeño, NO un `.btn` grande (crear no compite con operar). **Prohibido** el botón grande "Nueva primada".
 
-**Abierto (overlay `selector-primada`, `selectorSheet`):** sheet con TODAS las primadas **agrupadas por
-AÑO → MES** (reciente arriba; `Store.select.primadasPorAnio`). El **historial vive aquí**, no como lista aparte.
+**Abierto (overlay `selector-primada`, `selectorSheet`):** sheet con **TRES secciones en orden** (cada una con
+encabezado `.sel-anio`): **Próximas** · **Activa** · **Pasadas**. El **historial vive aquí**, no como lista aparte.
+Al pie, **"+ Programar"** (`.btn.ghost`, `open-programar`) abre el flujo ligero de agendar (no el wizard).
+
+| Sección | Contenido |
+|---|---|
+| **Próximas** (si hay) | primadas `estado:'programada'` (`primadasProgramadas()`, **asc** por mes·fecha). Fila `filaPrograma`: `.dot.prog` (ámbar) + `<b>Mes</b> · {nombre corto}`; a la derecha la **fecha confirmada** (`Util.fechaDia` → "Sáb 15") o **"Fecha por definir"** (cursiva). Sin recaudo (evento futuro) |
+| **Activa** (si abierta/cerrada) | la primada seleccionada (`activePrimada`), una fila `.sel-fila` con su `.sel-check` |
+| **Pasadas** | `primadasPorAnio()` (EXCLUYE programadas **y** la activa), agrupado por año (`.sel-subanio` = sub-encabezado tenue) |
 
 | Clase | Propiedades canónicas |
 |---|---|
-| `.sel-anio` | encabezado de año: `font-weight:800; font-size:13px; color:var(--ink-soft); letter-spacing:.06em` |
-| `.sel-fila` | fila tappable (`select-primada`): `min-height:var(--tap-row)`; sin caja; separación por línea tenue. Identidad `.sel-fila-main` = punto de estado + **`<b>Mes</b> · {nombre corto}`** (mes guía + identidad, sin "Primada"); a la derecha `.sel-fila-right` = total (recaudo) + `.sel-check` (check teal) si es la activa |
+| `.sel-anio` | encabezado de SECCIÓN (Próximas/Activa/Pasadas): `font-weight:800; font-size:13px; color:var(--ink-soft); letter-spacing:.06em` |
+| `.sel-subanio` | sub-encabezado de AÑO bajo Pasadas: `font-size:12px; font-weight:700; color:var(--ink-soft); opacity:.75` |
+| `.sel-fila` | fila tappable (`select-primada`): `min-height:var(--tap-row)`; sin caja; separación por línea tenue. Identidad `.sel-fila-main` = punto de estado + **`<b>Mes</b> · {nombre corto}`** (mes guía + identidad, sin "Primada"); a la derecha `.sel-fila-right` = total (recaudo) o fecha + `.sel-check` (check teal) si es la activa |
 | activa | `.sel-fila.on` → el mes en acento. Tocar una la activa (`seleccionarPrimada`) y **cierra** la hoja |
+
+> **Primada PROGRAMADA — cara mínima.** Una primada `estado:'programada'` (agendada, aún sin abrir) NO tiene
+> Consumos/Balance. Al volverse la activa, el tab Primadas muestra `programadaCara`: tarjeta con `.prog-badge`
+> (`.dot.prog` ámbar + "Programada · {Mes Año}"), nº de organizadores, **input de fecha** (`confirmar-fecha`,
+> opcional), y dos acciones — **"Abrir primada"** (`.btn`, `abrir-primada` → entra al flujo normal) y **"Borrar"**
+> (`.mini.danger`). El selector de arriba para una programada **oculta** el engranaje de Config y el botón Compartir.
 
 > **Nombre automático (decisión de producto):** al crear, `Store.select.nombreSugerido` arma
 > **"Primada {N1} + {N2}"** con el **primer token** del nombre de cada organizador — N1 = principal,

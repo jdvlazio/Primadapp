@@ -212,9 +212,9 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
 AppState  { schemaVersion:6, settings{cover{ahorrador,invitado}, defaultProducts[]},
             personas[], primadas[], activePrimadaId }
 Persona   { id, nombre, estado:'ahorrador'|'invitado', breB:string|null }
-Primada   { id, nombre, fecha:'YYYY-MM-DD', mesContable:'YYYY-MM',
+Primada   { id, nombre, fecha:'YYYY-MM-DD'|''(programada sin fecha), mesContable:'YYYY-MM',
             organizadorPrincipalId:personaId|null, pago{ breB:string|null },
-            cover{ahorrador,invitado}, productos[], asistencias[], consumos[], estado:'abierta'|'cerrada' }
+            cover{ahorrador,invitado}, productos[], asistencias[], consumos[], estado:'programada'|'abierta'|'cerrada' }
 Producto  { id, nombre, emoji, costoNeto, precioVenta, aportadoPor:personaId|null }   // default aportadoPor = principal
 Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal'|'organizador'|'asistente',
             coverExonerado:bool, pagado:bool }   // pagado = saldó su total (binario). SIN items (v6).
@@ -374,6 +374,20 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   primada **CERRADA → usa su snapshot CONGELADO** (`primada.cover`, historia, INVARIANTE #4). El **snapshot se sella
   al CERRAR** (`cerrarPrimada` copia el cover vigente). `setCover` solo guarda `settings` + re-render (no toca primadas).
 - **"Cerrada"** congela la cuenta del evento pero **sigue aceptando abonos**.
+- **Primadas PROGRAMADAS (agendadas antes de abrir):** nuevo `estado:'programada'`. Es una **extensión del dominio
+  de valores** de `estado` (no cambio de forma → `schemaVersion` sigue 6; el normalizador tolerante preserva
+  `'programada'`, sin productos/consumos y con `fecha:''` = por definir). Tiene **nombre** (auto de organizadores),
+  **mes OBLIGATORIO**, **fecha OPCIONAL** (`''`; se confirma después con `setFecha`), y los **organizadores como
+  asistencias** (rol principal/organizador). **No entra a ninguna fórmula** (`recaudado`=0). Acciones: `createProgramada`
+  (flujo ligero, INVARIANTE #2: principal ahorrador), `abrirPrimada` (programada→abierta: snapshotea los `defaultProducts`
+  vigentes + fecha a hoy si seguía vacía → flujo normal). **Persistencia:** `primadaToRow` manda `fecha:null` para `''`
+  (la columna DATE rechaza `''`; **NULL sí se acepta** → sin cambio de esquema). RLS sin cambios. El **cálculo y el modelo
+  de abiertas/cerradas NO cambian.**
+  - **Selector = 3 secciones** (ver `DESIGN.md` §2.11): **Próximas** (`primadasProgramadas()`, asc por mes·fecha) ·
+    **Activa** (la seleccionada abierta/cerrada) · **Pasadas** (`primadasPorAnio()`, EXCLUYE programadas y la activa).
+    Crear programada = botón **"+ Programar"** en el selector (hoja ligera, no el wizard de 3 pasos). Tocar una programada
+    la vuelve la **activa** → el tab Primadas muestra su **cara mínima** (`programadaCara`: confirmar fecha · Abrir · Borrar;
+    sin seg-nav Consumos/Balance, sin engranaje de Config). Punto del selector: `.dot.prog` (ámbar).
 - **Tesorería** (ahorro, préstamos, actividades extra) es **módulo futuro**; va como tab **"Próximamente"**.
 - **Backend Supabase (CONFIRMADO, implementación en sesión dedicada):** datos en la nube para persistir entre dispositivos.
   **Auth magic link sin registro** (el admin siembra los emails). **Transparencia total — todos ven todo y todos editan**

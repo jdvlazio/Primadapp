@@ -366,10 +366,10 @@ test.describe('Selector de primada + nombre automático', () => {
     await expect(page.locator('.wz')).toBeVisible();
   });
 
-  test('F3 — el selector abre una hoja agrupada por año→mes con check en la activa', async ({ page }) => {
+  test('F3 — el selector abre con secciones (Activa · Pasadas por año) y check en la activa', async ({ page }) => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }, { nombre: 'Beto', estado: 'invitado' }]);
-    // dos primadas en años distintos vía Store (rápido y determinista)
+    // dos primadas en años distintos vía Store (rápido y determinista). La activa = la última creada.
     const ids = await page.evaluate(() => {
       const S = window.Store, st = S.select.state();
       const ana = st.personas.find(p => p.nombre === 'Ana').id;
@@ -379,13 +379,14 @@ test.describe('Selector de primada + nombre automático', () => {
     });
     await page.click('[data-act="open-selector"]');
     await expect(page.locator('.overlay .sheet-title')).toHaveText('Primadas');
-    // dos encabezados de año (2026, 2025), reciente primero
-    await expect(page.locator('.overlay .sel-anio')).toHaveCount(2);
-    await expect(page.locator('.overlay .sel-anio').first()).toHaveText('2026');
+    // secciones: "Activa" (la seleccionada) y "Pasadas" (el resto, agrupado por año en .sel-subanio).
+    await expect(page.locator('.overlay .sel-anio', { hasText: 'Activa' })).toHaveCount(1);
+    await expect(page.locator('.overlay .sel-anio', { hasText: 'Pasadas' })).toHaveCount(1);
+    await expect(page.locator('.overlay .sel-subanio', { hasText: '2026' })).toHaveCount(1);
     // la activa (la última creada, 2025-12) lleva check
     const activaFila = page.locator(`.overlay [data-act="select-primada"][data-id="${ids.activa}"]`);
     await expect(activaFila.locator('.sel-check')).toHaveCount(1);
-    // elegir la otra (2026-06) la activa y cierra la hoja
+    // elegir la otra (2026-06, en Pasadas) la activa y cierra la hoja
     await page.click(`.overlay [data-act="select-primada"][data-id="${ids.a}"]`);
     await expect(page.locator('.overlay')).toBeHidden();
     const activa = await page.evaluate(() => window.Store.select.state().activePrimadaId);

@@ -149,6 +149,10 @@ section('Serialización modelo v4 <-> filas Supabase');
   eq('primada→fila: fecha como columna', prr.fecha, '2026-05-31');
   check('primada→fila: snapshots dentro de data jsonb', !!prr.data && Array.isArray(prr.data.asistencias) && Array.isArray(prr.data.productos) && !!prr.data.cover && !!prr.data.pago);
   check('primada→fila: NO duplica snapshots fuera de data', !('asistencias' in prr) && !('productos' in prr) && !('cover' in prr));
+  // PROGRAMADA sin fecha: '' en memoria → NULL en la columna DATE (Supabase rechaza '' para type date).
+  const progRow = Api._ser.primadaToRow({ id: 'prm_x', nombre: 'Primada Ana', fecha: '', mesContable: '2026-09', organizadorPrincipalId: 'per_a', estado: 'programada', pago: { breB: null }, cover: { ahorrador: 0, invitado: 0 }, productos: [], asistencias: [] });
+  eq('programada sin fecha → fila.fecha = null (no "")', progRow.fecha, null);
+  eq('programada: estado se preserva en la fila', progRow.estado, 'programada');
 }
 
 /* ============================================================ 2. Round-trip jsonb completo (lo crítico) */

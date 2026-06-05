@@ -45,6 +45,14 @@
       if (!y || !m) return ym;
       return Util.monthName(ym) + ' ' + y;
     },
+    // 'YYYY-MM-DD' → "Sáb 15" (día de la semana corto + número). Para mostrar la fecha confirmada de
+    // una primada programada. Vacío/inválido → '' (la vista muestra "Fecha por definir").
+    fechaDia(ymd) {
+      const [y, m, d] = String(ymd || '').split('-').map(Number);
+      if (!y || !m || !d) return '';
+      const s = new Date(y, m - 1, d).toLocaleDateString(CONFIG.locale, { weekday: 'short', day: 'numeric' });
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    },
 
     // ISO 'createdAt' → hora corta local "10:05" (para el detalle de auditoría). Tolerante.
     horaCorta(iso) {

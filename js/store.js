@@ -45,6 +45,8 @@
 
   /* ---------- Normalizadores (tolerantes) ---------- */
   function normEstado(t) { return t === 'invitado' ? 'invitado' : 'ahorrador'; }
+  // Estado de una PRIMADA: 'programada' (agendada, aún sin abrir) | 'abierta' | 'cerrada'. Default 'abierta'.
+  function normEstadoPrimada(t) { return t === 'programada' ? 'programada' : (t === 'cerrada' ? 'cerrada' : 'abierta'); }
   function normRol(r)    { return (r === 'principal' || r === 'organizador') ? r : 'asistente'; }
   function normCover(c)  { return { ahorrador: Number((c || {}).ahorrador) || 0, invitado: Number((c || {}).invitado) || 0 }; }
   function normFecha(f) {
@@ -224,8 +226,14 @@
     }));
 
     s.primadas = (raw.primadas || []).map(p => {
-      const productos = normProducts(p.productos && p.productos.length ? p.productos : catalogoBase());
-      const fecha = normFecha(p.fecha);
+      const estadoP = normEstadoPrimada(p.estado);
+      const esProg = estadoP === 'programada';
+      // PROGRAMADA: aún no tiene productos (llegan al abrir) ni necesariamente fecha ('' = por definir).
+      // El resto: productos propios o catálogo; fecha normalizada a YYYY-MM-DD.
+      const productos = esProg ? [] : normProducts(p.productos && p.productos.length ? p.productos : catalogoBase());
+      const fecha = esProg
+        ? (/^\d{4}-\d{2}-\d{2}$/.test(String(p.fecha)) ? String(p.fecha) : '')
+        : normFecha(p.fecha);
       const asisRaw = Array.isArray(p.asistencias) ? p.asistencias : (Array.isArray(p.asistentes) ? p.asistentes : []);
       const asistencias = asisRaw.map(a => {
         const rol = normRol(a.rol);
@@ -260,14 +268,14 @@
         id: p.id || Util.uid('prm'),
         nombre: String(p.nombre || p.familia || 'Primada').slice(0, 40),
         fecha,
-        mesContable: /^\d{4}-\d{2}$/.test(String(p.mesContable)) ? p.mesContable : Util.mesDeFecha(fecha),
+        mesContable: /^\d{4}-\d{2}$/.test(String(p.mesContable)) ? p.mesContable : (fecha ? Util.mesDeFecha(fecha) : ''),
         organizadorPrincipalId: principalId,
         pago: { breB: (p.pago && p.pago.breB != null && p.pago.breB !== '') ? String(p.pago.breB) : null },
         cover: normCover(p.cover),
         productos,
         asistencias,
-        consumos: p.consumos,                          // v6: se respetan; v4/v5: undefined → ensureV6 deriva de items
-        estado: p.estado === 'cerrada' ? 'cerrada' : 'abierta',
+        consumos: esProg ? [] : p.consumos,            // v6: se respetan; v4/v5: undefined → ensureV6 deriva de items; programada: []
+        estado: estadoP,
       };
     });
 
@@ -483,11 +491,20 @@
       return 'Primada ' + nombres[0] + ' + ' + nombres[1];
     },
     anioContable(primada) { return String(primada.mesContable || '').slice(0, 4); },
-    // Primadas agrupadas por AÑO → (dentro) por MES, más reciente arriba. Para el selector del tab.
-    // → [{ anio:'2026', primadas:[…ordenadas por mesContable desc, desempate fecha desc] }, …]
+    // PRÓXIMAS: primadas agendadas (estado 'programada'), orden CRONOLÓGICO ASCENDENTE por (mes, fecha).
+    // Las que no tienen fecha confirmada ('') van al final dentro de su mes. Para la sección "Próximas".
+    primadasProgramadas() {
+      const asc = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+      return (state ? state.primadas : []).filter(p => p.estado === 'programada')
+        .slice().sort((a, b) => a.mesContable !== b.mesContable
+          ? asc(a.mesContable, b.mesContable)
+          : asc(a.fecha || '9999-99-99', b.fecha || '9999-99-99'));
+    },
+    // Primadas agrupadas por AÑO → (dentro) por MES, más reciente arriba. Para "Pasadas" del selector.
+    // EXCLUYE las 'programada' (van en "Próximas"). → [{ anio, primadas:[…desc por mes, desempate fecha desc] }, …]
     primadasPorAnio() {
       const grupos = {};
-      state.primadas.forEach(p => {
+      state.primadas.filter(p => p.estado !== 'programada').forEach(p => {
         const anio = select.anioContable(p) || '—';
         (grupos[anio] = grupos[anio] || []).push(p);
       });
@@ -570,6 +587,49 @@
       state.primadas.unshift(prm);
       state.activePrimadaId = prm.id;
       commit({ kind: 'primada', id: prm.id }); return prm.id;
+    },
+    // PROGRAMADA: agenda una primada ANTES de abrirla. Datos mínimos: organizadores (→ nombre), mes
+    // (OBLIGATORIO) y fecha OPCIONAL ('' = por definir). Sin productos/consumos (llegan al abrir).
+    // INVARIANTE #2: el principal debe ser ahorrador (igual que createPrimada).
+    createProgramada({ organizadores, principalId, mesContable, fecha } = {}) {
+      organizadores = Array.isArray(organizadores) ? organizadores.slice() : [];
+      if (principalId && !organizadores.includes(principalId)) organizadores.unshift(principalId);
+      let principalPer = null;
+      if (principalId) {
+        principalPer = select.persona(principalId);
+        if (!principalPer) throw new Error('createProgramada: el organizador principal no existe');
+        if (principalPer.estado !== 'ahorrador') throw new Error('createProgramada: el organizador principal debe ser ahorrador');
+      }
+      if (!/^\d{4}-\d{2}$/.test(String(mesContable))) throw new Error('createProgramada: falta el mes contable');
+      const asistencias = organizadores.map(pid => {
+        const per = select.persona(pid);
+        return { personaId: pid, estadoEnEseMomento: per ? normEstado(per.estado) : 'ahorrador', rol: pid === principalId ? 'principal' : 'organizador', coverExonerado: false, pagado: false };
+      });
+      const prm = {
+        id: Util.uid('prm'),
+        nombre: select.nombreSugerido(organizadores),
+        fecha: fecha ? normFecha(fecha) : '',           // '' = por definir
+        mesContable,
+        organizadorPrincipalId: principalId || null,
+        pago: { breB: principalPer ? principalPer.breB : null },
+        cover: { ...state.settings.cover },
+        productos: [], asistencias, consumos: [],
+        estado: 'programada',
+      };
+      state.primadas.unshift(prm);
+      state.activePrimadaId = prm.id;
+      commit({ kind: 'primada', id: prm.id }); return prm.id;
+    },
+    // ABRIR una programada → 'abierta': snapshotea los productos por defecto vigentes (aportadoPor =
+    // principal), fija la fecha a HOY si seguía por definir, y entra al flujo normal. Solo programadas.
+    abrirPrimada(id) {
+      const p = findPrimada(id);
+      if (!p || p.estado !== 'programada') return;
+      const principalId = p.organizadorPrincipalId;
+      p.productos = normProducts(state.settings.defaultProducts).map(x => ({ ...x, aportadoPor: x.aportadoPor || principalId || null }));
+      if (!p.fecha) p.fecha = Util.currentDate();
+      p.estado = 'abierta';
+      commit({ kind: 'primada', id });
     },
     // activePrimadaId es LOCAL por dispositivo → no se sincroniza; solo se espeja local.
     seleccionarPrimada(id) { if (findPrimada(id)) { state.activePrimadaId = id; commit({ local: true }); } },

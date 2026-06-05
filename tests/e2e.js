@@ -482,6 +482,44 @@ click('[data-act="new-primada"]');
 click('[data-act="wz-cancelar"]');
 check('Cancelar el wizard cierra sin crear', q('#overlay').hidden && st().primadas.length === antesCancelar);
 
+/* ---------- 13. Primadas PROGRAMADAS (selector + crear ligero + abrir) ---------- */
+section('Programar primada: selector → hoja ligera → cara programada → abrir');
+const nAntesProg = st().primadas.length;
+// "+ Programar" vive en la hoja del selector
+click('[data-act="open-selector"]');
+check('Selector abierto con botón "Programar"', !q('#overlay').hidden && !!q('[data-act="open-programar"]'));
+click('[data-act="open-programar"]');
+check('Hoja ligera "Programar primada" abierta', /sheet-title">Programar primada/.test(q('#overlay').innerHTML));
+check('No pide productos (flujo ligero, no el wizard)', !/wz-title">Productos/.test(q('#overlay').innerHTML) && !!q('#prog-mes'));
+// principal Ana + co-org Beto + mes (sin fecha → por definir)
+setVal('#prog-principal', ana.id);
+check('Beto candidato a co-organizador en programar', !!q(`[data-act="prog-toggle-coorg"][data-pid="${beto.id}"]`));
+click(`[data-act="prog-toggle-coorg"][data-pid="${beto.id}"]`);
+setVal('#prog-mes', '2026-09');
+click('[data-act="prog-crear"]');
+check('Hoja cerrada tras programar', q('#overlay').hidden);
+eq('Se creó 1 primada programada', st().primadas.length, nAntesProg + 1);
+const prog = () => Store.select.activePrimada();
+eq('La programada quedó activa', prog().estado, 'programada');
+eq('Programada: mes 2026-09, fecha por definir', prog().mesContable + '|' + prog().fecha, '2026-09|');
+check('Programada: sin productos/consumos', prog().productos.length === 0 && (prog().consumos || []).length === 0);
+// El tab Primadas muestra la CARA mínima (no el seg-nav Consumos/Balance)
+check('Cara programada: botón "Abrir primada" presente, sin seg-nav', !!q('[data-act="abrir-primada"]') && !q('[data-act="set-cara"]'));
+check('Cabecera de programada: sin engranaje de Config', !q('[data-act="open-config-primada"]'));
+// Confirmar fecha (opcional) vía el input date de la cara
+setVal('[data-ch="confirmar-fecha"]', '2026-09-12');
+eq('Confirmar fecha actualiza el modelo', prog().fecha, '2026-09-12');
+// En el selector, la programada va en "Próximas" (no en Pasadas)
+click('[data-act="open-selector"]');
+check('Selector: sección "Próximas" con la programada', /sel-anio">Próximas/.test(q('#overlay').innerHTML));
+check('Próximas: la fila muestra la fecha confirmada (Util.fechaDia)', new RegExp('sel-fila-fecha"[^>]*>' + window.Util.fechaDia('2026-09-12')).test(q('#overlay').innerHTML));
+click('[data-act="close-overlay"]');
+// ABRIR la programada → entra al flujo normal (Consumos)
+click(`[data-act="abrir-primada"][data-id="${prog().id}"]`);
+eq('Abrir: estado → abierta', prog().estado, 'abierta');
+check('Abrir: snapshotea productos', prog().productos.length > 0);
+check('Abrir: ya aparece el seg-nav Consumos/Balance', !!q('[data-act="set-cara"][data-cara="balance"]') && /Asistentes/.test(q('#screen').innerHTML));
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`E2E: ${pass} pasaron, ${fail} fallaron`);
