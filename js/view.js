@@ -156,9 +156,9 @@
 
   // Hoja del selector: TODAS las primadas agrupadas por AÑO → MES (reciente arriba). Tocar una la
   // activa y cierra. La activa lleva check. El "total" de cada fila = recaudo (snapshot del evento).
-  // Selector = hoja con TRES secciones en orden: Próximas (programadas, asc) · Activa (la seleccionada
-  // abierta/cerrada) · Pasadas (historial por año, como hoy). Cada sección con encabezado .sel-anio.
-  // "+ Programar" al pie abre el flujo ligero (agendar una primada sin abrirla).
+  // Selector = NAVEGACIÓN PURA: elegir con cuál primada trabajar. TRES secciones en orden: Próximas
+  // (programadas, asc) · Activa (la seleccionada abierta/cerrada) · Pasadas (historial por año). NO crea
+  // nada: "+ Nueva" (abierta) vive en la cabecera; "Programar próxima" vive en Configuración (§2.8/2.11).
   function selectorSheet(state, ui) {
     const sel = S();
     const activeId = state.activePrimadaId;
@@ -181,9 +181,7 @@
         <div class="sheet-title">Primadas</div>
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button>
       </div>
-      <div class="sheet-body">${secProx}${secActiva}${secPasadas}${vacio}
-        <button class="btn ghost mt-3" data-act="open-programar">${icon('plus-circle')}Programar primada</button>
-      </div>
+      <div class="sheet-body">${secProx}${secActiva}${secPasadas}${vacio}</div>
     </div>`;
   }
   // Fila de una PRÓXIMA (programada): mes (guía) · nombre corto + fecha confirmada ("Sáb 15") o "Fecha por
@@ -257,6 +255,12 @@
           <div class="sub">Cuenta</div>
           <button class="mini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>
         </section>` : ''}
+
+        <section class="cfg-sec">
+          <div class="sub">Próxima primada</div>
+          <div class="muted small">Agendá la siguiente para que el grupo sepa cuándo es (sin abrirla todavía).</div>
+          <button class="mini ghost mt-3" data-act="open-programar">${icon('plus-circle')}Programar próxima</button>
+        </section>
 
         <section class="cfg-sec">
           <div class="sub danger-sub">Eliminar</div>

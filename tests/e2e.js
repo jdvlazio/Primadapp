@@ -482,12 +482,17 @@ click('[data-act="new-primada"]');
 click('[data-act="wz-cancelar"]');
 check('Cancelar el wizard cierra sin crear', q('#overlay').hidden && st().primadas.length === antesCancelar);
 
-/* ---------- 13. Primadas PROGRAMADAS (selector + crear ligero + abrir) ---------- */
-section('Programar primada: selector → hoja ligera → cara programada → abrir');
+/* ---------- 13. Primadas PROGRAMADAS (Config → crear ligero → abrir) ---------- */
+section('Programar primada: Configuración → hoja ligera → cara programada → abrir');
 const nAntesProg = st().primadas.length;
-// "+ Programar" vive en la hoja del selector
+const activaId = Store.select.activePrimada().id;
+// El SELECTOR es navegación pura: NO tiene "Programar".
 click('[data-act="open-selector"]');
-check('Selector abierto con botón "Programar"', !q('#overlay').hidden && !!q('[data-act="open-programar"]'));
+check('Selector SIN "Programar" (navegación pura)', !q('#overlay').hidden && !q('[data-act="open-programar"]'));
+click('[data-act="close-overlay"]');
+// "Programar próxima" vive en CONFIGURACIÓN (engranaje de la primada activa abierta).
+click(`[data-act="open-config-primada"][data-id="${activaId}"]`);
+check('Config tiene sección "Próxima primada" con "Programar"', /Próxima primada/.test(q('#overlay').innerHTML) && !!q('[data-act="open-programar"]'));
 click('[data-act="open-programar"]');
 check('Hoja ligera "Programar primada" abierta', /sheet-title">Programar primada/.test(q('#overlay').innerHTML));
 check('No pide productos (flujo ligero, no el wizard)', !/wz-title">Productos/.test(q('#overlay').innerHTML) && !!q('#prog-mes'));

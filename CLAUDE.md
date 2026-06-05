@@ -383,11 +383,13 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   vigentes + fecha a hoy si seguía vacía → flujo normal). **Persistencia:** `primadaToRow` manda `fecha:null` para `''`
   (la columna DATE rechaza `''`; **NULL sí se acepta** → sin cambio de esquema). RLS sin cambios. El **cálculo y el modelo
   de abiertas/cerradas NO cambian.**
-  - **Selector = 3 secciones** (ver `DESIGN.md` §2.11): **Próximas** (`primadasProgramadas()`, asc por mes·fecha) ·
-    **Activa** (la seleccionada abierta/cerrada) · **Pasadas** (`primadasPorAnio()`, EXCLUYE programadas y la activa).
-    Crear programada = botón **"+ Programar"** en el selector (hoja ligera, no el wizard de 3 pasos). Tocar una programada
-    la vuelve la **activa** → el tab Primadas muestra su **cara mínima** (`programadaCara`: confirmar fecha · Abrir · Borrar;
-    sin seg-nav Consumos/Balance, sin engranaje de Config). Punto del selector: `.dot.prog` (ámbar).
+  - **Selector = NAVEGACIÓN PURA, 3 secciones** (ver `DESIGN.md` §2.11): **Próximas** (`primadasProgramadas()`, asc por
+    mes·fecha) · **Activa** (la seleccionada abierta/cerrada) · **Pasadas** (`primadasPorAnio()`, EXCLUYE programadas y la
+    activa). El selector **no crea nada**. **Crear programada vive en CONFIGURACIÓN** (engranaje › sección "Próxima primada"
+    › "Programar próxima" → hoja ligera `programarSheet`, no el wizard de 3 pasos) — es decisión administrativa, no
+    navegación. El "+" de la cabecera = "Nueva (abierta ya)" (wizard). Tocar una programada la vuelve la **activa** → el tab
+    Primadas muestra su **cara mínima** (`programadaCara`: confirmar fecha · Abrir · Borrar; sin seg-nav, sin engranaje de
+    Config). Punto del selector: `.dot.prog` (ámbar).
 - **Tesorería** (ahorro, préstamos, actividades extra) es **módulo futuro**; va como tab **"Próximamente"**.
 - **Backend Supabase (CONFIRMADO, implementación en sesión dedicada):** datos en la nube para persistir entre dispositivos.
   **Auth magic link sin registro** (el admin siembra los emails). **Transparencia total — todos ven todo y todos editan**

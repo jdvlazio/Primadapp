@@ -257,6 +257,12 @@ componente acordeón, no unas "cajas livianas" propias. Configurar y Personas so
 en estilo de fila/campo. Antes Configurar mostraba TODO expandido (un muro de cajas con borde);
 ahora es una lista de filas-línea colapsadas, idéntica a Personas.
 
+> **Sección "Próxima primada" (al final de Configurar).** Crear/programar es una decisión administrativa →
+> vive en Configuración, no en el selector (que es navegación pura, §2.11). Una `.cfg-sec` con `.sub`
+> "Próxima primada" + nota + botón **"Programar próxima"** (`open-programar`) que abre la hoja LIGERA
+> `programarSheet` (organizadores + mes + fecha opcional; NO el wizard de 3 pasos). Crea una `estado:'programada'`
+> y la vuelve la activa (ver su cara mínima en §2.11). El "+" de la cabecera sigue siendo "Nueva (abierta ya)".
+
 | Clase (compartida con Personas §2.9) | Uso en Configurar |
 |---|---|
 | `.prow-list` / `.prow` | contenedor + fila acordeón (sin caja; separación por línea tenue `border-bottom`) |
@@ -317,7 +323,9 @@ mostrara "Junio", dos primadas de junio serían idénticas). Helper de Vista: `n
 
 **Abierto (overlay `selector-primada`, `selectorSheet`):** sheet con **TRES secciones en orden** (cada una con
 encabezado `.sel-anio`): **Próximas** · **Activa** · **Pasadas**. El **historial vive aquí**, no como lista aparte.
-Al pie, **"+ Programar"** (`.btn.ghost`, `open-programar`) abre el flujo ligero de agendar (no el wizard).
+**El selector es NAVEGACIÓN PURA** — elegir con cuál primada trabajar. **NO crea nada:** "+ Nueva" (abierta ya)
+vive en la cabecera (wizard de 3 pasos); **"Programar próxima"** (agendar sin abrir) vive en **Configuración** (§2.8) —
+crear/programar es una decisión administrativa, del mismo nivel que personas/productos/cover, no un gesto de navegación.
 
 | Sección | Contenido |
 |---|---|
