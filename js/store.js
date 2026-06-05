@@ -505,10 +505,17 @@
     setBreBPersona(personaId, breB) { const per = select.persona(personaId); if (!per) return; per.breB = (breB != null && breB !== '') ? String(breB) : null; commitQuiet({ kind: 'persona', id: personaId }); },
 
     // ----- settings -----
+    // Cover VIGENTE: además de guardar el default global, RE-APLICA el cover a las primadas ABIERTAS
+    // (su snapshot se vuelve a sellar con el valor vigente) → sus totales se actualizan al instante. Las
+    // primadas CERRADAS quedan CONGELADAS (historia: INVARIANTE #4). commit (no commitQuiet) para que la
+    // Vista re-renderice; se persisten settings + cada primada abierta tocada.
     setCover({ ahorrador, invitado } = {}) {
       if (ahorrador != null) state.settings.cover.ahorrador = Number(ahorrador) || 0;
       if (invitado != null) state.settings.cover.invitado = Number(invitado) || 0;
-      commitQuiet({ kind: 'settings' });
+      const abiertas = (state.primadas || []).filter(p => p.estado !== 'cerrada');
+      abiertas.forEach(p => { p.cover = { ...state.settings.cover }; });
+      commit({ kind: 'settings' });                                   // notifica (re-render) + upsert settings
+      abiertas.forEach(p => pushUpsert({ kind: 'primada', id: p.id }));   // persiste cada primada abierta re-sellada
     },
     upsertDefaultProducto(prod) {
       const np = normProducts([prod])[0];

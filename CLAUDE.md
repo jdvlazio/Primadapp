@@ -182,9 +182,12 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
 - Flujo único e inviolable: **evento → acción → commit (guarda) → notifica → render**.
 - La Vista se suscribe a Store y **re-renderiza la sección completa** en cada cambio (deliberado).
 - **Excepción `commitQuiet` (fluidez de inputs):** las ediciones de **texto en vivo** (`renombrarPrimada`, `setFecha`,
-  `setMesContable`, `renombrarPersona`, `setBreBPersona`, `setCover`, `setPreciosProducto`) persisten **sin notificar** (`commitQuiet`),
+  `setMesContable`, `renombrarPersona`, `setBreBPersona`, `setPreciosProducto`) persisten **sin notificar** (`commitQuiet`),
   por lo que **no** disparan re-render. Motivo: el re-render completo reconstruiría el `<input>` en plena escritura y
   rompería foco y cursor; el campo ya muestra lo tecleado y el próximo render estructural reflejará lo derivado.
+  (**`setCover` es la excepción a la excepción:** usa `commit` normal porque debe re-renderizar para reflejar el cover
+  vigente en los totales de las primadas abiertas; su input es `type=number` y dispara `change` en blur, así que el
+  re-render no rompe foco.)
   Todo lo demás (consumos ±, roles, abonos, alta/baja, navegación) usa `commit` normal (persiste **y** re-renderiza).
   Regla: una acción nueva de **edición de texto en un input** usa `commitQuiet`; cualquier cambio **estructural** usa `commit`.
 
@@ -360,8 +363,10 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   recibe los pagos (llave `breB`), **recupera su costo neto** y **entrega solo la ganancia al Tesorero** (saldo del principal = 0).
 - **`coverExonerado`** existe como override manual (cortesía/niños), además del cover-free por rol.
 - **`aportadoPor`** por producto (default = principal) permite que un co-organizador frontee productos.
-- **Cover "fijo" = un único valor vigente** (ahorrador/invitado) que aplica a todas las primadas, **editable hacia adelante**;
-  sugerido inicial **$15.000 / $10.000** (solo default de instalación nueva — **no se reescribe** el snapshot de primadas viejas).
+- **Cover "fijo" = un único valor vigente** (ahorrador/invitado), **editable hacia adelante**; sugerido inicial
+  **$15.000 / $10.000**. Al editarlo (`setCover`), se **RE-APLICA el snapshot a las primadas ABIERTAS** (sus totales
+  reflejan el cover vigente al instante); las **CERRADAS quedan CONGELADAS** (historia, INVARIANTE #4 — su snapshot
+  **no** se reescribe). Una primada nueva nace con el cover vigente snapshotteado.
 - **"Cerrada"** congela la cuenta del evento pero **sigue aceptando abonos**.
 - **Tesorería** (ahorro, préstamos, actividades extra) es **módulo futuro**; va como tab **"Próximamente"**.
 - **Backend Supabase (CONFIRMADO, implementación en sesión dedicada):** datos en la nube para persistir entre dispositivos.
