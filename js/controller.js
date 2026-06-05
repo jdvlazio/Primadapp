@@ -381,7 +381,11 @@
       // ----- pago BINARIO (válido AUNQUE la primada esté cerrada: los pagos llegan después) -----
       // "Pagar" abre la hoja con la llave Bre-B del principal; "Ya pagué" marca pagado; "Deshacer" revierte.
       case 'open-pagar':    ui.overlay = 'pagar'; ui.pagarPid = pid; rerender(); return;
-      case 'marcar-pagado': A.setPagado(prm, pid, true); ui.overlay = null; ui.pagarPid = null; View.toast('Marcado como pagado'); rerender(); return;
+      case 'marcar-pagado': {
+        A.setPagado(prm, pid, true); ui.overlay = null; ui.pagarPid = null;
+        const nom = (Store.select.persona(pid) || {}).nombre || 'Pago';   // confirmación VISIBLE: saldó su cuenta
+        View.toast('✓ ' + nom + ' saldado', 'ok'); rerender(); return;
+      }
       case 'set-no-pagado': A.setPagado(prm, pid, false); break;
       case 'copiar-llave': {
         const llave = b.dataset.llave || '';

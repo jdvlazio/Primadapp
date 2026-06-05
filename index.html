@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260605-113106-69b1f35">
+<meta name="build" content="20260605-123616-81ff4a5">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -163,6 +163,7 @@
 
   .toast{position:fixed;left:50%;bottom:calc(76px + max(env(safe-area-inset-bottom), 20px));transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:1200;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.ok{background:var(--pos-bg);color:var(--pos)}   /* confirmación POSITIVA (pago saldado) — tokens existentes */
 
   /* Indicador de sincronización con la nube (lo crea View.renderSync). Discreto, esquina superior. */
   .sync-indicator{position:fixed;top:var(--space-2);right:var(--space-2);z-index:1300;font-size:11px;font-weight:700;padding:var(--space-1) var(--space-3);border-radius:var(--radius-xl);background:var(--paper-3);color:var(--ink-soft);border:1px solid var(--line);box-shadow:0 6px 18px -10px rgba(0,0,0,.6)}
@@ -186,6 +187,11 @@
   .muted{color:var(--ink-soft)}
   .small{font-size:12px}
   .owe{color:var(--alert)}
+  /* Recaudo › lista "Debe": pendientes (ámbar) arriba, saldadas (check teal + nombre gris) al final.
+     Nadie desaparece: el progreso del cobro se lee sin contar ausencias. */
+  .kv b.pend{color:var(--amber)}
+  .kv.saldada span{color:var(--ink-soft);display:flex;align-items:center;gap:var(--space-1)}
+  .asis-check{color:var(--accent);display:inline-flex;align-items:center;vertical-align:middle}
   /* nota explicativa: texto auxiliar que acompaña al control de arriba (espaciado por token) */
   .hint{color:var(--ink-soft);font-size:12px;line-height:1.5;margin:var(--space-1) 0 var(--space-3)}
   /* utilitario de separación superior por token */
@@ -270,6 +276,7 @@
   .informe-persona{display:flex;align-items:center;gap:var(--space-2)}
   .informe-left{flex:1;min-width:0}            /* min-width:0 → el texto largo no empuja el total fuera */
   .informe-nombre{font-weight:700;font-size:14px;color:#0d1716}
+  .informe-check{color:var(--accent);font-weight:800}        /* ✓ delante de quien ya saldó (PNG) */
   .informe-total{font-weight:700;font-size:14px;color:var(--accent);white-space:nowrap;flex:none}
   /* productos INLINE: emoji+nombre+×N separados por ·, gris suave, un paso más pequeños; sin subtotales. */
   .informe-prods{margin-top:1px;font-size:11px;line-height:1.3;color:#6b7977}
@@ -544,13 +551,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260605-113106-69b1f35"></script>
-  <script src="js/util.js?v=20260605-113106-69b1f35"></script>
-  <script src="js/api.js?v=20260605-113106-69b1f35"></script>
-  <script src="js/auth.js?v=20260605-113106-69b1f35"></script>
-  <script src="js/store.js?v=20260605-113106-69b1f35"></script>
-  <script src="js/view.js?v=20260605-113106-69b1f35"></script>
-  <script src="js/controller.js?v=20260605-113106-69b1f35"></script>
+  <script src="js/config.js?v=20260605-123616-81ff4a5"></script>
+  <script src="js/util.js?v=20260605-123616-81ff4a5"></script>
+  <script src="js/api.js?v=20260605-123616-81ff4a5"></script>
+  <script src="js/auth.js?v=20260605-123616-81ff4a5"></script>
+  <script src="js/store.js?v=20260605-123616-81ff4a5"></script>
+  <script src="js/view.js?v=20260605-123616-81ff4a5"></script>
+  <script src="js/controller.js?v=20260605-123616-81ff4a5"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

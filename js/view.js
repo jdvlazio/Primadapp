@@ -50,27 +50,29 @@
      ============================================================ */
   function informeTemplateHTML(p) {
     const sel = S();
-    const lineas = sel.asistenciasPorConsumo(p).map(a => {
+    // Una persona por fila. COMPACTO (2 líneas): nombre (izq) + TOTAL teal (der); productos inline debajo.
+    // SALDADAS (saldo 0, ya saldaron) → check "✓" delante del nombre. El PNG refleja el estado COMPLETO:
+    // quién debe (arriba) y quién ya saldó (abajo) → el lector entiende por qué bajó el total.
+    const filaInforme = (a) => {
       const consumos = sel.resumenConsumoDe(p, a);                 // [{prod, cantidad}]
       const cover = sel.coverDe(p, a);
       if (!consumos.length && cover <= 0) return '';               // omite quien no consumió ni paga cover
-      // COMPACTO (2 líneas/persona): fila 1 = nombre (izq) + TOTAL teal (der), sin el label "Total" (el
-      // número lo comunica). Fila 2 = productos inline (emoji+nombre+×N · …) + "Cover" como chip SIN precio
-      // (el precio ya está en el Total). Sin subtotal por ítem — el desglose ya está en la app; la imagen es
-      // el resumen accionable (cuánto debo + Bre-B). Personas separadas por una línea fina (CSS).
       const chips = consumos.map(({ prod, cantidad }) => `${e(prod.emoji)} ${e(prod.nombre)} ×${cantidad}`);
       if (cover > 0) chips.push('Cover');
       const detalle = chips.length ? `<div class="informe-prods">${chips.join(' · ')}</div>` : '';
-      // Dos columnas: izquierda (nombre + productos) y el TOTAL a la derecha, centrado verticalmente
-      // entre ambos por el align-items:center del flex padre (.informe-persona).
+      const saldada = sel.saldoDe(p, a) === 0 && sel.totalAsistencia(p, a) > 0;
       return `<div class="informe-asis informe-persona">
           <div class="informe-left">
-            <div class="informe-nombre">${e(nombrePersona(a.personaId))}</div>
+            <div class="informe-nombre">${saldada ? '<span class="informe-check">✓</span> ' : ''}${e(nombrePersona(a.personaId))}</div>
             ${detalle}
           </div>
           <div class="informe-total">${$peso(sel.totalAsistencia(p, a))}</div>
         </div>`;
-    }).join('');
+    };
+    // Pendientes (saldo>0) PRIMERO, saldadas (saldo 0) al FINAL; dentro de cada grupo, orden por consumo.
+    const ordenadas = sel.asistenciasPorConsumo(p);
+    const lineas = ordenadas.filter(a => sel.saldoDe(p, a) > 0).map(filaInforme)
+      .concat(ordenadas.filter(a => sel.saldoDe(p, a) === 0).map(filaInforme)).join('');
     const cerrada = p.estado === 'cerrada';
     const resumen = cerrada
       ? `<div class="informe-resumen gan">Ganancia ${$peso(sel.ganancia(p))}</div>`
@@ -404,12 +406,15 @@
     const total = S().totalAsistencia(p, a);
     const esPrin = S().esPrincipal(p, a);
     const abierto = ui && ui.abiertos && ui.abiertos.has(a.personaId);
+    // SALDADO: saldo 0 y SÍ tenía algo que saldar (total>0). Check discreto junto al nombre (feedback visible
+    // del pago). La tarjeta sigue completa — el consumo existió. Quien debe (saldo>0) no cambia.
+    const saldado = S().saldoDe(p, a) === 0 && total > 0;
 
     // Cabecera-resumen (operar): el total visible es SOLO consumo + cover (el dato de un vistazo).
     // El saldo/deuda es "ver la plata" → vive en la cara Balance, no aquí.
     const cabecera = `<button class="acc-head" data-act="toggle-asis" data-pid="${a.personaId}" aria-expanded="${abierto ? 'true' : 'false'}">
         <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-        <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b> ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
+        <span class="acc-id"><b>${e(nombrePersona(a.personaId))}</b>${saldado ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : ''} ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Principal</span>' : ''}</span>
         <span class="acc-amt">${$peso(total)}</span>
       </button>`;
 
@@ -574,9 +579,12 @@
     const teaser = cerrada
       ? `Entregó ${$peso(inf.entregaTesorero)} al Tesorero`
       : `Entrega ${$peso(inf.entregaTesorero)} al Tesorero`;
-    const deudList = deud.length
-      ? deud.map(d => `<div class="kv"><span>${e(nombrePersona(d.personaId))}</span><b class="owe">${$peso(d.saldo)}</b></div>`).join('')
-      : `<div class="muted small">Nadie debe</div>`;
+    // Lista de cobro COMPLETA (nadie desaparece): PENDIENTES (saldo>0, ámbar) arriba; SALDADAS (terceros que
+    // ya pagaron, saldo 0) abajo, con check teal + nombre gris. Estado de un vistazo sin contar ausencias.
+    const saldadas = (p.asistencias || []).filter(a => a.personaId !== prinId && a.pagado && sel.totalAsistencia(p, a) > 0);
+    const pendList = deud.map(d => `<div class="kv"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('');
+    const saldList = saldadas.map(a => `<div class="kv saldada"><span><span class="asis-check">${icon('check', 'sm')}</span> ${e(nombrePersona(a.personaId))}</span></div>`).join('');
+    const deudList = (deud.length || saldadas.length) ? (pendList + saldList) : `<div class="muted small">Nadie debe</div>`;
     const hero = `<div class="bal-hero">
         <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Recaudo</div>
         <div class="bal-amount ${heroTone}">${$peso(heroAmount)}</div>
@@ -999,8 +1007,11 @@
   }
 
   let toastTimer;
-  function toast(msg) {
-    els.toast.textContent = msg; els.toast.classList.add('show');
+  // toast(msg, kind?) — kind 'ok' = tono POSITIVO (confirmación de acción exitosa, p.ej. pago saldado).
+  function toast(msg, kind) {
+    els.toast.textContent = msg;
+    els.toast.classList.toggle('ok', kind === 'ok');
+    els.toast.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2400);
   }
 

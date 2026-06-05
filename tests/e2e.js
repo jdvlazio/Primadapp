@@ -294,11 +294,14 @@ click('[data-act="set-cara"][data-cara="operacion"]');   // volver a la cara Con
 const ordenDom = qa('[data-act="toggle-asis"]').map(el => el.dataset.pid);
 check('Consumos: mayor total primero (Beto $7.000 antes que Ana $0)',
   ordenDom.indexOf(beto.id) >= 0 && ordenDom.indexOf(beto.id) < ordenDom.indexOf(ana.id));
-// Informe: mismo orden. Doy a Ana un consumo menor (3.500) para que aparezca; Beto (7.000) debe ir antes.
+// Informe: pendientes primero, saldadas al final. Doy a Ana un consumo (3.500) para que aparezca.
+// Ana es principal → saldo 0 → SALDADA (va al final, con ✓). Beto debe 7.000 → PENDIENTE (arriba).
 Store.actions.changeItem(prm().id, ana.id, 'cerveza', +1);
 const infOrden = window.View.informeTemplateHTML(prm());
-check('Informe: mayor total primero (Beto $7.000 antes que Ana $3.500)',
-  infOrden.indexOf('informe-nombre">' + beto.nombre) < infOrden.indexOf('informe-nombre">' + ana.nombre));
+check('Informe: pendiente arriba, saldada al final (Beto $7.000 antes que Ana, principal saldada)',
+  infOrden.indexOf('informe-nombre">' + beto.nombre) < infOrden.indexOf(ana.nombre + '</div>'));
+check('Informe: saldada (Ana, principal) lleva ✓ delante del nombre',
+  infOrden.indexOf('informe-check') >= 0 && infOrden.indexOf('informe-check') < infOrden.indexOf(ana.nombre + '</div>'));
 Store.actions.changeItem(prm().id, ana.id, 'cerveza', -1);   // restaurar (Ana sin consumo) para el resto del flujo
 check('Orden es presentación: Ana volvió a total 0 tras restaurar', Store.select.totalAsistencia(prm(), anaAsis()) === 0);
 
@@ -341,6 +344,23 @@ eq('Deshacer: Beto vuelve a deber 7.000', Store.select.saldoDe(prm(), betoAsis()
 click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);
 click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`);
 eq('Re-marcado pagado (persistencia)', betoAsis().pagado, true);
+
+/* ---------- 8b·3. Feedback visual del pago: check en Consumos + Recaudo no oculta saldados ---------- */
+section('Pago saldado: check en la tarjeta Consumos + Recaudo lista al saldado (nadie desaparece)');
+// Beto saldado (saldo 0, total 7.000>0). En la cara Consumos su tarjeta debe llevar un check junto al nombre.
+click('[data-act="set-cara"][data-cara="operacion"]'); abrir(beto.id);
+const betoCard = q(`[data-act="toggle-asis"][data-pid="${beto.id}"]`).closest('.acc') || q('#screen');
+check('Consumos: Beto saldado muestra .asis-check junto al nombre',
+  /asis-check/.test(q('#screen').querySelector(`[data-act="toggle-asis"][data-pid="${beto.id}"]`).innerHTML));
+// Recaudo: Beto NO desaparece — aparece al final como saldado (.kv.saldada con check), no como deudor ámbar.
+click('[data-act="set-cara"][data-cara="balance"]');
+click('[data-act="toggle-balance"][data-sec="informe"]');   // expandir el acorde del Recaudo (la lista vive dentro)
+const recaudo = q('#screen').innerHTML;
+check('Recaudo: bloque saldadas presente (.kv.saldada) con Beto y un check',
+  /kv saldada/.test(recaudo) && new RegExp('kv saldada[^]*asis-check[^]*' + beto.nombre).test(recaudo));
+check('Recaudo: Beto ya NO figura como pendiente con monto ámbar (.pend)',
+  !new RegExp(beto.nombre + '</span><b class="pend"').test(recaudo));
+click('[data-act="toggle-balance"][data-sec="informe"]');   // colapsar de nuevo (no contaminar tests posteriores)
 
 /* ---------- 8b·2. CTA contextual "Todos pagaron · Cerrar primada" (P5 lote visual) ---------- */
 section('CTA "Todos pagaron · Cerrar primada" aparece y cierra (P5)');
