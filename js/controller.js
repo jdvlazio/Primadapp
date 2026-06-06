@@ -248,9 +248,6 @@
       case 'volver-home':     volverHome(); return;          // ← Inicio en la topbar del detalle
       case 'open-config-primada': ui.overlay = 'config-primada'; ui.configTab = 'asistentes'; rerender(); return;  // ··· del detalle
 
-      // ----- selector de primada (LEGADO, dead en IA list→detalle; lo reemplaza el home) -----
-      case 'open-selector': ui.overlay = 'selector-primada'; rerender(); return;
-
       // ----- panel de Balance del detalle (debajo de la Lista viva, mismo scroll): NO escritura -----
       case 'toggle-balance-panel': ui.balanceOpen = !View.balanceAbierto(Store.select.activePrimada(), ui); rerender(); return;
 
@@ -304,8 +301,6 @@
         } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo crear'); }
         return;
       }
-      // Elegir una primada desde la hoja del selector: activa y cierra la hoja.
-      case 'select-primada':   A.seleccionarPrimada(id); resetBalancePanel(); ui.overlay = null; rerender(); return;
       // Conmuta la pestaña interna de config del evento activo (Asistentes | Productos) en el gear › Primadas.
       case 'config-tab':       ui.configTab = (b.dataset.ctab === 'productos') ? 'productos' : 'asistentes'; rerender(); return;
       // Acciones destructivas: con confirmación (la cuenta cerrada congela consumos).

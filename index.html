@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260606-091810-66f7e34">
+<meta name="build" content="20260606-093843-713c22d">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -123,10 +123,6 @@
   .h2 .muted{margin-left:var(--space-1)}
   /* cabecera de sección: título + acción de texto en la misma línea, con aire arriba */
   .sec-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
-  /* botón de ícono sin caja (acción secundaria tocable) */
-  .icon-btn{display:flex;align-items:center;justify-content:center;width:var(--tap-sec);height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--ink-soft);border-radius:var(--radius-md)}
-  .icon-btn:active{background:var(--paper-2)}
-  .icon-btn:hover{color:var(--accent)}
   /* enlace de acción en texto (sin caja): teal, con su ícono */
   .add-link{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-2)}
   .add-link:active{opacity:.6}
@@ -430,11 +426,6 @@
   .cfg-sec + .cfg-sec{margin-top:var(--space-4)}
   .cfg-sec .sub{margin-top:0}
 
-  /* Identidad de la primada activa (título grande) — usado por el dashboard Balance */
-  .prm-name{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:22px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* Conmutador de CARA de la primada (legado seg-nav; el Balance pasó a panel inferior en la IA list→detalle). */
-  .cara-switch{display:flex;justify-content:center;margin:var(--space-3) 0 var(--space-4)}
-
   /* PANEL de Balance del DETALLE (IA list→detalle): subordinado a la Lista viva, mismo scroll. Un chip lo
      despliega/colapsa; el panel aparece debajo. Default por estado (abierta colapsado, cerrada desplegado). */
   .balance-dock{margin-top:var(--space-5);border-top:1px solid var(--line)}
@@ -458,35 +449,8 @@
   .cuenta-sec .sub{margin:0}
   .cuenta-nota{margin:0}
 
-  /* ---------- SELECTOR de primada (barra superior del tab Primadas, DESIGN.md §2.11) ----------
-     Navegación principal: selector tappable (flex:1) + engranaje (config) + "+" chico (nueva).
-     Cerrado: "Mes Año" (primario) sobre estado+nombre (tenue) + caret. Abre la hoja agrupada. */
-  .selrow{display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-4)}
-  .prm-selector{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2);background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-1) 0}
-  .prm-selector:active{opacity:.7}
-  .prm-selector.empty{cursor:default}
-  /* Dos líneas: "Mes Año" (guía, con punto de estado) sobre el nombre corto (identidad, tenue). */
-  .sel-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .sel-main{display:flex;align-items:center;gap:var(--space-2);font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:22px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sel-sub{font-size:13px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sel-caret{flex:none;color:var(--ink-soft);display:inline-flex;align-items:center;transition:transform .18s ease}
-  .sel-caret .icon{width:20px;height:20px}
-  .sel-caret.open{transform:rotate(180deg)}
-  /* Hoja del selector: agrupación por año → filas de mes·nombre + total + check en la activa */
-  .sel-anio{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:13px;color:var(--ink-soft);letter-spacing:.06em;margin:var(--space-4) 0 var(--space-1)}
-  .sel-anio:first-child{margin-top:0}
-  .sel-list{display:flex;flex-direction:column}
-  .sel-fila{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);width:100%;background:transparent;border:none;border-bottom:1px solid var(--line-soft);cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-2) var(--space-1)}
-  .sel-fila:last-child{border-bottom:none}
-  .sel-fila:active{background:var(--paper-2)}
-  .sel-fila-main{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sel-fila-main b{font-weight:700}
-  .sel-fila.on .sel-fila-main b{color:var(--accent)}
-  .sel-fila-right{flex:none;display:flex;align-items:center;gap:var(--space-2)}
-  .sel-fila-total{font-size:13px;font-weight:700;color:var(--ink)}
-  .sel-check{color:var(--accent);display:inline-flex;align-items:center}
-  /* Selector: encabezado de AÑO bajo "Pasadas" (más tenue que el título de sección). */
-  .sel-subanio{font-size:12px;font-weight:700;color:var(--ink-soft);opacity:.75;margin:var(--space-2) 0 0 var(--space-1)}
+  /* (LEGADO ELIMINADO) CSS del selector-overlay de primada (.selrow/.prm-selector/.sel-*): la lista de
+     primadas es ahora el HOME (.hero-card/.hist-*). Ver IA list→detalle. */
   /* "Zona peligrosa" en el sheet de config */
   .danger-sub{color:var(--alert)}
 
@@ -519,7 +483,6 @@
   /* Gear › tab Primada: seg-nav de config del evento (Asistentes|Productos) + nombre de la activa arriba. */
   .cfg-seg{margin-bottom:var(--space-3)}
   .cfg-nombre{margin-bottom:var(--space-4)}   /* campo Nombre editable de la primada (Configurar) */
-  .cfg-primada-name{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:18px;color:var(--ink);margin-bottom:var(--space-3)}
   .seg{min-height:var(--tap-sec);font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--ink-soft);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm)}
   .seg.on{background:var(--paper-2);color:var(--ink)}
   .seg-nav.sm .seg{font-size:12px;padding:var(--space-2) var(--space-3)}
@@ -597,21 +560,8 @@
   .asis-compact-id .dot{flex:none}
   .asis-compact-id b{font-weight:700}
   .sin-cover{font-size:11px;color:var(--ink-soft);background:var(--paper-3);border-radius:var(--radius-sm);padding:1px var(--space-2)}
-  /* Toggle de CORTESÍA "Sin cover" por asistente (Configurar): OFF = ghost tenue; ON = exonerado (teal). */
-  .cover-toggle{font-size:11px;font-weight:700;color:var(--ink-soft);border:1px solid var(--line);background:transparent;border-radius:var(--radius-sm);padding:2px var(--space-2)}
-  .cover-toggle.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}
   .asis-compact-acc{flex:none;display:flex;align-items:center;gap:var(--space-1)}
   .hacer-prin{color:var(--accent);font-weight:700;white-space:nowrap}
-
-  /* Gear global › tab PRIMADAS — filas administrativas (NO navegan, editan el calendario): nombre + meta
-     + acciones (Reabrir / Eliminar). */
-  .padm-fila{display:flex;align-items:center;gap:var(--space-2);min-height:var(--tap-row);border-bottom:1px solid var(--line-soft);padding:var(--space-1) var(--space-1)}
-  .padm-fila:last-child{border-bottom:none}
-  .padm-id{flex:1;min-width:0;display:flex;align-items:center;gap:var(--space-2);overflow:hidden}
-  .padm-id b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .padm-meta{font-size:12px;color:var(--ink-soft);white-space:nowrap}
-  .padm-acc{flex:none;display:flex;align-items:center;gap:var(--space-1)}
-  .padm-acc .xmini.danger{color:var(--alert)}
 
   [hidden]{display:none !important}
 </style>
@@ -643,13 +593,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260606-091810-66f7e34"></script>
-  <script src="js/util.js?v=20260606-091810-66f7e34"></script>
-  <script src="js/api.js?v=20260606-091810-66f7e34"></script>
-  <script src="js/auth.js?v=20260606-091810-66f7e34"></script>
-  <script src="js/store.js?v=20260606-091810-66f7e34"></script>
-  <script src="js/view.js?v=20260606-091810-66f7e34"></script>
-  <script src="js/controller.js?v=20260606-091810-66f7e34"></script>
+  <script src="js/config.js?v=20260606-093843-713c22d"></script>
+  <script src="js/util.js?v=20260606-093843-713c22d"></script>
+  <script src="js/api.js?v=20260606-093843-713c22d"></script>
+  <script src="js/auth.js?v=20260606-093843-713c22d"></script>
+  <script src="js/store.js?v=20260606-093843-713c22d"></script>
+  <script src="js/view.js?v=20260606-093843-713c22d"></script>
+  <script src="js/controller.js?v=20260606-093843-713c22d"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

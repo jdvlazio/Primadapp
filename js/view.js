@@ -138,71 +138,8 @@
     return ((p.consumos || []).length > 0) ? 'open' : 'idle';
   }
 
-  // BARRA SUPERIOR del tab Primadas = SELECTOR de primada (navegación PURA) + acciones de la activa.
-  // El "+" de crear NO vive aquí: el ÚNICO punto de creación es el gear global › Primadas › "Nueva primada".
-  // Cerrado: línea 1 = NOMBRE corto (identidad); línea 2 tenue = dot de estado + "Mes Año".
-  function primadaSelectorRow(state, ui) {
-    const p = S().activePrimada();
-    if (!p) return '';
-    const abierto = ui && ui.overlay === 'selector-primada';
-    const inc = S().primadaIncompleta(p) ? ' ' + badge('sin anfitrión', 'warn') : '';
-    return `<div class="selrow">
-      <button class="prm-selector" data-act="open-selector" aria-haspopup="listbox" aria-expanded="${abierto ? 'true' : 'false'}">
-        <span class="sel-text">
-          <span class="sel-main">${e(nombreCorto(p.nombre))}</span>
-          <span class="sel-sub"><span class="dot ${dotClase(p)}"></span>${e(Util.monthYear(p.mesContable))}${inc}</span>
-        </span>
-        <span class="sel-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-      </button>
-      ${hayDatosInforme(p) ? `<button class="icon-btn" data-act="compartir-informe" title="Compartir informe" aria-label="Compartir informe">${icon('share-2')}</button>` : ''}
-    </div>`;
-  }
-
-  // Hoja del selector: TODAS las primadas agrupadas por AÑO → MES (reciente arriba). Tocar una la
-  // activa y cierra. La activa lleva check. El "total" de cada fila = recaudo (snapshot del evento).
-  // Selector = NAVEGACIÓN PURA: elegir con cuál primada trabajar. TRES secciones, relativas a la ACTIVA:
-  // Próximas (mes posterior) · Activa (la seleccionada) · Pasadas (mes anterior, por año). Una futura NO
-  // cae en "Pasadas". NO crea nada (crear vive en el gear global › Calendario).
-  function selectorSheet(state, ui) {
-    const sel = S();
-    const activeId = state.activePrimadaId;
-    const activa = sel.activePrimada();
-    const proximas = sel.primadasProximas(activeId);             // futuras (mes > activa), asc
-    const grupos = sel.primadasPorAnio();
-    // Pasadas = historial SIN la activa NI las futuras (esas van en Próximas).
-    const pasadas = grupos.map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId && !sel.esFutura(p, activeId)) }))
-      .filter(g => g.primadas.length);
-    const secProx = proximas.length
-      ? `<div class="sel-anio">Próximas</div><div class="sel-list">${proximas.map(p => selectorFila(p, activeId)).join('')}</div>` : '';
-    const secActiva = activa
-      ? `<div class="sel-anio">Activa</div><div class="sel-list">${selectorFila(activa, activeId)}</div>` : '';
-    const secPasadas = pasadas.length
-      ? `<div class="sel-anio">Pasadas</div>` + pasadas.map(g =>
-          `<div class="sel-subanio">${e(g.anio)}</div><div class="sel-list">${g.primadas.map(p => selectorFila(p, activeId)).join('')}</div>`).join('') : '';
-    const vacio = (!secProx && !secActiva && !secPasadas) ? '<div class="empty-soft">Sin primadas</div>' : '';
-    return `<div class="sheet full">
-      <div class="sheet-head">
-        <div class="sheet-title">Primadas</div>
-        <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button>
-      </div>
-      <div class="sheet-body">${secProx}${secActiva}${secPasadas}${vacio}</div>
-    </div>`;
-  }
-  // Fila del selector = MES (guía, en negrita) · NOMBRE corto (sin "Primada", la identidad real) +
-  // total + check en la activa. El dot deriva de actividad real (dotClase). El nombre distingue varias
-  // primadas del MISMO mes.
-  function selectorFila(p, activeId) {
-    const sel = S();
-    const activa = p.id === activeId;
-    const inc = sel.primadaIncompleta(p) ? ' ' + badge('incompleta', 'warn') : '';
-    return `<button class="sel-fila ${activa ? 'on' : ''}" data-act="select-primada" data-id="${p.id}">
-      <span class="sel-fila-main"><span class="dot ${dotClase(p)}"></span><b>${e(Util.monthName(p.mesContable))}</b> · ${e(nombreCorto(p.nombre))}${inc}</span>
-      <span class="sel-fila-right">
-        <span class="sel-fila-total">${$peso(sel.recaudado(p))}</span>
-        ${activa ? `<span class="sel-check">${icon('check', 'sm')}</span>` : ''}
-      </span>
-    </button>`;
-  }
+  // (LEGADO ELIMINADO) El selector-overlay de primada (`primadaSelectorRow`/`selectorSheet`/`selectorFila`)
+  // se quitó con la IA list→detalle: la lista de primadas es ahora el HOME (`homeBody`).
 
   // CONFIGURACIÓN del evento activo = DOS tabs operativos (seg-nav interno): Asistentes (participación,
   // lista compacta) | Productos (precios). NADA MÁS. La identidad (nombre/fecha/mes) se fija al crear
@@ -792,15 +729,7 @@
   }
 
   /* ============================================================
-     TAB Fondo (placeholder — tesorería futura)
-     ============================================================ */
-  function placeholder(titulo, txt) {
-    return `<div class="empty-soft big"><div class="ph-title">${e(titulo)}</div><div>${txt}</div>
-      <div class="badge warn mt-3">Próximamente</div></div>`;
-  }
-
-  /* ============================================================
-     PANTALLAS detrás del engranaje: Personas (directorio) y Ajustes
+     PANTALLAS de Ajustes globales: Personas (directorio) y Ajustes
      ============================================================ */
   // Fila liviana de persona (DESIGN.md §2.9): dos líneas, expandible inline para editar.
   // Cerrada: línea 1 = nombre + rol (etiqueta tenue, igual que la fila de asistente);
@@ -1008,20 +937,8 @@
       </div>
     </div>`;
   }
-  // Fila administrativa: nombre + mes · recaudo · acciones (Reabrir si cerrada, Eliminar siempre con
-  // confirmación). Eliminar la ACTIVA en operación lleva data-activa para una advertencia más fuerte.
-  function primadaAdminFila(p, activeId) {
-    const sel = S();
-    const meta = `${e(Util.monthName(p.mesContable))} · ${$peso(sel.recaudado(p))}`;
-    const esActiva = p.id === activeId;
-    return `<div class="padm-fila">
-      <span class="padm-id"><span class="dot ${dotClase(p)}"></span><b>${e(nombreCorto(p.nombre))}</b> <span class="padm-meta">${meta}</span></span>
-      <span class="padm-acc">
-        ${p.estado === 'cerrada' ? `<button class="xmini" data-act="reabrir-primada" data-id="${p.id}">Reabrir</button>` : ''}
-        <button class="xmini danger" data-act="borrar-primada" data-id="${p.id}" ${esActiva ? 'data-activa="1"' : ''} aria-label="Eliminar primada">${icon('trash-2', 'sm')}</button>
-      </span>
-    </div>`;
-  }
+  // (LEGADO ELIMINADO) `primadaAdminFila` (Reabrir/Eliminar en la lista del gear › Calendario) se quitó:
+  // esas acciones viven ahora en el "···" por primada del HOME (`rowMenuBtn` → `primadaMenuSheet`).
 
   /* ============================================================
      RENDER raíz: (state, ui) → DOM
@@ -1062,7 +979,6 @@
     if (ui.wizard)                                              els.overlay.innerHTML = wizardSheet(state, ui);
     else if (ui.overlay === 'login')                           els.overlay.innerHTML = loginSheet(state, ui);
     else if (ui.overlay === 'pagar')                           els.overlay.innerHTML = pagarSheet(state, ui);
-    else if (ui.overlay === 'selector-primada')                els.overlay.innerHTML = selectorSheet(state, ui);
     else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
     else if (ui.overlay === 'primada-menu')                    els.overlay.innerHTML = primadaMenuSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
