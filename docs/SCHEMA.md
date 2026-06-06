@@ -1,9 +1,13 @@
-# La Primada — Modelo de datos (esquema v4) y backend
+# La Primada — Modelo de datos y backend
 
-> Forma del estado en memoria (`AppState` v4) y su mapeo al esquema **Supabase**
-> (`supabase/schema.sql`). Extraído del código real (`js/store.js`, `js/api.js`,
-> `js/config.js`) y del SQL. La arquitectura de capas vive en `docs/ARQUITECTURA.md`;
-> el dominio/producto en `CLAUDE.md`.
+> ⚠️ **DESACTUALIZADO — describe hasta v4.** El modelo **VIGENTE es v6**: **pago BINARIO** (`Asistencia.pagado:bool`,
+> el `abonos[]` se eliminó en v5) y **consumos como FILAS** (`consumos[]` / tabla relacional `consumos`, el `items{}`
+> se eliminó en v6). **Fuente autoritativa del esquema v6: `CLAUDE.md` › "Modelo de datos (esquema v6 — DEFINITIVO)"**
+> (incl. la tabla `consumos` y RLS). Este doc queda como referencia histórica del modelo v4; su reescritura a v6 es un
+> follow-up. Lo de abajo (forma v4 con `items{}`/`abonos[]`) **ya NO refleja el código**.
+>
+> Forma del estado en memoria y su mapeo al esquema **Supabase** (`supabase/schema.sql`). La arquitectura de capas
+> vive en `docs/ARQUITECTURA.md`; el dominio/producto en `CLAUDE.md`.
 
 ---
 

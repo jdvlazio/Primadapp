@@ -107,7 +107,7 @@ nunca como ritmo normal. Cualquier control nuevo hereda esto por los tokens — 
 | `--space-4` | 20px | padding de tarjeta · **separación entre secciones (default)** |
 | `--space-5` | 28px | **excepción**: aire deliberado (login, padding inferior de sheet) |
 | `--space-6` | 40px | **excepción**: hero / estado vacío grande. **No** como ritmo normal |
-| `--space-safe` | 86px | padding inferior del contenido (deja sitio a la tabbar fija) |
+| `--space-safe` | 86px | padding inferior del contenido (reserva de espacio; legado de la tabbar, hoy sin tab bar) |
 
 ### Tipografía — pesos (Instrument Sans, única familia)
 | Peso | Valor | Uso |
@@ -156,18 +156,16 @@ con piso `max(env(...),20px)` (detalle en §6).
 Cada componente se describe por su **clase + propiedades exactas**. Donde hay duplicado
 histórico, se marca **✅ CANÓNICO** o **❌ LEGADO (eliminar)**.
 
-> ⚠️ **REFACTOR DE IA — LISTA→DETALLE (estilo Tricount). Varias subsecciones de abajo describen la IA ANTERIOR
-> (tab bar, selector-overlay, gear de 4 tabs, Balance como seg-nav) y quedan DESACTUALIZADAS.** La navegación
-> vigente es **home (lista) ↔ detalle (primada)** con `ui.view`, **sin tab bar**, topbar dinámica y back stack
-> (`pushState`). El **Balance es un panel inferior** (chip `toggle-balance-panel`), no un seg-nav. **Ajustes es una
-> pantalla PLANA** (`ajustesSheet`, sin tabs); el gear de 4 tabs (`overlaySheet`/`calendarioBody`/`primadaConfigTab`)
-> se ELIMINÓ; el **··· del detalle** abre `configPrimadaSheet`; el **··· por primada en el home** ofrece Reabrir/Eliminar.
-> Ver `CLAUDE.md` › **Navegación (DECIDIDA) — LISTA→DETALLE** para el contrato vigente. *(Esta sección visual se
-> reescribirá en una pasada de design dedicada.)*
+> 🧭 **NAVEGACIÓN VIGENTE — IA LISTA→DETALLE (estilo Tricount).** La app es **home (lista) ↔ detalle (primada)** con
+> `ui.view`, **sin tab bar**, topbar dinámica y back stack (`pushState`). **§2.8.1** (Ajustes plano + ··· config),
+> **§2.11** (HOME) y **§2.11.1** (Balance panel) describen esta IA. Los **componentes** (fila de asistente §2.1,
+> Lista viva §2.1.2, inputs §2.3, botones §2.4, sheets §2.5, colores §1) **no cambiaron** — solo cambió el contenedor.
+> Donde abajo se nombren `tabbar` / `selector` / `gear de 4 tabs` en pasado, son **referencias históricas** ya
+> eliminadas. Contrato de dominio/arquitectura: `CLAUDE.md` › **Navegación (DECIDIDA) — LISTA→DETALLE**.
 
 ### 2.1 · Fila de asistente — **el componente crítico** (✅ CANÓNICO)
 
-Muestra una persona en la lista de una primada. Es el corazón del tab Primadas y fija el
+Muestra una persona en la lista de una primada. Es el corazón de la Lista viva del detalle y fija el
 lenguaje de **todas** las filas de la app (directorio, deudores, productos).
 
 **Principio:** **sin caja con borde.** Separación entre filas por **línea tenue**
@@ -197,7 +195,7 @@ cuerpo usan **espacio o línea tenue**, no `dashed`.
 - Debe → **color en el número** (no borde, no fondo).
 
 > **Dos variantes de fila** (mismo lenguaje, distinta interacción): el **acordeón** (`.acc-head` + caret +
-> `.acc-body`) lo usan el **Directorio** (§2.9) y **Configurar › Productos** (§2.8). El **tab Consumos** usa la
+> `.acc-body`) lo usan el **Directorio** (§2.9) y **Configurar › Productos** (§2.8). La **Lista viva** del detalle usa la
 > **Lista viva** (§2.1.2) — sin caret, sin `.acc-body`.
 
 ### 2.1.2 · Tab Consumos — LISTA VIVA (Modelo 3) (✅ CANÓNICO)
@@ -309,15 +307,12 @@ detalle (`.prm-meta`) y en el historial (`.estado-tag`).
 
 ### 2.8 · Configurar el evento activo = Asistentes · Productos (✅ CANÓNICO)
 
-**UN SOLO punto de configuración** (principio: *minimalismo — un solo engranaje en pantalla*). El segundo
-engranaje (`settings-2` en el selector) se **ELIMINÓ**: la config del evento activo vive **dentro del gear
-global › Primadas** (§2.8.1), embebida arriba del calendario vía `configPrimadaBody`. El selector queda 100%
-navegación (nombre + compartir). El gear abre **context-aware**: con una primada activa, aterriza en **Primadas**
-→ configurar la activa queda en ~1 tap.
-- **Cuerpo de config** (`configPrimadaBody`): **dos tabs operativos** sobre el **evento activo** — **Asistentes**
-  (participación) · **Productos** (precios). **Nada más.** Sin identidad (nombre/fecha/mes), sin acciones
-  administrativas. seg-nav interno (`data-act="config-tab"` + `data-ctab`; ⚠️ NO `data-tab` — colisiona con la
-  tabbar inferior, §2.11). `ui.configTab` = pestaña activa (default `asistentes`).
+La config del **evento activo** vive en el **"···" de la topbar del detalle** (`open-config-primada` →
+`configPrimadaSheet`, §2.8.1). No hay engranaje sobre el detalle ni calendario embebido.
+- **Cuerpo de config** (`configPrimadaBody`): campo **Nombre** (editable, `rename-primada`) + **dos sub-tabs** sobre
+  el evento activo — **Asistentes** (participación) · **Productos** (precios). Sin acciones administrativas (Reabrir/
+  Eliminar viven en el "···" del home, §2.11). seg-nav interno (`data-act="config-tab"` + `data-ctab`; el `data-ctab`
+  evita colisionar con cualquier `data-tab` histórico). `ui.configTab` = pestaña activa (default `asistentes`).
 
 **Tab ASISTENTES — lista COMPACTA agrupada (NO acordeón).** Principio **"muestra la excepción, no la regla":**
 el cover común al grupo va UNA vez en el encabezado; la fila solo marca lo que DIFIERE.
@@ -351,23 +346,23 @@ las mismas clases que la fila de Personas — mismo componente acordeón.
 `coverLinea`, `rolSelect` (el `select.sel` de rol desapareció). La lógica de precios y de cover **no** cambia;
 solo **dónde** se editan (rol → creación; exoneración → Agregar; identidad → creación).
 
-### 2.8.1 · Gear GLOBAL = ÚNICA configuración, CUATRO tabs (✅ CANÓNICO)
+### 2.8.1 · Configuración: Ajustes PLANOS (home) + ··· del detalle (✅ CANÓNICO)
 
-`overlaySheet` con seg-nav full-width (`.cols4`, `.sm`) **Primada | Calendario | Personas | Ajustes**
-(`data-act="overlay-tab"` + `data-overlay`). **Un solo engranaje en pantalla** (el `settings-2` del selector se
-eliminó). **Cada tab = UNA intención, alcances SEPARADOS** (antes "Primadas" mezclaba config del evento +
-calendario en un scroll → mala IA). El gear abre **context-aware** (`#gearBtn`): con primada activa → **Primada**
-(configurar, ~1 tap); sin activa → **Calendario** (crear).
-- **Primada** (`primadaConfigTab`) — config del EVENTO ACTIVO, encabezada por `.cfg-primada-name` (el nombre de la
-  activa): seg-nav interno **Asistentes | Productos** (`configPrimadaBody`, §2.8). **Solo config**, sin calendario.
-- **Calendario** (`calendarioBody`) — **"Nueva primada"** (ÚNICO punto de creación; `.add-link`, `new-primada` →
-  wizard SOBRE el gear; al crear/cancelar, wizard y gear se cierran) + lista de TODAS en 3 secciones relativas a
-  la activa (**Próximas** · **Activa** · **Pasadas** gris, igual que el selector §2.11; el dot deriva de actividad,
-  `dotClase`). Cada fila `.padm-fila` (NO navega, EDITA): nombre + meta + **Reabrir** (cerradas) y **Eliminar**
-  (`borrar-primada`, confirmación; `data-activa` = advertencia fuerte).
-- **Personas** (§2.9) — directorio compacto + editar enfocado. **Ajustes** — cover vigente, versión, legal, cuenta.
+> *(El gear de 4 tabs `overlaySheet` — Primada | Calendario | Personas | Ajustes, context-aware `#gearBtn` — se
+> ELIMINÓ con la IA list→detalle. Su config se repartió en dos lugares según el alcance.)*
 
-El **selector** (§2.11) sigue siendo navegación pura (solo cambiar de primada).
+**Config del EVENTO activo = "···" del detalle.** En la topbar del detalle, el **···** (`open-config-primada`) abre
+`configPrimadaSheet`: campo **Nombre** (editable, `rename-primada`) + seg-nav interno **Asistentes | Productos**
+(`configPrimadaBody`, §2.8). Solo config del evento; nada global.
+
+**Config GLOBAL = ⚙ del home → pantalla PLANA** (`ajustesSheet`, sin tabs). Secciones como **acordeones con (v)**,
+COLAPSADAS por defecto (la primera pantalla queda corta; "+ Agregar persona" a la mano): **Ahorradores · Invitados**
+(`per-ahorrador`/`per-invitado`, §2.9) · **Cover** · **Legal** · **Versión** — estado en `ui.ajustesSec` (Set),
+acción `toggle-ajustes-sec`. **Cuenta** NO colapsa (acción), con espaciado claro (`.cuenta-sec`: título → botón
+"Borrar mi cuenta" → nota).
+
+**Reabrir / Eliminar una primada** ya no viven en un calendario: están en el **"···" por primada del HOME**
+(`rowMenuBtn` → `primadaMenuSheet`, §2.11) — Reabrir (si cerrada) / Eliminar (confirmación).
 
 ### 2.9 · Directorio Personas — LISTA COMPACTA + editar ENFOCADO (✅ CANÓNICO)
 
@@ -385,91 +380,70 @@ Patrón **lista → detalle**: la lista queda escaneable y editar es un drill-in
 
 ### 2.10 · Hoja "Agregar asistente" (✅ CANÓNICO)
 
-Acción **simple** en operación: el `+ Agregar` del tab Primadas abre un sheet (overlay `add-asis`)
-con el directorio; **un toque agrega** y la hoja queda abierta para sumar varios.
+Acción **simple**: el **"+ Agregar asistente"** (pie de Configurar › Asistentes) abre un sheet (overlay `add-asis`)
+con el directorio; **un toque agrega** (`add-asistencia`, cobra el cover de su grupo) y la hoja queda abierta para
+sumar varios. **Agregar es UN solo gesto** — la cortesía NO se decide aquí.
 
 | Clase | Propiedades canónicas |
 |---|---|
 | `.addrow` | fila tappable: `min-height:var(--tap-row)`; identidad (`.acc-id`: nombre + rol tenue) a la izquierda, `+` de acento (`.addrow-plus`) a la derecha; separación por línea tenue. Sin caja |
 | pie | enlace **"¿Falta alguien? Agregar en Personas"** (`.link-inline`) → overlay Personas. **"Nueva persona" NO vive aquí** |
 
-> **Operación vs configuración (decisión de producto):** en operación, de cada asistente solo
-> importa el **consumo** (§2.1 expandida = consumo + abono). El **rol, el cover y "Quitar"** son
-> configuración → viven en **Configurar primada › Asistentes** (`.cfg-asis`), no en operación.
+> **Cortesía (exonerar cover) = "+ Exonerar cover"** (pie de Configurar › Asistentes, junto a "+ Agregar"):
+> abre `exonerarSheet` con los asistentes que **pagan** cover; tap = exonerar/cobrar (toggle, check teal).
+> En la lista de Configurar, **solo el exonerado** lleva un tag tenue `sin cover` (muestra la excepción, no la regla).
+> Ya NO se decide al agregar (era confuso) ni hay toggle por fila.
 
-### 2.11 · Selector de primada — barra superior del tab Primadas (✅ CANÓNICO)
+### 2.11 · HOME — lista de primadas (pantalla de inicio) (✅ CANÓNICO)
 
-**Jerarquía por frecuencia de uso:** operar es diario → manda; crear es ~mensual → se degrada.
-La barra superior es un **selector** (navegación principal entre primadas), no una cabecera estática.
+> *(Reemplaza al selector-overlay de la IA anterior: `.selrow`/`.prm-selector`/`selectorSheet` se ELIMINARON.)*
 
-**El MES es una GUÍA; el NOMBRE es la identidad (reducido, sin "Primada").** La primada NUNCA se
-llama como el mes — el período solo orienta (habrá muchas al año). En el selector se muestra el mes
-(guía) **+** el nombre **corto** (se quita el prefijo "Primada", que es redundante; quedan los
-organizadores, ej. "Juanda + Joha"). Esto distingue varias primadas del **mismo mes** (si solo se
-mostrara "Junio", dos primadas de junio serían idénticas). Helper de Vista: `nombreCorto(nombre)`.
+La app **arranca en el HOME** (`ui.view='home'`): la lista de primadas ES la pantalla de inicio, no un overlay.
 
-**Cerrado (`.selrow`):** una fila con `[selector (flex:1)] [⚙ Configurar] [+ Nueva]`.
-- `.prm-selector` (botón tappable, `data-act="open-selector"`): **dos líneas** — **`.sel-main`** =
-  **nombre corto** (`nombreCorto`, peso 800/22px, **IDENTIDAD primaria**) sobre **`.sel-sub`** = punto
-  de estado + `"Mes Año"` (`Util.monthYear`, `--ink-soft`, **GUÍA secundaria**). La primada no se llama
-  como el mes: el nombre manda, el mes orienta. `.sel-caret` (chevron-down) rota 180° abierto.
-- **(SIN engranaje de config.)** El `settings-2` del selector se **ELIMINÓ**: la config del evento activo vive
-  en el gear global › Primadas (§2.8/§2.8.1) — **un solo engranaje en pantalla**. El selector es solo navegación
-  (+ Compartir informe cuando hay datos).
-- **(SIN `+` de crear.)** El "+" de la cabecera se **ELIMINÓ**: crear es una decisión administrativa y vive en el
-  **ÚNICO punto** = gear global › Primadas › **"Nueva primada"** (§2.8.1). La cabecera del selector es solo navegación.
+**Topbar del home:** marca **Primadapp** + acciones `[+ Nueva primada] [⚙ Ajustes] [👤 Cuenta]`. El **"+"**
+(`new-primada`) es el **ÚNICO punto de creación** → wizard. El **⚙** abre Ajustes planos (§2.8.1).
 
-**Abierto (overlay `selector-primada`, `selectorSheet`):** sheet con **TRES secciones en orden** (cada una con
-encabezado `.sel-anio`): **Próximas** · **Activa** · **Pasadas**. Próximas/Pasadas son **RELATIVAS a la ACTIVA**
-(por mes contable, NO al reloj → determinista): una primada de mes **posterior** a la activa es "próxima", una
-**anterior** es "pasada". (Una futura, p.ej. Julio con Mayo activa, **NO** cae en "Pasadas".) El **historial vive
-aquí**. **El selector es NAVEGACIÓN PURA** — elegir con cuál primada trabajar. **NO crea nada** (crear vive en el gear, §2.8.1).
+**Hero card de la ACTIVA** (`.hero-card`): nombre corto (`nombreCorto`, identidad) + **fecha exacta**
+(`Util.fechaCompleta(p.fecha)` → "Sáb, 6 jun 2026"; cae a `monthYear(mesContable)` sin fecha) + **dot** de estado
+(`dotClase`). **SIN monto.** Tap = entrar al detalle (`entrar-primada`). En la esquina, **"···"** (`rowMenuBtn`).
 
-| Sección | Contenido |
-|---|---|
-| **Próximas** (si hay) | `primadasProximas(activeId)` = primadas de mes **> el de la activa**, **ascendente** (la más próxima arriba). Fila `.sel-fila` (sin sub-año) |
-| **Activa** | la primada seleccionada (`activePrimada`), una fila `.sel-fila` con su `.sel-check`. El dot deriva de actividad (`dotClase`: ámbar sin consumos, verde con consumos, gris cerrada) |
-| **Pasadas** | `primadasPorAnio()` filtrado (sin la activa **ni** las futuras, `esFutura`), agrupado por año (`.sel-subanio` = sub-encabezado tenue) |
+**Historial** (`.hist-fila`): filas compactas = dot + nombre + **día/mes** (`Util.diaMes` → "10 jul") + **GANANCIA**
+(`ganancia(p)`) + **"···"**. Sin chevron (el tap entra). Agrupadas en **Próximas / Pasadas RELATIVAS a la activa**
+(por mes contable, NO al reloj → determinista): una primada de mes **posterior** a la activa es "próxima"
+(`primadasProximas`), una **anterior** es "pasada" (por año). Una futura (Julio con Mayo activa) NO cae en "Pasadas".
 
-| Clase | Propiedades canónicas |
-|---|---|
-| `.sel-anio` | encabezado de SECCIÓN (Activa/Pasadas): `font-weight:800; font-size:13px; color:var(--ink-soft); letter-spacing:.06em` |
-| `.sel-subanio` | sub-encabezado de AÑO bajo Pasadas: `font-size:12px; font-weight:700; color:var(--ink-soft); opacity:.75` |
-| `.sel-fila` | fila tappable (`select-primada`): `min-height:var(--tap-row)`; sin caja; separación por línea tenue. Identidad `.sel-fila-main` = punto de estado (`dotClase`) + **`<b>Mes</b> · {nombre corto}`** (mes guía + identidad, sin "Primada"); a la derecha `.sel-fila-right` = total (recaudo) + `.sel-check` (check teal) si es la activa |
-| activa | `.sel-fila.on` → el mes en acento. Tocar una la activa (`seleccionarPrimada`) y **cierra** la hoja |
+**"···" por primada** (`primada-menu` → `primadaMenuSheet`): **Reabrir** (si cerrada) / **Eliminar** (confirmación,
+sin swipe).
+
+**Estado vacío** (0 primadas): "Tu primera primada" + texto que orienta al **"+"** de la topbar.
 
 > **Ciclo de vida (`abierta → cerrada`, sin `programada`):** una primada se crea **abierta**. Su `dot` deriva de
-> **actividad real** (`dotClase`): **ámbar `.dot.idle`** sin consumos (creada, sin actividad), **verde `.dot.open`**
-> con consumos, **gris `.dot.closed`** cerrada. No hay "cara programada" ni estado intermedio: el tab Primadas siempre
-> muestra Consumos/Balance. **Estado vacío** (0 primadas) = "Tu primera primada" + texto que orienta al gear (sin botón
-> inline; el único punto de creación es el gear, §2.8.1).
+> **actividad real** (`dotClase`): **ámbar `.dot.idle`** sin consumos, **verde `.dot.open`** con consumos,
+> **gris `.dot.closed`** cerrada. No hay estado intermedio.
 
-> **Nombre automático (decisión de producto):** al crear, `Store.select.nombreSugerido` arma
-> **"Primada {N1} + {N2}"** con el **primer token** del nombre de cada organizador — N1 = principal,
-> N2 = segundo organizador; 1 solo → "Primada {N1}"; 3+ → solo los dos primeros. **Editable** (✎ =
-> `renombrarPrimada`, override manual). Aplica a primadas nuevas; las viejas conservan su nombre.
+> **Nombre automático (decisión de producto):** al crear, `Store.select.nombreSugerido` arma **"Primada {N1 + N2 + …}"**
+> con el **primer token** del nombre de **TODOS** los organizadores (recortado a 40). **Editable** en Configurar
+> (campo Nombre, `renombrarPrimada`). Aplica a primadas nuevas; las viejas conservan su nombre.
 
-### 2.11.1 · Conmutador de CARA — Consumos | Balance (✅ CANÓNICO)
+### 2.11.1 · Balance como PANEL inferior del detalle (✅ CANÓNICO)
 
-**El Balance ya NO es un tab.** La tabbar inferior tiene **2 tabs** (Primadas · Fondo). "Ver la plata"
-(reparto del fondo + informe del principal) y "operar" (consumos) son **dos CARAS de la misma primada
-activa**, no destinos de navegación global. Se conmutan con un **seg-nav centrado** (`.cara-switch`)
-que vive **bajo el selector** (§2.11), encima de la cara que pinta. Patrón Tricount: separar "ver" de
+> *(Reemplaza al seg-nav Consumos|Balance de la IA anterior: `.cara-switch` / `ui.cara` / `set-cara` se ELIMINARON.)*
+
+En el **detalle**, el Balance ya no es una cara conmutada: es un **PANEL** debajo de la **Lista viva** (Consumos),
+en el **mismo scroll**, **subordinado** a operar. Un chip **"Balance ▲/▼"** (`.balance-toggle`, `toggle-balance-panel`,
+`ui.balanceOpen`) lo despliega/colapsa; el panel (`.balance-panel`) aparece debajo. Patrón Tricount: separar "ver" de
 "operar" sin sacar al usuario del contexto de la primada.
 
 | Elemento | Canónico |
 |---|---|
-| `.cara-switch` | wrapper `display:flex; justify-content:center; margin:var(--space-3) 0 var(--space-4)` — centra el seg-nav y lo separa de la cara |
-| `.seg-nav` › `.seg` | el segmented control estándar (§2.9, mismo que ahorrador\|invitado): **"Consumos"** (`data-cara="operacion"`) \| **"Balance"** (`data-cara="balance"`). El activo lleva `.seg.on` |
-| acción | `data-act="set-cara"` — **navegación, NO escritura** (no pasa por el gate de login; un viewer sin sesión conmuta y VE el Balance) |
+| `.balance-dock` | contenedor al pie de la Lista viva, separado por `border-top` |
+| `.balance-toggle` | chip a ancho completo: "Balance" + caret (▲ colapsado / ▼ desplegado). `.on` = acento cuando abierto |
+| acción | `data-act="toggle-balance-panel"` — **navegación, NO escritura** (un viewer sin sesión despliega y VE el Balance) |
 
-**Cara por defecto = ESTADO de la primada** (`fijarCaraPorEstado` en el Controller): una **abierta** abre
-en **Consumos** (operar es lo diario); una **cerrada** abre en **Balance** (su documento final). Se fija al
-**seleccionar / crear / cargar / cerrar / reabrir**. Una cerrada conserva el switch presente y la cara
-**Consumos accesible en solo-lectura** (los steppers quedan deshabilitados por INVARIANTE #4, no se ocultan).
-El **cálculo no cambia** (ganancia/cover/saldos idénticos): es el mismo `reparto` + `informe`, solo se movió
-de un tab a una cara. La identidad (nombre/mes/estado) ya la muestra el selector → la cara Balance **no
-repite cabecera** (se eliminó `.resumen-head`).
+**Default por ESTADO** (`balanceAbierto`, `ui.balanceOpen=null` = derivar): **abierta → colapsado** (Consumos es lo
+que importa); **cerrada → desplegado** (su documento final). Se resetea (`resetBalancePanel`) al entrar / cerrar /
+reabrir. El **cálculo no cambia**: es el mismo `reparto` + `informe` (state-aware). La identidad (nombre/fecha) la da
+la topbar del detalle → el panel **no repite cabecera**.
 
 #### 2.11.1.a · La cara BALANCE — cifra HÉROE + derivación + state-aware (✅ CANÓNICO)
 
@@ -492,8 +466,8 @@ calculó). El número clave nunca se esconde tras un acorde colapsado; el desglo
 | `.bal-toggle` | la fila acorde (`.acc-head` + `data-act="toggle-balance"`, `data-sec="reparto"\|"informe"`), separada del héroe por `border-top`. El desglose (`.acc-body`) sigue **toggleable** (`ui.balance` = Set de secciones abiertas), **colapsado por defecto** |
 
 - **`reparto` — Ganancia (card oscura):** héroe = **Ganancia** (resultado del grupo). Teaser colapsado:
-  **"Entrega $X a N Ahorradores"** (verbo claro; "parte igual" era jerga interna). Derivación: cover, margen,
-  ahorradores, parte igual, sobrante, lista por persona.
+  **"Entrega $X a N Ahorradores"** (verbo claro). Derivación PODADA: **Cover · Margen · Ganancia · Parte igual c/u ·
+  (Sobrante solo si > 0)**. Se quitaron "Ahorradores: N" (ya en el teaser) y la lista "Por persona" (N veces el mismo monto).
 - **`informe` — Recaudo (card clara):** héroe **state-aware POR ESTADO** (no por urgencia):
   - **ABIERTA** → héroe = lo que **falta cobrar** (`saldoPendiente`), tono **ámbar** (`.por-cobrar`). El
     concepto "por cobrar" lo da el **tono**. Teaser = **"Entrega $X al Tesorero"** — solo el **otro** número
@@ -502,7 +476,9 @@ calculó). El número clave nunca se esconde tras un acorde colapsado; el desglo
     **quién** debe ya vive un nivel abajo, en la lista del acordeón → "menos es más" (§0).
   - **CERRADA** → héroe = lo **entregado** al Tesorero (`entregaTesorero`), tono **teal** (`.entregado`).
     Teaser en pasado: **"Entregó $X al Tesorero"**. Sin microcopy (el teaser ya lo dice todo).
-  - Derivación (acorde): Bre-B, recaudo teórico, recupera, recaudado real (terceros/principal), por cobrar, lista de deudores ("Debe", en `.owe`: el "quién debe" sí es protagonista, **y vive aquí, no arriba**).
+  - Derivación PODADA (acorde): **Bre-B · Recupera · Entrega al Tesorero · lista "Debe"** (el "quién debe" es
+    protagonista, **vive aquí, no arriba**). Se quitó la plomería del auto-abono ("Recaudo teórico", "Recaudado /
+    · de terceros / · del principal", "Por cobrar" que repetía el héroe). El auto-abono sigue en el modelo (identidades).
 
 > **REGLA del microcopy (`.bal-note`) Y del teaser — no repetir el héroe** (caso particular de "menos es más",
 > §0). Ni el microcopy ni el teaser **repiten un dato ya visible en el héroe** (su concepto ni su número), ni
@@ -631,7 +607,7 @@ Desviaciones **intencionales** del canónico, con razón. Aprobadas por el PO.
 | `rgba(255,255,255,.06)` (separador de filas) | valor raw, aún sin token | Línea tenue de separación de listas. **Pendiente de tokenizar** (`--line-soft`) cuando se aplique 2.1 — aprobar nombre con el PO |
 | `.chip` (picker "+ Agregar") | `border:2px solid var(--line)` | Es un **control interactivo** (chip-picker de productos), no una caja decorativa. El borde es la affordance, como en inputs |
 | `.ti` / `.sel` / `.step` | `border:2px solid var(--line)` | Inputs y steppers: el borde es affordance de control, permitido (§2.3) |
-| `.tabbar` / `.tab.active` | `flex:none` (hijo flex al fondo de `.app`, NO `position:fixed`), `border-top:1px solid var(--line)`, fondo `var(--paper)`, `padding-bottom:max(env(safe-area-inset-bottom),20px)`. Activo = solo color de acento (sin pill) | Anclada por estructura (el alto de `.app` = `window.innerHeight`), inmune al cold-start de iOS PWA. Ver "App shell y scroll — fix del cold-start" |
+| ~~`.tabbar` / `.tab.active`~~ | **ELIMINADO** (IA list→detalle): ya no hay tab bar inferior. El alto de la app sigue anclado por `.app{height:100vh}` con `.app-scroll` como único hijo flex. Ver "App shell y scroll — fix del cold-start" |
 | `.toast` opacidad/blur raw | sombras y alphas a negro | Componentes flotantes (toast, sync-indicator); profundidad sobre oscuro |
 | `.informe-*` (informe compartible PNG) | superficie **CLARA** con literales (`#fff`, `#0d1716`, `#e3e8e7`, …) | **Captura-only**: vive offscreen (`.informe-host`) solo para rasterizarse a imagen vía html2canvas; **no es UI de la app**. El tema es oscuro y no hay token de superficie clara → literales aprobados. Acento/ámbar sí salen de tokens (`--accent`/`--amber`). Fuente Instrument Sans + cola de emoji (`Apple Color Emoji`…) para color en el canvas. Trigger `data-act="compartir-informe"` (ícono `share-2`) en la cabecera, visible si hay consumo/cover. Comparte vía `navigator.share({files})`; fallback = descarga del PNG |
 
@@ -651,10 +627,13 @@ tenue / dot. **Prohibidos** en la identidad de fila (§2.1). Decisión final pen
 - Liviano pero **claro y con vida**: no esconder acciones esenciales; la principal siempre visible.
 
 ### App shell y scroll (iOS / PWA standalone) — fix del cold-start (`.app = 100vh`) ✅ CONFIRMADO
+> **Nota IA list→detalle:** ya NO hay tab bar; el principio del alto se conserva (lo nombrado abajo como `.tabbar` es
+> histórico). Hoy **`.app-scroll` es el único hijo flex** y llena el alto. **Pendiente: re-verificar en iPhone real** el
+> cold-start sin tab bar (verificado por código/Playwright: `.app-scroll` llega al borde inferior).
+
 **El alto de la app lo manda `.app { height:100vh }`, NO `100dvh` ni `window.innerHeight` ni un
-`position:fixed` que dependa del viewport.** ✅ Verificado en iPhone real (la tabbar queda pegada al
-borde inferior desde el cold-start, sin "saltar" ni quedar arriba). CAUSA del bug "la tabbar aparece
-muy arriba al lanzar":
+`position:fixed` que dependa del viewport.** El bug original (la **tabbar** "muy arriba" al lanzar) se resolvió así;
+con la IA list→detalle la barra desapareció, pero el fix del alto sigue siendo el correcto. CAUSA del bug histórico:
 en una PWA standalone el viewport no está asentado en el cold-start, así que `100dvh` y el anclaje de
 `position:fixed; bottom:0` caen cortos. Se probó `window.innerHeight` (vía `--app-height`) y en el
 device real devolvía MENOS que la pantalla (excluía el inset inferior) → la barra quedaba arriba de
@@ -667,13 +646,10 @@ Modelo:
 2. **`html, body { height:100% }` + `body { overflow:hidden; touch-action:pan-y; overscroll-behavior:none }`** → el body no scrollea.
 3. **`.app`** = **`height:100vh; display:flex; flex-direction:column`**. Pantalla completa en standalone,
    fiable en cold-start. **Nunca `100dvh`** (se rompe al lanzar) ni `window.innerHeight` (dio corto).
-4. **`.app-scroll`** = `flex:1 1 auto; min-height:0; overflow-y:auto` (único scroller).
-5. **`.tabbar`** = **`flex:none`** (hijo flex al fondo de `.app`, `position:static`). Como `.app`
-   tiene el alto correcto desde el cold-start, la barra queda pegada al borde físico sin `position:fixed`.
-   `padding-bottom:max(env(safe-area-inset-bottom),20px)`; fondo `var(--paper)`, `border-top:1px var(--line)`.
-6. **z-index de overlays:** `.overlay`=1100, `.toast`=1200, `.sync-indicator`=1300 (la tabbar ya no
-   usa z-index; histórico: cuando fue `position:fixed;z-index:1000`, interceptaba los clics del pie
-   del sheet — wizard "Siguiente"/"Crear" — si el overlay no iba por encima).
+4. **`.app-scroll`** = `flex:1 1 auto; min-height:0; overflow-y:auto` (**único hijo flex y único scroller**;
+   como `.app` tiene el alto correcto desde el cold-start, llega al borde inferior físico).
+5. *(LEGADO)* La tab bar (`.tabbar`, hijo flex al fondo) se ELIMINÓ con la IA list→detalle. Ya no hay barra inferior.
+6. **z-index de overlays:** `.overlay`=1100, `.toast`=1200, `.sync-indicator`=1300.
 7. Header bajo el Island: `padding-top:env(safe-area-inset-top)` dentro de `@supports`.
 
 > **Si vuelve a fallar en otro device:** se puede re-agregar temporalmente un diagnóstico en Ajustes

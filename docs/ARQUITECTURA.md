@@ -24,8 +24,8 @@ sin breakpoints). Moneda/locale `es-CO`. Fuentes y (futuro) SDK de Supabase entr
 ## 2 · Estructura de archivos
 
 ```
-index.html         ← shell HTML + CSS embebido + <script src> de cada módulo (en orden) + tabbar
-js/config.js       ← CONFIG: constantes y valores por defecto (esquema v4)
+index.html         ← shell HTML + CSS embebido + <script src> de cada módulo (en orden) + topbar dinámica
+js/config.js       ← CONFIG: constantes y valores por defecto (esquema v6)
 js/util.js         ← Util: utilidades puras sin estado (uid, esc, peso, fechas)
 js/api.js          ← Api: adaptador de persistencia (aísla Supabase / localStorage)
 js/auth.js         ← Auth: magic link (solo activo con backendEnabled=true)
@@ -59,7 +59,7 @@ El JS vive en módulos separados; **respetar la separación es la regla central*
 | **Util** | `util.js` | Funciones puras: `uid(prefix)`, `esc(html)`, `peso(n)` (formato `es-CO`), fechas. Sin estado. |
 | **Store (MODELO)** | `store.js` | **Único dueño del estado.** Único lugar donde el estado muta, vía *acciones*. Expone `select` (lectura/derivados) y `actions` (mutaciones que **hacen cumplir los invariantes**). |
 | **View (VISTA)** | `view.js` | Funciones puras estado→DOM. **No** muta estado ni persiste. Re-renderiza la sección completa en cada cambio. |
-| **Controller** | `controller.js` | Escucha eventos (delegación en `#screen`/`#tabbar`/`#overlay`) y llama `Store.actions`. **No** dibuja ni persiste. Hace el **bootstrap**. |
+| **Controller** | `controller.js` | Escucha eventos (delegación en document; topbar dinámica + overlay) y llama `Store.actions`. **No** dibuja ni persiste. Hace el **bootstrap**. |
 | **Api** | `api.js` | Adaptador de persistencia: aísla Supabase y el espejo localStorage del Store. |
 | **Auth** | `auth.js` | Magic link (passwordless). Inerte mientras `CONFIG.backendEnabled=false`. |
 
@@ -85,7 +85,7 @@ alta/baja, navegación) usa `commit` normal (persiste **y** re-renderiza).
 | Dónde vive | Qué | Persiste |
 |---|---|---|
 | **Store** (`AppState`) | dominio: `settings`, `personas[]`, `primadas[]`, `activePrimadaId` | **Sí** (Api) |
-| **Controller** (`ui`) | efímero de UI: `ui.tab`, `ui.overlay`, `ui.wizard`, `ui.abiertos` (Set de acordeones abiertos), `ui.addAsis` | **No** |
+| **Controller** (`ui`) | efímero de UI: `ui.view` (home|detalle), `ui.overlay`, `ui.wizard`, `ui.abiertos` (Set de acordeones abiertos), `ui.addAsis` | **No** |
 
 La Vista es **pura sobre `(estado, ui)`**. El acordeón de asistentes (abierto/cerrado) es UI
 efímero (`ui.abiertos`), no dominio: no se persiste.
@@ -106,7 +106,7 @@ elegidos en `Api.init()`:
 - `init(opts)` → decide el modo; devuelve `'supabase'` o `'local'`.
 - `load()` (async) → hidrata el `AppState` (reusa el normalizador del Store).
 - `commit(state, target)` → upsert **granular** por entidad: `target = {kind:'primada'|'persona'|'settings', id}`.
-- Serializadores modelo v4 (camelCase) ↔ filas Supabase (snake_case): `personaToRow`/`rowToPersona`,
+- Serializadores modelo v6 (camelCase) ↔ filas Supabase (snake_case): `personaToRow`/`rowToPersona`,
   `primadaToRow`/`rowToPrimada`, `settingsToRow`, `fromRows`.
 - Espejo de lectura: `cacheWrite`/`cacheRead` (localStorage) para arranque en frío / offline.
 
@@ -128,7 +128,7 @@ fuentes); RLS es la frontera real. **NUNCA** la `service_role key`.
 ## 6 · Migraciones y normalizador
 
 - **Todo cambio de forma del estado = subir `schemaVersion` + caso en `Store.migrate()` + tests primero.**
-- `migrate()` detecta la versión y converge a **v4** (idempotente, estable en ids). Cubre v1→v2→v3→v4.
+- `migrate()` detecta la versión y converge a **v6** (idempotente, estable en ids). Cubre v1→…→v6 (v5 pago binario, v6 consumos-como-filas).
 - El **normalizador es tolerante**: datos parciales/corruptos se rellenan con defaults seguros;
   datos nulos → `defaultState()`. **Nunca romper al cargar.**
 - Detalle del modelo y de cada salto de versión: `docs/SCHEMA.md`.
@@ -166,13 +166,22 @@ primada (`createPrimada`, `seleccionarPrimada`, `renombrarPrimada`, `setFecha`, 
 
 ---
 
-## 9 · Navegación (3 tabs + engranaje)
+## 9 · Navegación — LISTA→DETALLE (estilo Tricount), SIN tab bar
 
-- **Tabbar inferior fija** (`#tabbar`, `position:fixed`): **Resumen** (dashboard del fondo),
-  **Primadas** (corazón: lista + detalle + historial), **Fondo** (placeholder "Próximamente").
-- **Detrás del engranaje** (no son tabs, viven en `#overlay` como sheet): **Personas** (directorio)
-  y **Ajustes** (cover vigente, productos por defecto).
-- Toda feature nueva debe caber en esta IA; si no cabe → **pausar y consultar** (no inventar un 4º tab).
+> Refactor de IA: se ELIMINÓ el tab bar y el selector-overlay. Detalle del contrato en `CLAUDE.md` ›
+> **Navegación (DECIDIDA) — LISTA→DETALLE** y `DESIGN.md` §2.8.1/§2.11/§2.11.1.
+
+- **`ui.view ∈ {'home','detalle'}`** (reemplaza al viejo `ui.tab`). `render()` bifurca por `ui.view`;
+  la **topbar es dinámica** por vista. **Back stack** con `history.pushState`/`popstate` (el back del
+  sistema en el detalle vuelve al home, no sale de la PWA).
+- **HOME** = lista de primadas (pantalla de inicio): hero de la activa + historial (Próximas/Pasadas).
+  Topbar: **"+" Nueva primada** (único punto de creación) · **⚙ Ajustes** (pantalla plana) · **👤 Cuenta**.
+  **"···" por primada** → Reabrir/Eliminar.
+- **DETALLE** = operación: topbar **← Inicio · nombre · 🔗 · ···** ; cuerpo = **Lista viva** + **panel de
+  Balance** (chip ▲/▼). Presencia y offline viven aquí.
+- **Ajustes globales** = pantalla PLANA (`ajustesSheet`, sin tabs), acordeones colapsables. **··· del detalle**
+  = `configPrimadaSheet`. (El gear de 4 tabs `overlaySheet` se eliminó.)
+- Toda feature nueva debe caber en esta IA (home ↔ detalle); si no cabe → **pausar y consultar**.
 
 ---
 
@@ -180,8 +189,10 @@ primada (`createPrimada`, `seleccionarPrimada`, `renombrarPrimada`, `setFecha`, 
 
 - **Service Worker `sw.js` — network-first** (red primero, caché de respaldo offline). No intercepta
   CDN/Supabase. Para documento/scripts del propio origen pide con `cache:'no-store'` (evita JS viejo
-  en iOS WKWebView). En `activate`: borra cachés viejos + `clients.claim()` + `clients.navigate(url)`
-  (garantía dura de refresco en deploy; en iOS `controllerchange` es flaky).
+  en iOS WKWebView). En `activate`: **solo** borra cachés viejos + `clients.claim()`. **NO** hace
+  `clients.navigate()` — lo hacía y causaba recarga en pleno arranque (`GET / net::ERR_ABORTED` + doble
+  booteo → botones muertos al primer ingreso tras deploy). La actualización la garantizan network-first
+  no-store + chequeo de `version.json` + `controllerchange` (no-iOS).
 - **Cache-busting:** `?v=<sello>` en cada `<script src>`, sincronizado con `CACHE_VERSION` del SW.
 - **Auto-sellado:** el git hook `pre-commit` corre `scripts/stamp-sw.js`, que sella `CACHE_VERSION`
   (sw.js) y `?v=` (index.html) con `fecha-hash` y re-estagea ambos → cada commit invalida el caché viejo.

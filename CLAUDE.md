@@ -64,8 +64,8 @@ saldoPendiente     = recaudadoTeorico − recaudadoReal         // = Σ saldos d
   identidades**: `recaudadoReal + saldoPendiente = recaudadoTeorico` **y** `recaudadoTeorico = Σ costoNeto + ganancia`
   (no se toca el teórico). *No* se resta el principal del teórico — eso rompería la segunda identidad.
 - **Pago BINARIO (decisión de producto, v5):** cada asistencia está **`pagado` o no** — NO hay abonos parciales.
-  El que paga **se autosirve**: en su ficha (tab Primadas) toca **"Pagar"** → hoja con la **llave Bre-B del
-  principal** + el monto → **"Ya pagué"** marca `pagado`. **Sin comprobante en la app** (se comparte por fuera).
+  El que paga **se autosirve**: en su ficha (Lista viva del detalle) toca **"Pagar"** → hoja con la **llave Bre-B del
+  anfitrión** + el monto → **"Ya pagué"** marca `pagado`. **Sin comprobante en la app** (se comparte por fuera).
   Saber **quién debe cuánto** sigue siendo protagonista. (El historial de abonos parciales se eliminó.)
 
 ## Stack y restricciones (no negociables)
@@ -315,7 +315,7 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 
 ## Protocolo de cambio (cumplirlo SIEMPRE antes de cada commit)
 1. Si el cambio afecta el **esquema de datos** → subir `schemaVersion` + escribir migración + **tests primero**.
-2. Si es **feature nueva** → verificar que cabe en la IA de 2 tabs (+ caras de Primadas); si no, **pausar y consultar**.
+2. Si es **feature nueva** → verificar que cabe en la IA **list→detalle** (home ↔ detalle); si no, **pausar y consultar**.
 3. Si es **UI** → el `Store.action` y `Store.select` correspondientes deben **existir y estar testeados** antes de que la Vista los use.
 4. Ante cualquier **decisión de producto ambigua** → **preguntar, no inventar**.
 5. Antes de cada commit: `node --check` (cada `js/*.js`), tests de migración + reglas, test e2e con `jsdom` (cuando exista UI).
@@ -345,11 +345,12 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - **Propagación de versión (modelo Otrofestiv):** `version.json` + `<meta name="build">` sellados cada deploy; la app compara
   el build INCRUSTADO (no `localStorage`, que podía "mentir") contra `version.json` no-store al abrir/volver de background → reload
   duro si difiere. ⚙ **Ajustes muestra el build vigente** para confirmar a ojo qué versión corre en el celular.
-- **Anclaje de la tabbar en iOS PWA (RESUELTO — ver `DESIGN.md` › "App shell y scroll"):** la barra inferior aparecía "muy
-  arriba" al lanzar. CAUSA: en PWA standalone el viewport no está asentado en el cold-start → `100dvh`, `position:fixed;bottom:0`
-  y hasta `window.innerHeight` dan un alto CORTO. FIX: **`.app { height:100vh }`** (pantalla completa fiable en standalone; el
-  roto es `100dvh`), columna flex con la tabbar como **hijo flex al fondo** (no `position:fixed`). Otrofestiv no lo sufre por ser
-  app **nativa Capacitor** (viewport fijo); su CSS no basta en PWA pura. **Verificado en iPhone real.**
+- **Cold-start en iOS PWA — alto fiable (RESUELTO):** el fix nació por la tabbar "muy arriba" al lanzar; con la IA
+  list→detalle **ya NO hay tab bar**, pero el principio del alto se conserva. CAUSA: en PWA standalone el viewport no está
+  asentado en el cold-start → `100dvh`, `position:fixed;bottom:0` y hasta `window.innerHeight` dan un alto CORTO. FIX:
+  **`.app { height:100vh }`** (pantalla completa fiable en standalone; el roto es `100dvh`), columna flex con **`.app-scroll`
+  como único hijo** que llena el alto. Otrofestiv no lo sufre por ser app **nativa Capacitor** (viewport fijo).
+  **Pendiente: re-verificar en iPhone real el cold-start sin tab bar** (verificado por código/Playwright: `.app-scroll` llega al borde).
 
 ## Roadmap
 - [x] Paso 0: arquitectura MVC + migraciones, verificada con tests.
@@ -417,12 +418,12 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   visualmente, no se modela** — el **dot del estado se DERIVA de actividad real** (`view.js dotClase(p)`):
   - **sin consumos** → `.dot.idle` **ámbar** (creada/organizada, sin actividad aún = "pendiente", escalera de color §1).
   - **con consumos** → `.dot.open` **verde** (en operación). **cerrada** → `.dot.closed` **gris**.
-  - **PUNTO ÚNICO DE CREACIÓN:** el wizard de 3 pasos, lanzado SOLO desde **gear global › Primadas › "Nueva primada"**.
-    Se eliminaron: el "+" de la cabecera del selector, "Programar próxima", la hoja `programarSheet`, `createProgramada`,
-    `abrirPrimada`, `programadaCara` y todo el flujo `prog-*`/`open-programar`. El **selector** (y el gear › Calendario)
-    tienen 3 secciones **RELATIVAS a la activa** (por mes, NO al reloj → determinista): **Próximas** (mes >
-    activa, `primadasProximas`) · **Activa** · **Pasadas** (mes ≤ activa, sin la activa). Una primada futura
-    (Julio con Mayo activa) va en **Próximas**, no en Pasadas. Estado vacío (0 primadas) orienta al gear.
+  - **PUNTO ÚNICO DE CREACIÓN:** el wizard de 3 pasos, lanzado SOLO desde el **"+" de la topbar del HOME**. (En la IA
+    anterior vivía en el gear › Calendario; ese ger/selector se ELIMINÓ.) Históricamente también se quitaron
+    "Programar próxima", `programarSheet`, `createProgramada`, `abrirPrimada` y el flujo `prog-*`/`open-programar`.
+    El **HOME** agrupa en 3 secciones **RELATIVAS a la activa** (por mes, NO al reloj → determinista): hero **Activa** ·
+    **Próximas** (mes > activa, `primadasProximas`) · **Pasadas** (mes ≤ activa, por año). Una primada futura
+    (Julio con Mayo activa) va en **Próximas**, no en Pasadas. Estado vacío (0 primadas) orienta al "+" del home.
   - **MIGRACIÓN (tolerancia hacia atrás):** `normEstadoPrimada` mapea cualquier `'programada'` histórica → `'abierta'`.
     Como `Store.load()` aplica `migrate()` también a los datos de Supabase, esto **auto-convierte** las filas viejas en
     **cada lectura**, y el normalizador **AUTOSANA** (rellena `productos` por defecto + `fecha` de hoy si estaba `''`),

@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260606-093843-713c22d">
+<meta name="build" content="20260606-095021-2c81160">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,9 +51,9 @@
      device innerHeight excluía el inset inferior → barra flotando arriba de forma estable).
      SOLUCIÓN: el alto lo manda `.app = 100vh`. En standalone (sin barra de direcciones) `100vh` ES
      el alto correcto de pantalla completa desde el cold-start — es el valor que la documentación
-     señala como fiable; el roto es `100dvh`. La tabbar va al fondo de ese contenedor (flex), no
-     anclada a un viewport que iOS calcula mal. (Otrofestiv no lo sufre porque es app NATIVA Capacitor,
-     viewport fijo.) Refs: gist iphone-pwa-game-guide, frontend.fyi, susiekim9, dev.to/maciejtrzcinski. */
+     señala como fiable; el roto es `100dvh`. (IA list→detalle: NO hay tab bar; `.app-scroll` es el único
+     hijo flex y llena el alto.) (Otrofestiv no lo sufre porque es app NATIVA Capacitor, viewport fijo.)
+     Refs: gist iphone-pwa-game-guide, frontend.fyi, susiekim9, dev.to/maciejtrzcinski. */
   html{height:100%}
   body{
     height:100%;
@@ -64,7 +64,7 @@
     line-height:1.4;-webkit-font-smoothing:antialiased;
   }
   /* Raíz: alto = 100vh (pantalla completa en standalone, fiable en cold-start; NO 100dvh ni
-     innerHeight, que daban corto). Columna flex: scroll arriba, tabbar al fondo. */
+     innerHeight, que daban corto). Columna flex con .app-scroll como único hijo (IA list→detalle, sin tab bar). */
   .app{height:100vh;display:flex;flex-direction:column;background:var(--paper)}
   .app-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:var(--space-4)}
   .wrap{max-width:var(--content-max);margin:0 auto;padding:var(--space-3)}
@@ -593,13 +593,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260606-093843-713c22d"></script>
-  <script src="js/util.js?v=20260606-093843-713c22d"></script>
-  <script src="js/api.js?v=20260606-093843-713c22d"></script>
-  <script src="js/auth.js?v=20260606-093843-713c22d"></script>
-  <script src="js/store.js?v=20260606-093843-713c22d"></script>
-  <script src="js/view.js?v=20260606-093843-713c22d"></script>
-  <script src="js/controller.js?v=20260606-093843-713c22d"></script>
+  <script src="js/config.js?v=20260606-095021-2c81160"></script>
+  <script src="js/util.js?v=20260606-095021-2c81160"></script>
+  <script src="js/api.js?v=20260606-095021-2c81160"></script>
+  <script src="js/auth.js?v=20260606-095021-2c81160"></script>
+  <script src="js/store.js?v=20260606-095021-2c81160"></script>
+  <script src="js/view.js?v=20260606-095021-2c81160"></script>
+  <script src="js/controller.js?v=20260606-095021-2c81160"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
