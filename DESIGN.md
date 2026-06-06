@@ -352,9 +352,10 @@ calendario en un scroll → mala IA). El gear abre **context-aware** (`#gearBtn`
 - **Primada** (`primadaConfigTab`) — config del EVENTO ACTIVO, encabezada por `.cfg-primada-name` (el nombre de la
   activa): seg-nav interno **Asistentes | Productos** (`configPrimadaBody`, §2.8). **Solo config**, sin calendario.
 - **Calendario** (`calendarioBody`) — **"Nueva primada"** (ÚNICO punto de creación; `.add-link`, `new-primada` →
-  wizard SOBRE el gear; al crear/cancelar, wizard y gear se cierran) + lista de TODAS agrupada (**Activa** ·
-  **Pasadas** gris; el dot deriva de actividad, `dotClase`). Cada fila `.padm-fila` (NO navega, EDITA): nombre +
-  meta + **Reabrir** (cerradas) y **Eliminar** (`borrar-primada`, confirmación; `data-activa` = advertencia fuerte).
+  wizard SOBRE el gear; al crear/cancelar, wizard y gear se cierran) + lista de TODAS en 3 secciones relativas a
+  la activa (**Próximas** · **Activa** · **Pasadas** gris, igual que el selector §2.11; el dot deriva de actividad,
+  `dotClase`). Cada fila `.padm-fila` (NO navega, EDITA): nombre + meta + **Reabrir** (cerradas) y **Eliminar**
+  (`borrar-primada`, confirmación; `data-activa` = advertencia fuerte).
 - **Personas** (§2.9) — directorio compacto + editar enfocado. **Ajustes** — cover vigente, versión, legal, cuenta.
 
 El **selector** (§2.11) sigue siendo navegación pura (solo cambiar de primada).
@@ -409,14 +410,17 @@ mostrara "Junio", dos primadas de junio serían idénticas). Helper de Vista: `n
 - **(SIN `+` de crear.)** El "+" de la cabecera se **ELIMINÓ**: crear es una decisión administrativa y vive en el
   **ÚNICO punto** = gear global › Primadas › **"Nueva primada"** (§2.8.1). La cabecera del selector es solo navegación.
 
-**Abierto (overlay `selector-primada`, `selectorSheet`):** sheet con **DOS secciones en orden** (cada una con
-encabezado `.sel-anio`): **Activa** · **Pasadas**. El **historial vive aquí**, no como lista aparte. **El selector es
-NAVEGACIÓN PURA** — elegir con cuál primada trabajar. **NO crea nada** (crear vive en el gear, §2.8.1).
+**Abierto (overlay `selector-primada`, `selectorSheet`):** sheet con **TRES secciones en orden** (cada una con
+encabezado `.sel-anio`): **Próximas** · **Activa** · **Pasadas**. Próximas/Pasadas son **RELATIVAS a la ACTIVA**
+(por mes contable, NO al reloj → determinista): una primada de mes **posterior** a la activa es "próxima", una
+**anterior** es "pasada". (Una futura, p.ej. Julio con Mayo activa, **NO** cae en "Pasadas".) El **historial vive
+aquí**. **El selector es NAVEGACIÓN PURA** — elegir con cuál primada trabajar. **NO crea nada** (crear vive en el gear, §2.8.1).
 
 | Sección | Contenido |
 |---|---|
+| **Próximas** (si hay) | `primadasProximas(activeId)` = primadas de mes **> el de la activa**, **ascendente** (la más próxima arriba). Fila `.sel-fila` (sin sub-año) |
 | **Activa** | la primada seleccionada (`activePrimada`), una fila `.sel-fila` con su `.sel-check`. El dot deriva de actividad (`dotClase`: ámbar sin consumos, verde con consumos, gris cerrada) |
-| **Pasadas** | `primadasPorAnio()` (todo el historial salvo la activa), agrupado por año (`.sel-subanio` = sub-encabezado tenue) |
+| **Pasadas** | `primadasPorAnio()` filtrado (sin la activa **ni** las futuras, `esFutura`), agrupado por año (`.sel-subanio` = sub-encabezado tenue) |
 
 | Clase | Propiedades canónicas |
 |---|---|

@@ -157,27 +157,32 @@
 
   // Hoja del selector: TODAS las primadas agrupadas por AÑO → MES (reciente arriba). Tocar una la
   // activa y cierra. La activa lleva check. El "total" de cada fila = recaudo (snapshot del evento).
-  // Selector = NAVEGACIÓN PURA: elegir con cuál primada trabajar. DOS secciones: Activa (la seleccionada)
-  // · Pasadas (historial por año). NO crea nada (crear vive en el gear global › Primadas).
+  // Selector = NAVEGACIÓN PURA: elegir con cuál primada trabajar. TRES secciones, relativas a la ACTIVA:
+  // Próximas (mes posterior) · Activa (la seleccionada) · Pasadas (mes anterior, por año). Una futura NO
+  // cae en "Pasadas". NO crea nada (crear vive en el gear global › Calendario).
   function selectorSheet(state, ui) {
     const sel = S();
     const activeId = state.activePrimadaId;
     const activa = sel.activePrimada();
+    const proximas = sel.primadasProximas(activeId);             // futuras (mes > activa), asc
     const grupos = sel.primadasPorAnio();
-    const pasadas = grupos.map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId) }))
-      .filter(g => g.primadas.length);                            // Pasadas = historial SIN la activa
+    // Pasadas = historial SIN la activa NI las futuras (esas van en Próximas).
+    const pasadas = grupos.map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId && !sel.esFutura(p, activeId)) }))
+      .filter(g => g.primadas.length);
+    const secProx = proximas.length
+      ? `<div class="sel-anio">Próximas</div><div class="sel-list">${proximas.map(p => selectorFila(p, activeId)).join('')}</div>` : '';
     const secActiva = activa
       ? `<div class="sel-anio">Activa</div><div class="sel-list">${selectorFila(activa, activeId)}</div>` : '';
     const secPasadas = pasadas.length
       ? `<div class="sel-anio">Pasadas</div>` + pasadas.map(g =>
           `<div class="sel-subanio">${e(g.anio)}</div><div class="sel-list">${g.primadas.map(p => selectorFila(p, activeId)).join('')}</div>`).join('') : '';
-    const vacio = (!secActiva && !secPasadas) ? '<div class="empty-soft">Sin primadas</div>' : '';
+    const vacio = (!secProx && !secActiva && !secPasadas) ? '<div class="empty-soft">Sin primadas</div>' : '';
     return `<div class="sheet full">
       <div class="sheet-head">
         <div class="sheet-title">Primadas</div>
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button>
       </div>
-      <div class="sheet-body">${secActiva}${secPasadas}${vacio}</div>
+      <div class="sheet-body">${secProx}${secActiva}${secPasadas}${vacio}</div>
     </div>`;
   }
   // Fila del selector = MES (guía, en negrita) · NOMBRE corto (sin "Primada", la identidad real) +
@@ -847,23 +852,26 @@
     return `<div class="cfg-primada-name">${e(nombreCorto(p.nombre))}</div>${configPrimadaBody(p, ui)}`;
   }
 
-  // Tab CALENDARIO = TODAS las primadas: "Nueva primada" (ÚNICO punto de creación) + lista (Activa · Pasadas)
-  // con acciones administrativas por fila (Eliminar / Reabrir). El dot deriva de actividad real (dotClase).
+  // Tab CALENDARIO = TODAS las primadas: "Nueva primada" (ÚNICO punto de creación) + lista (Próximas · Activa ·
+  // Pasadas, relativas a la activa) con acciones administrativas por fila (Eliminar / Reabrir). Dot por actividad.
   function calendarioBody(state, ui) {
     const sel = S();
     const activeId = state.activePrimadaId;
+    const proximas = sel.primadasProximas(activeId);             // futuras (mes > activa), asc
     const grupos = sel.primadasPorAnio();
     const activa = sel.activePrimada();
-    const pasadas = grupos.map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId) }))
+    const pasadas = grupos.map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId && !sel.esFutura(p, activeId)) }))
       .filter(g => g.primadas.length);
+    const secProx = proximas.length
+      ? `<div class="sub">Próximas</div>${proximas.map(p => primadaAdminFila(p, activeId)).join('')}` : '';
     const secActiva = activa
       ? `<div class="sub">Activa</div>${primadaAdminFila(activa, activeId)}` : '';
     const secPasadas = pasadas.length
       ? `<div class="sub">Pasadas</div>` + pasadas.map(g =>
           `<div class="sel-subanio">${e(g.anio)}</div>${g.primadas.map(p => primadaAdminFila(p, activeId)).join('')}`).join('') : '';
-    const vacio = (!secActiva && !secPasadas) ? '<div class="empty-soft">Sin primadas</div>' : '';
+    const vacio = (!secProx && !secActiva && !secPasadas) ? '<div class="empty-soft">Sin primadas</div>' : '';
     return `<button class="add-link" data-act="new-primada">${icon('plus-circle')}Nueva primada</button>
-      ${secActiva}${secPasadas}${vacio}`;
+      ${secProx}${secActiva}${secPasadas}${vacio}`;
   }
   // Fila administrativa: nombre + mes · recaudo · acciones (Reabrir si cerrada, Eliminar siempre con
   // confirmación). Eliminar la ACTIVA en operación lleva data-activa para una advertencia más fuerte.

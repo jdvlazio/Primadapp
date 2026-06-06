@@ -492,6 +492,21 @@
       return 'Primada ' + nombres[0] + ' + ' + nombres[1];
     },
     anioContable(primada) { return String(primada.mesContable || '').slice(0, 4); },
+    // PRÓXIMAS: primadas de mes POSTERIOR al de la primada ACTIVA (referencia), excepto la activa, en orden
+    // ASCENDENTE (la más próxima primero). Una primada futura (p.ej. Julio cuando la activa es Mayo) NO es
+    // "pasada": va en "Próximas". Relativo a la ACTIVA (no al reloj) → determinista. `esFutura` comparte el criterio.
+    esFutura(primada, activeId) {
+      const act = state ? state.primadas.find(p => p.id === activeId) : null;
+      const ref = act ? String(act.mesContable || '') : '';
+      return !!ref && primada.id !== activeId && String(primada.mesContable || '') > ref;
+    },
+    primadasProximas(activeId) {
+      return (state ? state.primadas : []).filter(p => select.esFutura(p, activeId))
+        .slice().sort((a, b) => {
+          const ka = (a.mesContable || '') + (a.fecha || ''), kb = (b.mesContable || '') + (b.fecha || '');
+          return ka < kb ? -1 : ka > kb ? 1 : 0;   // ascendente: la más próxima arriba
+        });
+    },
     // Primadas agrupadas por AÑO → (dentro) por MES, más reciente arriba. Para el historial del selector
     // y del gear. → [{ anio, primadas:[…desc por mes, desempate fecha desc] }, …]
     primadasPorAnio() {

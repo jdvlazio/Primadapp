@@ -557,8 +557,20 @@ section('Dot por actividad: abierta sin consumos = ámbar (idle); con consumos =
 // El selector es navegación PURA: ya NO tiene "Programar" ni "+" de crear.
 click('[data-act="open-selector"]');
 check('Selector SIN "Programar" (creación vive en el gear)', !q('#overlay').hidden && !q('[data-act="open-programar"]'));
-check('Selector SIN sección "Próximas" (el estado programada se eliminó)', !/sel-anio">Próximas/.test(q('#overlay').innerHTML));
 click('[data-act="close-overlay"]');
+// PRÓXIMAS vs PASADAS son RELATIVAS a la activa (por fecha, no por estado): una primada de mes POSTERIOR a
+// la activa va en "Próximas", NO en "Pasadas" (bug reportado: Julio caía en Pasadas con Mayo activa).
+const idMay13 = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-05', fecha: '2026-05-10' });
+const idJul13 = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-07', fecha: '2026-07-10' });
+Store.actions.seleccionarPrimada(idMay13);   // Mayo activa
+check('Modelo: Julio es FUTURA relativo a Mayo (esFutura) y está en primadasProximas',
+  Store.select.esFutura(st().primadas.find(p => p.id === idJul13), idMay13) === true
+  && Store.select.primadasProximas(idMay13).some(p => p.id === idJul13));
+click('[data-act="open-selector"]');
+check('Selector: con Mayo activa, Julio aparece en "Próximas" (no "Pasadas")',
+  /sel-anio">Próximas/.test(q('#overlay').innerHTML) && new RegExp('sel-anio">Próximas[^]*' + window.Util.monthName('2026-07')).test(q('#overlay').innerHTML));
+click('[data-act="close-overlay"]');
+Store.actions.borrarPrimada(idJul13); Store.actions.borrarPrimada(idMay13);   // limpiar (no afectar el resto)
 // Creamos una primada ABIERTA SIN consumos (vía wizard sería largo; usamos la acción del modelo).
 const idNueva = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-10', fecha: '2026-10-05' });
 Store.actions.seleccionarPrimada(idNueva);   // commit → notify → la Vista re-renderiza (suscripción)

@@ -396,8 +396,10 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   - **con consumos** → `.dot.open` **verde** (en operación). **cerrada** → `.dot.closed` **gris**.
   - **PUNTO ÚNICO DE CREACIÓN:** el wizard de 3 pasos, lanzado SOLO desde **gear global › Primadas › "Nueva primada"**.
     Se eliminaron: el "+" de la cabecera del selector, "Programar próxima", la hoja `programarSheet`, `createProgramada`,
-    `abrirPrimada`, `primadasProgramadas`, `programadaCara` y todo el flujo `prog-*`/`open-programar`. El **selector**
-    queda con 2 secciones: **Activa** · **Pasadas** (ya no hay "Próximas"). Estado vacío (0 primadas) orienta al gear.
+    `abrirPrimada`, `programadaCara` y todo el flujo `prog-*`/`open-programar`. El **selector** (y el gear › Calendario)
+    tienen 3 secciones **RELATIVAS a la activa** (por mes, NO al reloj → determinista): **Próximas** (mes >
+    activa, `primadasProximas`) · **Activa** · **Pasadas** (mes ≤ activa, sin la activa). Una primada futura
+    (Julio con Mayo activa) va en **Próximas**, no en Pasadas. Estado vacío (0 primadas) orienta al gear.
   - **MIGRACIÓN (tolerancia hacia atrás):** `normEstadoPrimada` mapea cualquier `'programada'` histórica → `'abierta'`.
     Como `Store.load()` aplica `migrate()` también a los datos de Supabase, esto **auto-convierte** las filas viejas en
     **cada lectura**, y el normalizador **AUTOSANA** (rellena `productos` por defecto + `fecha` de hoy si estaba `''`),

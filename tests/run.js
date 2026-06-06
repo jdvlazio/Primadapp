@@ -447,6 +447,16 @@ section('Nombre automático de la primada + agrupación del selector');
   eq('Segundo grupo', grupos[1].anio, '2025');
   eq('2026 ordenado por mes desc (06,05,04)', grupos[0].primadas.map(p => p.mesContable).join(','), '2026-06,2026-05,2026-04');
   eq('2025 tiene la de diciembre', grupos[1].primadas[0].mesContable, '2025-12');
+
+  // PRÓXIMAS / PASADAS son RELATIVAS a la primada ACTIVA (por mes contable, NO al reloj → determinista).
+  // Una primada de mes POSTERIOR a la activa es "futura" (sección Próximas); una anterior, "pasada".
+  Store.actions.seleccionarPrimada(idOv);   // activa = 2026-04
+  const prox = Store.select.primadasProximas(idOv).map(p => p.mesContable);
+  eq('primadasProximas(activa 2026-04): meses posteriores (05, 06) ascendente', prox.join(','), '2026-05,2026-06');
+  const byMes = m => Store.select.state().primadas.find(p => p.mesContable === m);
+  check('esFutura(2026-06 | activa 2026-04) === true', Store.select.esFutura(byMes('2026-06'), idOv) === true);
+  check('esFutura(2025-12 | activa 2026-04) === false (es pasada)', Store.select.esFutura(byMes('2025-12'), idOv) === false);
+  check('La activa nunca es "futura" de sí misma', Store.select.esFutura(Store.select.state().primadas.find(p => p.id === idOv), idOv) === false);
 }
 
 /* ============================================================ 7b. MIGRACIÓN: 'programada' → 'abierta'
