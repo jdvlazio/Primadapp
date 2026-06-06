@@ -80,3 +80,23 @@ test('S6 — el panel de Balance (chip) despliega/colapsa bajo la Lista viva', a
   await page.click(SEL.balanceToggle);
   await expect(page.locator(SEL.balancePanel)).toHaveCount(0);
 });
+
+test('S7 — splash: wordmark visible (regla estática, fix iOS) + tagline + auto-dismiss', async ({ page }) => {
+  await page.route(/supabase/i, route => route.abort());
+  await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+  await page.goto('/');
+  // El splash aparece con el wordmark + tagline y se REVELA (.reveal).
+  await expect(page.locator('#splash')).toBeVisible();
+  await expect(page.locator('#splash .splash-mark')).toContainText('Primadapp');
+  await expect(page.locator('#splash .splash-tag')).toBeVisible();
+  // FIX iOS/WebKit: la opacidad final del wordmark la GARANTIZA la regla estática (#splash.reveal),
+  // no la animación → nunca queda invisible. Verificamos opacity efectiva ~1.
+  await page.waitForFunction(() => {
+    const m = document.querySelector('#splash.reveal .splash-mark');
+    return m && parseFloat(getComputedStyle(m).opacity) > 0.9;
+  }, { timeout: 5000 });
+  // Auto-dismiss: tras cargar la app, el splash se quita del DOM.
+  await expect(page.locator('#splash')).toHaveCount(0, { timeout: 12000 });
+  // Y debajo quedó la app (topbar del home con el "+").
+  await expect(page.locator('#topbar [data-act="new-primada"]')).toBeVisible();
+});

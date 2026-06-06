@@ -512,6 +512,8 @@
     await Store.load();                        // hidrata el AppState desde Api (async)
     resetBalancePanel();                       // panel de balance: default por estado de la primada cargada
     rerender();
+    // App lista → cerrar el splash (idempotente; respeta el min-display; tiene su propio fallback a 6s).
+    try { if (root.__hideSplash) root.__hideSplash(); } catch (_) {}
   }
 
   // Auth OPT-IN (no gate): la app SIEMPRE entra; el login se abre desde el ícono de perfil.

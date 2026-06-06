@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" style="background:#0d1716"><!-- bg INLINE: mata el flash blanco del primer paint en WKWebView/iOS antes de que cargue el CSS -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260606-100637-aa89735">
+<meta name="build" content="20260606-103929-5df6b0c">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,6 +68,38 @@
   .app{height:100vh;display:flex;flex-direction:column;background:var(--paper)}
   .app-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:var(--space-4)}
   .wrap{max-width:var(--content-max);margin:0 auto;padding:var(--space-3)}
+
+  /* ---------- SPLASH (wordmark animado al arrancar) ----------
+     CLAVE de robustez (iOS/WebKit): la opacidad final NO se anima — vive en la regla estática
+     `#splash.reveal .x{opacity:1}`. El @keyframes anima opacity+transform para el efecto, pero la
+     visibilidad garantizada no depende de que la animación corra/termine (evita el "splash invisible"
+     de WebKit bajo throttle del arranque). El JS pone un hard-floor (animation:none) de respaldo. */
+  #splash{position:fixed;inset:0;z-index:99999;background:var(--paper);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-3);
+    padding:calc(env(safe-area-inset-top) + 8vh) 32px calc(env(safe-area-inset-bottom) + 8vh);
+    transition:opacity .55s ease, filter .65s ease, visibility .6s}
+  #splash.hide{opacity:0;filter:blur(28px);visibility:hidden;pointer-events:none}
+  /* reposo: invisible hasta revelar */
+  .splash-mark,.splash-tag{opacity:0}
+  /* REGLA ESTÁTICA (garantiza la visibilidad final, independiente de la animación) */
+  #splash.reveal .splash-mark,#splash.reveal .splash-tag{opacity:1;transform:none}
+  /* la animación (transform+opacity) es solo el EFECTO; staggered */
+  #splash.reveal .splash-mark{animation:splashIn 550ms cubic-bezier(.16,1,.3,1) 0ms both}
+  #splash.reveal .splash-tag{animation:splashIn 550ms cubic-bezier(.16,1,.3,1) 350ms both}
+  @keyframes splashIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  .splash-mark{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:46px;line-height:1;letter-spacing:-.02em;color:var(--ink);position:relative}
+  .splash-mark .accent{color:var(--accent);position:relative}
+  .splash-tag{font-weight:400;font-size:11px;letter-spacing:.3px;color:var(--ink-soft);text-transform:uppercase}
+  /* SHIMMER: un brillo barre el "app" en acento UNA vez (clip a las letras, iOS-safe con -webkit-). */
+  #splash.reveal .splash-mark .accent::after{content:"app";position:absolute;left:0;top:0;
+    background:linear-gradient(100deg, transparent 35%, rgba(255,255,255,.7) 50%, transparent 65%);
+    background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:splashShine 1000ms ease 700ms 1 forwards}
+  @keyframes splashShine{from{background-position:120% 0}to{background-position:-60% 0}}
+  @media (prefers-reduced-motion:reduce){
+    #splash.reveal .splash-mark,#splash.reveal .splash-tag{animation:none}
+    #splash.reveal .splash-mark .accent::after{content:none;animation:none}
+  }
 
   /* ---------- Encabezado ---------- */
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-2) var(--space-1) var(--space-3);margin-bottom:var(--space-4)}
@@ -567,6 +599,41 @@
 </style>
 </head>
 <body>
+  <!-- SPLASH — wordmark animado al arrancar (auto-dismiss al cargar). Cubre toda la pantalla.
+       Robustez iOS/WebKit (lecciones del splash de Otrofestiv): la OPACIDAD final es una REGLA CSS
+       ESTÁTICA (#splash.reveal .x{opacity:1}), NUNCA depende de la animación (WebKit no persiste la
+       opacidad animada bajo el throttle del arranque → quedaba invisible). El script inline de abajo
+       revela (doble rAF), pone un HARD-FLOOR (animation:none) y un FALLBACK de cierre — ningún camino
+       deja el splash colgado, corra o no el JS de los módulos. -->
+  <div id="splash" aria-hidden="true">
+    <div class="splash-mark">Primad<span class="accent">app</span></div>
+    <div class="splash-tag">AHORRO · ENCUENTRO · BALANCE</div>
+  </div>
+  <script>
+  (function(){
+    var sp = document.getElementById('splash'); if (!sp) return;
+    window.__splashStart = Date.now();
+    // Revelar: doble rAF para que el PRIMER paint sea el fondo (opacity:0), y la animación corra desde 0.
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ sp.classList.add('reveal'); }); });
+    // HARD-FLOOR: tras el fin de la animación, quitarla → cae a la regla estática opacity:1 (anti-invisible).
+    setTimeout(function(){
+      ['.splash-mark','.splash-tag'].forEach(function(s){ var el = sp.querySelector(s); if (el) el.style.animation = 'none'; });
+    }, 1900);
+    // Cierre idempotente con MIN-DISPLAY: lo llama el controller cuando la app cargó; respeta el mínimo
+    // para que no parpadee si la carga fue instantánea. Fade-out + blur, luego se quita del DOM.
+    window.__hideSplash = function(){
+      if (sp.__hidden) return; sp.__hidden = true;
+      var MIN = 1600, waited = Date.now() - (window.__splashStart || 0);
+      setTimeout(function(){
+        sp.classList.add('hide');
+        setTimeout(function(){ if (sp && sp.parentNode) sp.parentNode.removeChild(sp); }, 700);
+      }, Math.max(0, MIN - waited));
+    };
+    // FALLBACK: si en 6s nadie cerró (bootstrap colgado), cerrar igual — nunca dejar el splash pegado.
+    setTimeout(function(){ if (window.__hideSplash) window.__hideSplash(); }, 6000);
+  })();
+  </script>
+
   <!-- .app = raíz de alto = window.innerHeight (vía --app-height, puesto por JS). IA list→detalle:
        SIN tab bar. .app-scroll es el único hijo flex y llena el alto. El body NO scrollea
        (overflow:hidden). Cold-start de iOS PWA sigue resuelto por .app=100vh (no 100dvh, no fixed). -->
@@ -593,13 +660,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260606-100637-aa89735"></script>
-  <script src="js/util.js?v=20260606-100637-aa89735"></script>
-  <script src="js/api.js?v=20260606-100637-aa89735"></script>
-  <script src="js/auth.js?v=20260606-100637-aa89735"></script>
-  <script src="js/store.js?v=20260606-100637-aa89735"></script>
-  <script src="js/view.js?v=20260606-100637-aa89735"></script>
-  <script src="js/controller.js?v=20260606-100637-aa89735"></script>
+  <script src="js/config.js?v=20260606-103929-5df6b0c"></script>
+  <script src="js/util.js?v=20260606-103929-5df6b0c"></script>
+  <script src="js/api.js?v=20260606-103929-5df6b0c"></script>
+  <script src="js/auth.js?v=20260606-103929-5df6b0c"></script>
+  <script src="js/store.js?v=20260606-103929-5df6b0c"></script>
+  <script src="js/view.js?v=20260606-103929-5df6b0c"></script>
+  <script src="js/controller.js?v=20260606-103929-5df6b0c"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

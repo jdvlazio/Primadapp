@@ -41,11 +41,14 @@ async function abrirApp(page) {
   await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
   await page.goto('/');
   await page.waitForSelector(SEL.screen, { timeout: 15000 });
-  // El tab Primadas es el activo por defecto; espera a que la Vista pinte algo dentro.
+  // Esperar a que la Vista pinte algo dentro del HOME.
   await page.waitForFunction(() => {
     const s = document.getElementById('screen');
     return s && s.children.length > 0;
   }, { timeout: 10000 });
+  // El SPLASH (position:fixed, z-index alto) cubre la pantalla al arrancar e interceptaría los clics:
+  // esperar a que se auto-cierre (el controller llama __hideSplash tras cargar; se quita del DOM ~min-display).
+  await page.waitForSelector('#splash', { state: 'detached', timeout: 10000 }).catch(() => {});
 }
 
 // Siembra personas en el directorio vía el Store global (mismo camino que la UI).
