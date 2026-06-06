@@ -613,6 +613,29 @@ const legacy = Store.select.state().primadas.find(p => p.id === 'prm_legacy_prog
 eq("Migración UI: 'programada' histórica → 'abierta'", legacy.estado, 'abierta');
 check('Migración UI: autosana productos (no queda vacía)', legacy.productos.length > 0);
 
+/* ---------- 14. "···" del home: Reabrir / Eliminar una primada (Fase 4) ---------- */
+section('Home "···": Reabrir (si cerrada) / Eliminar (con confirmación), sin swipe');
+// Creamos una primada nueva, la cerramos, y la operamos desde el "···" del home.
+const idMenu = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-08', fecha: '2026-08-03' });
+Store.actions.cerrarPrimada(idMenu);
+Store.actions.seleccionarPrimada(idMenu);   // la cerrada es la activa → hero
+irHome();
+check('Home: el hero/fila tiene "···" de opciones', !!q(`[data-act="primada-menu"][data-id="${idMenu}"]`));
+click(`[data-act="primada-menu"][data-id="${idMenu}"]`);
+check('Menú "···" abierto (hoja con la primada)', !q('#overlay').hidden && /menu-list/.test(q('#overlay').innerHTML));
+check('Cerrada → ofrece Reabrir', !!q(`[data-act="reabrir-primada"][data-id="${idMenu}"]`));
+check('Ofrece Eliminar', !!q(`[data-act="borrar-primada"][data-id="${idMenu}"]`));
+click(`[data-act="reabrir-primada"][data-id="${idMenu}"]`);
+eq('Reabrir desde el "···" → abierta', st().primadas.find(p => p.id === idMenu).estado, 'abierta');
+check('Menú se cerró tras reabrir', q('#overlay').hidden);
+// Abierta → el "···" ya NO ofrece Reabrir (solo Eliminar).
+click(`[data-act="primada-menu"][data-id="${idMenu}"]`);
+check('Abierta → "···" sin Reabrir', !q(`[data-act="reabrir-primada"][data-id="${idMenu}"]`));
+const antesBorrar = st().primadas.length;
+click(`[data-act="borrar-primada"][data-id="${idMenu}"]`);   // confirm() stubbeado a true
+eq('Eliminar desde el "···" borra la primada', st().primadas.length, antesBorrar - 1);
+check('Menú se cerró tras eliminar', q('#overlay').hidden);
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`E2E: ${pass} pasaron, ${fail} fallaron`);

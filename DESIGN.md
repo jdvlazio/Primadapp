@@ -156,6 +156,15 @@ con piso `max(env(...),20px)` (detalle en §6).
 Cada componente se describe por su **clase + propiedades exactas**. Donde hay duplicado
 histórico, se marca **✅ CANÓNICO** o **❌ LEGADO (eliminar)**.
 
+> ⚠️ **REFACTOR DE IA — LISTA→DETALLE (estilo Tricount). Varias subsecciones de abajo describen la IA ANTERIOR
+> (tab bar, selector-overlay, gear de 4 tabs, Balance como seg-nav) y quedan DESACTUALIZADAS.** La navegación
+> vigente es **home (lista) ↔ detalle (primada)** con `ui.view`, **sin tab bar**, topbar dinámica y back stack
+> (`pushState`). El **Balance es un panel inferior** (chip `toggle-balance-panel`), no un seg-nav. **Ajustes es una
+> pantalla PLANA** (`ajustesSheet`, sin tabs); el gear de 4 tabs (`overlaySheet`/`calendarioBody`/`primadaConfigTab`)
+> se ELIMINÓ; el **··· del detalle** abre `configPrimadaSheet`; el **··· por primada en el home** ofrece Reabrir/Eliminar.
+> Ver `CLAUDE.md` › **Navegación (DECIDIDA) — LISTA→DETALLE** para el contrato vigente. *(Esta sección visual se
+> reescribirá en una pasada de design dedicada.)*
+
 ### 2.1 · Fila de asistente — **el componente crítico** (✅ CANÓNICO)
 
 Muestra una persona en la lista de una primada. Es el corazón del tab Primadas y fija el

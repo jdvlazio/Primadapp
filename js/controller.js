@@ -62,7 +62,7 @@
                authEstado: 'placeholder', editPersonaId: null, nuevaPersona: false,
                configTab: 'asistentes', configProd: new Set(), pagarPid: null,
                balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
-               loginEstado: 'form', loginEmail: '' };
+               primadaMenuId: null, loginEstado: 'form', loginEmail: '' };
   let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
   let miEmail = null;         // email de la sesión (para presence "quién está apuntando")
 
@@ -317,12 +317,14 @@
           A.cerrarPrimada(id); resetBalancePanel(); View.toast('Cuenta cerrada'); rerender();
         }
         return;
-      case 'reabrir-primada':  A.reabrirPrimada(id); resetBalancePanel(); View.toast('Cuenta reabierta'); rerender(); return;
+      case 'reabrir-primada':  A.reabrirPrimada(id); resetBalancePanel(); ui.overlay = null; ui.primadaMenuId = null; View.toast('Cuenta reabierta'); rerender(); return;
       case 'borrar-primada':
         if (!root.confirm || root.confirm('¿Borrar la primada?')) {
-          A.borrarPrimada(id); ui.overlay = null; View.toast('Primada borrada'); rerender(); return;
+          A.borrarPrimada(id); ui.overlay = null; ui.primadaMenuId = null; View.toast('Primada borrada'); rerender(); return;
         }
         break;
+      // "···" de una primada en el home → hoja con Reabrir/Eliminar (acciones administrativas, sin swipe).
+      case 'primada-menu': ui.primadaMenuId = id; ui.overlay = 'primada-menu'; rerender(); return;
 
       // ----- asistencias -----
       // "+ Agregar" abre la hoja simple del directorio (overlay 'add-asis').

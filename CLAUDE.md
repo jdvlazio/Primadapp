@@ -191,35 +191,31 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
   Todo lo demás (consumos ±, roles, abonos, alta/baja, navegación) usa `commit` normal (persiste **y** re-renderiza).
   Regla: una acción nueva de **edición de texto en un input** usa `commitQuiet`; cualquier cambio **estructural** usa `commit`.
 
-## Navegación (DECIDIDA) — 2 tabs inferiores + engranaje
-- **Barra de tabs inferior (fija):**
-  - **Primadas** — lista de eventos: la **activa arriba**, las **pasadas debajo** (el **historial vive aquí**, no es un tab aparte).
-    Es el **corazón** de la app. Aquí: crear/seleccionar primada, organizadores y principal,
-    asistencias, consumos (±), cover automático por tipo con exoneración, resumen de ganancia + informe del principal.
-    Tiene **dos CARAS** conmutables (seg-nav, NO tabs): **Consumos** (operar) y **Balance** (ver la plata). El **Balance
-    dejó de ser un tab** — es una cara de la primada activa (ver `DESIGN.md` §2.11.1). La cara por defecto sale del
-    **estado**: abierta → Consumos; **cerrada → Balance** (documento final, solo-lectura). El Balance son dos tarjetas con
-    **cifra héroe siempre visible** + desglose en acorde: **Ganancia** (resultado del grupo, "Provisional" en abierta) y
-    **Recaudo** (proceso de cobro; ABIERTA = "Por cobrar" en ámbar, CERRADA = "Entregado" en teal). State-aware por `p.estado`.
-  - **Fondo** — tesorería futura, estado **"Próximamente"**.
-- **UN SOLO engranaje de configuración** (principio: *minimalismo — un solo ícono de config en pantalla; una
-  sola intención por pantalla; muestra la excepción, no la regla*). El segundo engranaje (`settings-2` del
-  selector) se **ELIMINÓ**. Ver `DESIGN.md` §2.8 / §2.8.1:
-  - **Gear GLOBAL (⚙ en el encabezado) — ÚNICA config, CUATRO tabs con alcances SEPARADOS** (cada tab = UNA
-    intención; antes "Primadas" mezclaba config + calendario en un scroll → mala IA). Abre **context-aware**
-    (`#gearBtn`): con primada activa → **Primada** (configurar, ~1 tap); sin activa → **Calendario** (crear).
-    - **Primada** (`primadaConfigTab`) — config del EVENTO ACTIVO, encabezada por su nombre: seg-nav interno
-      **Asistentes** (lista compacta agrupada, cover en el encabezado una vez, `Sin cover` en la excepción;
-      alta/baja; **rol fijo al crear** salvo el fix "Hacer principal" si está incompleta) | **Productos**
-      (precios, clon de Personas; seg-nav con `data-ctab`, NO `data-tab`). **Solo config**, sin calendario.
-    - **Calendario** (`calendarioBody`) — **"Nueva primada"** (ÚNICO punto de creación → wizard) + lista de
-      TODAS (Activa/Pasadas) con **Eliminar** y **Reabrir** (cerradas). **El "+" de la cabecera del selector se ELIMINÓ.**
-    - **Personas** — directorio: **lista COMPACTA agrupada** (Ahorradores/Invitados, una línea + nº de primadas);
-      tap → **editar ENFOCADO** (drill-in `personaEditView`: back + nombre + estado + `breB`). NO acordeón inline.
-    - **Ajustes** — cover vigente, versión, legal, cuenta.
-  - **Identidad de la primada** (nombre/fecha/mes) se fija al **crear** (wizard). No hay edición posterior de
-    mes/fecha (un error → borrar y recrear, caso rarísimo y aceptable).
-- Toda feature nueva debe caber en esta navegación. Si no cabe → **pausar y consultar** (no inventar un tercer tab).
+## Navegación (DECIDIDA) — LISTA→DETALLE (estilo Tricount), SIN tab bar
+> **Refactor estructural (IA list→detalle).** Se ELIMINÓ el tab bar inferior y el selector-overlay. La app es ahora
+> **una lista (HOME) y un detalle (la primada)**, con `ui.view ∈ {'home','detalle'}` (reemplaza al viejo `ui.tab`).
+> `render()` bifurca por `ui.view`; la **topbar es dinámica** por vista. Back stack con `history.pushState`/`popstate`
+> (el back del sistema en el detalle vuelve al home, no sale de la PWA).
+
+- **HOME = lista de primadas (pantalla de inicio).** Reemplaza al tab bar y al selector-overlay.
+  - **Hero card** de la primada **activa**: nombre + mes + dot (derivado de actividad, `dotClase`). **SIN monto**.
+  - **Historial**: filas compactas (nombre + mes + **GANANCIA**, `ganancia(p)`), agrupadas en **Próximas / Pasadas**
+    relativas a la activa (determinista, no por reloj). Tap en hero/fila = **entrar al detalle** (`entrar-primada`).
+  - **Topbar del home:** **"+" Nueva primada** (ÚNICO punto de creación → wizard) · **⚙ Ajustes** (pantalla plana) · **👤 Cuenta**.
+  - **"···" por primada** (hero + filas) → hoja con **Reabrir** (si cerrada) / **Eliminar** (con confirmación, sin swipe).
+- **DETALLE = espacio operativo de la primada activa.**
+  - **Topbar del detalle:** **← Inicio** (`volver-home`) · **nombre** · **🔗 compartir** (`shareInforme`) · **··· configurar**
+    (`open-config-primada` → hoja `configPrimadaSheet`: Asistentes | Productos).
+  - **Cuerpo:** **Lista viva** (Consumos, Modelo 3) **+ panel de Balance** debajo (mismo scroll, subordinado). Un chip
+    **"Balance ▲/▼"** lo despliega/colapsa (`toggle-balance-panel`, `ui.balanceOpen`). Default por estado: ABIERTA =
+    colapsado; CERRADA = desplegado (documento final). Reusa `balancePrimada()` (Ganancia + Recaudo, state-aware).
+  - **Presencia** ("X está apuntando") y el **indicador offline** viven DENTRO del detalle (se desuscriben en el home).
+- **Ajustes GLOBALES = pantalla PLANA (sin tabs)**, desde el ⚙ del home (`ajustesSheet`): secciones por aire —
+  **Personas** (lista compacta + drill-in `personaEditView`) · **Cover** · **Legal** · **Versión** · **Cuenta**.
+  Reusa `personasBody` + `ajustesBody`. (El viejo gear de 4 tabs, `overlaySheet`/`calendarioBody`/`primadaConfigTab`, se ELIMINÓ.)
+- **Fondo** (tesorería futura) ya NO es un tab: se reubicará en una pasada futura (placeholder pendiente).
+- **Identidad de la primada** (nombre/fecha/mes) se fija al **crear** (wizard). No hay edición posterior de mes/fecha.
+- Toda feature nueva debe caber en esta IA (home ↔ detalle). Si no cabe → **pausar y consultar**.
 
 ## Modelo de datos (esquema v6 — DEFINITIVO)
 ```
@@ -366,6 +362,13 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
       descarta rechazos definitivos); (C2) botón ⓘ de AUDITORÍA (detalle por evento: hora + quién apuntó, bajo demanda);
       (C3) PRESENCE ("X está apuntando", auto-coordinación). **Migración Supabase COMPLETA.**
       Auth por **CÓDIGO OTP** (no solo magic link): plantilla de email con `{{ .Token }}` + `signInWithOtp` sin `emailRedirectTo`.
+- [x] **HECHO — Refactor de IA: LISTA→DETALLE (estilo Tricount).** Reemplaza el tab bar por home (lista) + detalle
+      (operación). **Fase 1:** `ui.view {home|detalle}`, topbar dinámica, back stack (`pushState`/`popstate`), home con
+      hero+historial, "+" único de creación. **Fase 2:** Balance pasa de seg-nav a **panel inferior** (`toggle-balance-panel`,
+      default por estado); presencia/offline gateados al detalle. **Fase 3:** **Ajustes planos** (`ajustesSheet`, sin tabs);
+      se elimina el gear de 4 tabs (`overlaySheet`/`calendarioBody`/`primadaConfigTab`); ··· del detalle = `configPrimadaSheet`.
+      **Fase 4:** **"···" por primada en el home** → Reabrir/Eliminar (sin swipe). Verificado: 192 modelo · 78 api · 181 e2e ·
+      36 Playwright. **Pendiente:** reubicar "Fondo" (placeholder) y verificación en iOS real del cold-start sin tabbar.
 - [ ] Tab "Próximamente" (placeholder). *(Resumen y Fondo ya muestran placeholder en PASO 2.)*
 - [ ] **Futuro:** módulo de **Ahorro/Tesorería** (aportes mensuales, retiros, préstamos, inversiones, actividades extra).
 - [ ] **Futuro:** cierre de año / liquidación por persona (aún NO; el año es solo etiqueta).

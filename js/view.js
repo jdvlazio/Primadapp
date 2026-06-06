@@ -115,6 +115,8 @@
     'chevron-left':'<path d="m15 18-6-6 6-6"/>',
     'chevron-right':'<path d="m9 18 6-6-6-6"/>',
     'info':       '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+    'more-vertical':'<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+    'rotate-ccw': '<path d="M3 2v6h6"/><path d="M3 8a9 9 0 1 0 2.6-5.6L3 8"/>',
     'eye':        '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
     'edit':       '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     'share-2':    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
@@ -675,23 +677,49 @@
     return `<div class="home">${activa ? heroCard(activa) : ''}${secProx}${secPas}</div>`;
   }
 
-  // Hero card de la primada activa: nombre + mes + dot de estado. SIN monto (decisión de producto).
-  function heroCard(p) {
-    return `<button class="hero-card" data-act="entrar-primada" data-id="${p.id}" aria-label="Abrir ${e(nombreCorto(p.nombre))}">
-      <span class="hero-dot dot ${dotClase(p)}"></span>
-      <span class="hero-id">
-        <span class="hero-name">${e(nombreCorto(p.nombre))}</span>
-        <span class="hero-mes">${e(Util.monthYear(p.mesContable))}</span>
-      </span>
-    </button>`;
+  // Botón "···" de opciones administrativas de una primada (Reabrir / Eliminar). Abre primadaMenuSheet.
+  function rowMenuBtn(p) {
+    return `<button class="row-menu" data-act="primada-menu" data-id="${p.id}" aria-label="Opciones de ${e(nombreCorto(p.nombre))}">${icon('more-vertical')}</button>`;
   }
 
-  // Fila compacta de historial: dot + nombre + mes + GANANCIA al final. Sin chevron (el tap es el affordance).
+  // Hero card de la primada activa: nombre + mes + dot de estado. SIN monto (decisión de producto). "···" en la esquina.
+  function heroCard(p) {
+    return `<div class="hero-row">
+      <button class="hero-card" data-act="entrar-primada" data-id="${p.id}" aria-label="Abrir ${e(nombreCorto(p.nombre))}">
+        <span class="hero-dot dot ${dotClase(p)}"></span>
+        <span class="hero-id">
+          <span class="hero-name">${e(nombreCorto(p.nombre))}</span>
+          <span class="hero-mes">${e(Util.monthYear(p.mesContable))}</span>
+        </span>
+      </button>
+      ${rowMenuBtn(p)}
+    </div>`;
+  }
+
+  // Fila compacta de historial: dot + nombre + mes + GANANCIA + "···". Sin chevron (el tap entra).
   function historialFila(p) {
-    return `<button class="hist-fila" data-act="entrar-primada" data-id="${p.id}" aria-label="Abrir ${e(nombreCorto(p.nombre))}">
-      <span class="hist-id"><span class="dot ${dotClase(p)}"></span><span class="hist-name">${e(nombreCorto(p.nombre))}</span> <span class="hist-mes">${e(Util.monthName(p.mesContable))}</span></span>
-      <span class="hist-gan">${$peso(S().ganancia(p))}</span>
-    </button>`;
+    return `<div class="hist-row">
+      <button class="hist-fila" data-act="entrar-primada" data-id="${p.id}" aria-label="Abrir ${e(nombreCorto(p.nombre))}">
+        <span class="hist-id"><span class="dot ${dotClase(p)}"></span><span class="hist-name">${e(nombreCorto(p.nombre))}</span> <span class="hist-mes">${e(Util.monthName(p.mesContable))}</span></span>
+        <span class="hist-gan">${$peso(S().ganancia(p))}</span>
+      </button>
+      ${rowMenuBtn(p)}
+    </div>`;
+  }
+
+  // Hoja "···" de una primada (desde el home): Reabrir (si cerrada) / Eliminar (con confirmación). Sin swipe.
+  function primadaMenuSheet(state, ui) {
+    const p = state.primadas.find(x => x.id === ui.primadaMenuId);
+    if (!p) return '';
+    const esActiva = p.id === state.activePrimadaId;
+    return `<div class="sheet">
+      <div class="sheet-head"><div class="sheet-title">${e(nombreCorto(p.nombre))}</div>
+        <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
+      <div class="sheet-body menu-list">
+        ${p.estado === 'cerrada' ? `<button class="menu-item" data-act="reabrir-primada" data-id="${p.id}">${icon('rotate-ccw')}Reabrir</button>` : ''}
+        <button class="menu-item danger" data-act="borrar-primada" data-id="${p.id}" ${esActiva ? 'data-activa="1"' : ''}>${icon('trash-2')}Eliminar</button>
+      </div>
+    </div>`;
   }
 
   /* ============================================================
@@ -992,6 +1020,7 @@
     else if (ui.overlay === 'pagar')                           els.overlay.innerHTML = pagarSheet(state, ui);
     else if (ui.overlay === 'selector-primada')                els.overlay.innerHTML = selectorSheet(state, ui);
     else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
+    else if (ui.overlay === 'primada-menu')                    els.overlay.innerHTML = primadaMenuSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
     else if (ui.overlay === 'ajustes' || ui.overlay === 'personas') els.overlay.innerHTML = ajustesSheet(state, ui);
     else                                                        els.overlay.innerHTML = '';

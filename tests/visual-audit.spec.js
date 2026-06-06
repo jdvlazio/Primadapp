@@ -479,3 +479,31 @@ test.describe('Pagar (binario) + llave Bre-B', () => {
     await expect(page.locator('#screen')).toContainText('Pagado');                  // la tarjeta lo refleja
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7 · HOME "···": Reabrir / Eliminar una primada (Fase 4)
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe('Home "···": Reabrir / Eliminar', () => {
+  test('H1 — el "···" del home ofrece Reabrir (cerrada) y Eliminar; ambos cierran el menú', async ({ page }) => {
+    page.on('dialog', d => d.accept());   // confirmar el "¿Borrar la primada?"
+    await abrirApp(page);
+    await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
+    await crearPrimada(page, 'Ana');
+    const id = await page.evaluate(() => window.Store.select.state().activePrimadaId);
+    await page.evaluate((x) => window.Store.actions.cerrarPrimada(x), id);
+    await irHome(page);
+    // El hero (activa, cerrada) lleva "···".
+    await page.click(`[data-act="primada-menu"][data-id="${id}"]`);
+    await expect(page.locator('.overlay .menu-list')).toBeVisible();
+    await expect(page.locator(`.overlay [data-act="reabrir-primada"][data-id="${id}"]`)).toBeVisible();
+    await page.click(`.overlay [data-act="reabrir-primada"][data-id="${id}"]`);
+    await expect(page.locator('.overlay')).toBeHidden();
+    expect(await page.evaluate((x) => window.Store.select.state().primadas.find(p => p.id === x).estado, id)).toBe('abierta');
+    // Abierta → "···" sin Reabrir; Eliminar borra y cierra.
+    await page.click(`[data-act="primada-menu"][data-id="${id}"]`);
+    await expect(page.locator(`.overlay [data-act="reabrir-primada"]`)).toHaveCount(0);
+    await page.click(`.overlay [data-act="borrar-primada"][data-id="${id}"]`);
+    await expect(page.locator('.overlay')).toBeHidden();
+    expect(await page.evaluate(() => window.Store.select.state().primadas.length)).toBe(0);
+  });
+});
