@@ -308,8 +308,15 @@ prm().pago.breB = prevBreB || null;   // restaurar el snapshot
 // DESPUÉS de crear la primada), el 🔑 igual aparece tomando la llave vigente de la persona.
 prm().pago.breB = null;                                  // snapshot vacío (como una primada vieja)
 Store.actions.setBreBPersona(ana.id, 'ana-nueva@bre-b'); // llave agregada a la persona después
-check('Informe: Bre-B por FALLBACK a la persona principal cuando el snapshot es null',
+check('Informe (PNG): Bre-B por FALLBACK a la persona principal cuando el snapshot es null',
   /informe-llave">🔑 Bre-B ana-nueva@bre-b/.test(window.View.informeTemplateHTML(prm())));
+// Y EN LA APP (Recaudo, acordeón "informe"): la línea "Bre-B" usa el MISMO fallback (antes mostraba "—").
+click('[data-act="set-cara"][data-cara="balance"]');
+click('[data-act="toggle-balance"][data-sec="informe"]');     // abrir el acordeón del Recaudo
+check('Recaudo (app): Bre-B por FALLBACK al principal, no "—"',
+  /<span>Bre-B<\/span><b>ana-nueva@bre-b<\/b>/.test(q('#screen').innerHTML));
+click('[data-act="toggle-balance"][data-sec="informe"]');     // colapsar
+click('[data-act="set-cara"][data-cara="operacion"]');        // volver a operar
 Store.actions.setBreBPersona(ana.id, '');                // restaurar (persona sin llave)
 // View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
 check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');

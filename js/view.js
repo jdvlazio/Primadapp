@@ -497,8 +497,12 @@
         <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
         <span class="acc-sub">${teaser}</span>
       </button>`;
+    // Llave Bre-B: snapshot p.pago.breB con FALLBACK a la llave VIGENTE del principal (mismo patrón que la
+    // hoja Pagar y el PNG). Si la Bre-B se agregó DESPUÉS de crear la primada (o se asignó el principal con
+    // "Hacer principal"), el snapshot puede estar vacío pero la llave existe en el directorio → la mostramos.
+    const breBRecaudo = (p.pago && p.pago.breB) || (prinId ? (sel.persona(prinId) || {}).breB : null) || '';
     const body = abierto ? `<div class="acc-body">
-        <div class="kv"><span>Bre-B</span><b>${p.pago.breB ? e(p.pago.breB) : '—'}</b></div>
+        <div class="kv"><span>Bre-B</span><b>${breBRecaudo ? e(breBRecaudo) : '—'}</b></div>
         <div class="kv"><span>Recaudo teórico</span><b>${$peso(inf.recaudadoTeorico)}</b></div>
         <div class="kv"><span>Recupera</span><b>${$peso(inf.recuperaPrincipal)}</b></div>
         <div class="kv total"><span>Entrega al Tesorero</span><b>${$peso(inf.entregaTesorero)}</b></div>
