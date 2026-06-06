@@ -41,14 +41,11 @@ async function abrirApp(page) {
   await page.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
   await page.goto('/');
   await page.waitForSelector(SEL.screen, { timeout: 15000 });
-  // Esperar a que la Vista pinte algo dentro del HOME.
-  await page.waitForFunction(() => {
-    const s = document.getElementById('screen');
-    return s && s.children.length > 0;
-  }, { timeout: 10000 });
-  // El SPLASH (position:fixed, z-index alto) cubre la pantalla al arrancar e interceptaría los clics:
-  // esperar a que se auto-cierre (el controller llama __hideSplash tras cargar; se quita del DOM ~min-display).
-  await page.waitForSelector('#splash', { state: 'detached', timeout: 10000 }).catch(() => {});
+  // El bootstrap difiere la carga ~650ms; esperar a __appReady (app booteada).
+  await page.waitForFunction(() => window.__appReady === true, { timeout: 15000 });
+  // El SPLASH (position:fixed, z-index alto) cubre la pantalla e interceptaría los clics. Su comportamiento
+  // REAL (entrada + auto-dismiss) lo cubre el test S7; aquí lo quitamos al toque para no esperar el min-display.
+  await page.evaluate(() => { const s = document.getElementById('splash'); if (s) s.remove(); });
 }
 
 // Siembra personas en el directorio vía el Store global (mismo camino que la UI).

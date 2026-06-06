@@ -52,9 +52,9 @@ ready().then(async () => {
     s.textContent = fs.readFileSync(path.join(ROOT, rel), 'utf8');
     document.body.appendChild(s);   // ejecuta sincrónicamente (runScripts:'dangerously')
   });
-  // El bootstrap (controller start) es ASYNC: hidrata vía Api.load() (modo 'local' en jsdom, sin SDK).
-  // Esperamos a que el estado quede listo antes de manejar la app con clics.
-  for (let i = 0; i < 50 && !(window.Store && window.Store.select.state()); i++) {
+  // El bootstrap (controller start) es ASYNC y ahora DIFIERE la carga pesada ~650ms (para que la entrada del
+  // splash respire). Esperamos a __appReady (lo pone iniciarApp al terminar) antes de manejar la app con clics.
+  for (let i = 0; i < 400 && !window.__appReady; i++) {
     await new Promise(r => setTimeout(r, 10));
   }
   runTests();

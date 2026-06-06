@@ -508,10 +508,15 @@
     if (View.showAppChrome) View.showAppChrome();
     // Ícono del botón de cuenta: 'in' si hay sesión real; 'user' (placeholder) si el backend está off.
     if (View.renderAuthButton) View.renderAuthButton(Auth && Auth.enabled() ? (sesionActiva ? 'in' : 'out') : 'placeholder');
-    rerender();                                // "Cargando…" mientras hidrata
+    rerender();                                // "Cargando…" (ligero, detrás del splash)
+    // Dejar respirar la ENTRADA del splash en un main-thread limpio antes de la carga pesada (load + render
+    // del home). Si no, el bootstrap janquea los primeros frames de la animación → el "glitch" en el celular.
+    // El splash cubre la pantalla, así que este respiro no se ve (y el min-display lo absorbe).
+    await new Promise(function (r) { setTimeout(r, 650); });
     await Store.load();                        // hidrata el AppState desde Api (async)
     resetBalancePanel();                       // panel de balance: default por estado de la primada cargada
     rerender();
+    try { root.__appReady = true; } catch (_) {}   // señal para los tests (la app terminó de bootear)
     // App lista → cerrar el splash (idempotente; respeta el min-display; tiene su propio fallback a 6s).
     try { if (root.__hideSplash) root.__hideSplash(); } catch (_) {}
   }
