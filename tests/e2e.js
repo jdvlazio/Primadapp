@@ -314,7 +314,13 @@ check('Trigger "Compartir informe" al pie del panel de Balance', !!q('.balance-p
 check('Trigger ya NO está en la topbar', !q('#topbar [data-act="compartir-informe"]'));
 const informe = window.View.informeTemplateHTML(prm());
 check('Informe: UNA marca wordmark "Primad"+"app" (acento) + período', /informe-brand">Primad<span class="informe-brand-ac">app/.test(informe) && /Junio 2026/.test(informe));
-check('Informe: título = nombre de la primada', new RegExp('informe-title">' + prm().nombre).test(informe));
+// El título quita la palabra "Primada" (nombreCorto): deja SOLO los organizadores ("Primada Ana + Beto" → "Ana + Beto").
+const nombreOrig = prm().nombre;
+Store.actions.renombrarPrimada(prm().id, 'Primada Ana + Beto');
+const tituloHTML = window.View.informeTemplateHTML(prm());
+check('Informe: título sin "Primada", solo los organizadores ("Ana + Beto")',
+  /informe-title">Ana \+ Beto</.test(tituloHTML) && !/informe-title">Primada/.test(tituloHTML));
+Store.actions.renombrarPrimada(prm().id, nombreOrig);   // restaurar para el resto del flujo
 // COMPACTO: productos inline (emoji+nombre+×N) en .informe-prods, SIN subtotal por ítem.
 check('Informe: Beto con su producto inline (emoji + nombre + ×cantidad)', /informe-prods">🍺 Costeñita ×2/.test(informe));
 check('Informe: SIN subtotal por producto (no hay "×2…$7.000" en la fila)', !/×2<\/span><span>\$7\.000/.test(informe));
@@ -338,7 +344,7 @@ check('Informe: sin Bre-B → la línea 🔑 se omite', !/informe-llave/.test(in
 const prevBreB = prm().pago.breB;
 prm().pago.breB = 'ana@bre-b';
 const conLlave = window.View.informeTemplateHTML(prm());
-check('Informe: Bre-B como línea "🔑 Bre-B {valor}" (etiqueta + valor)', /informe-llave">🔑 Bre-B ana@bre-b/.test(conLlave));
+check('Informe: Bre-B como línea "🔑 Bre-B: {valor}" (dos puntos antes del valor)', /informe-llave">🔑 Bre-B: ana@bre-b/.test(conLlave));
 check('Informe: la 🔑 va tras el título y antes de los asistentes',
   conLlave.indexOf('informe-title') < conLlave.indexOf('informe-llave') &&
   conLlave.indexOf('informe-llave') < conLlave.indexOf('informe-asis'));
@@ -348,7 +354,7 @@ prm().pago.breB = prevBreB || null;   // restaurar el snapshot
 prm().pago.breB = null;                                  // snapshot vacío (como una primada vieja)
 Store.actions.setBreBPersona(ana.id, 'ana-nueva@bre-b'); // llave agregada a la persona después
 check('Informe (PNG): Bre-B por FALLBACK a la persona principal cuando el snapshot es null',
-  /informe-llave">🔑 Bre-B ana-nueva@bre-b/.test(window.View.informeTemplateHTML(prm())));
+  /informe-llave">🔑 Bre-B: ana-nueva@bre-b/.test(window.View.informeTemplateHTML(prm())));
 // Y EN LA APP (Balance, bloque Cobro): la línea "Bre-B" usa el MISMO fallback (antes mostraba "—").
 abrirBalance();
 click('[data-act="toggle-balance"][data-sec="balance"]');     // abrir el desglose del Balance

@@ -84,13 +84,13 @@
     const principalId = p.organizadorPrincipalId;
     const breBRaw = (p.pago && p.pago.breB) || (principalId ? (sel.persona(principalId) || {}).breB : null) || '';
     const breB = breBRaw ? String(breBRaw).trim() : '';
-    const llave = breB ? `<div class="informe-llave">🔑 Bre-B ${e(breB)}</div>` : '';
+    const llave = breB ? `<div class="informe-llave">🔑 Bre-B: ${e(breB)}</div>` : '';
     return `<div class="informe-card">
         <div class="informe-head">
           <span class="informe-brand">Primad<span class="informe-brand-ac">app</span></span>
           <span class="informe-period">${e(Util.monthYear(p.mesContable))}</span>
         </div>
-        <div class="informe-title">${e(p.nombre)}</div>
+        <div class="informe-title">${e(nombreCorto(p.nombre))}</div>
         ${llave}
         <div class="informe-hero ${heroCls}">
           <span class="informe-hero-lbl">${heroLbl}</span>

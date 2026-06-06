@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260606-143201-aea496b">
+<meta name="build" content="20260606-144207-e4ac8cb">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -338,13 +338,15 @@
   .informe-brand-ac{color:var(--accent)}
   .informe-period{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:capitalize}
   .informe-title{font-weight:800;font-size:24px;line-height:1.06;letter-spacing:-.02em;color:var(--ink)}
-  .informe-llave{margin-top:5px;font-weight:600;font-size:12.5px;color:var(--accent);word-break:break-all}
-  /* HÉROE: banda destacada con la cifra grande (Ganancia teal / Por cobrar ámbar) — el peso visual del informe. */
-  .informe-hero{margin:var(--space-4) 0;padding:var(--space-3) var(--space-4);border-radius:14px;
-    display:flex;flex-direction:column;gap:3px;background:rgba(45,212,191,.10);border:1px solid rgba(45,212,191,.22)}
+  /* Bre-B: texto NEUTRO (sin teal) — el acento queda solo en la 🔑; el valor es la llave para pagar. */
+  .informe-llave{margin-top:5px;font-weight:600;font-size:12.5px;color:var(--ink-soft);word-break:break-all}
+  /* HÉROE: banda con la cifra (Ganancia teal / Por cobrar ámbar). COMPACTA (padding chico) para que quede
+     limpio: el peso lo da el color y la tipografía, no el tamaño de la caja. */
+  .informe-hero{margin:var(--space-3) 0;padding:var(--space-2) var(--space-3);border-radius:12px;
+    display:flex;flex-direction:column;gap:1px;background:rgba(45,212,191,.10);border:1px solid rgba(45,212,191,.22)}
   .informe-hero.cobrar{background:rgba(224,179,65,.10);border-color:rgba(224,179,65,.24)}
-  .informe-hero-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft)}
-  .informe-hero-val{font-size:36px;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--accent)}
+  .informe-hero-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft)}
+  .informe-hero-val{font-size:29px;font-weight:800;line-height:1.05;letter-spacing:-.02em;color:var(--accent)}
   .informe-hero.cobrar .informe-hero-val{color:var(--amber)}
   /* Detalle por persona (lo que paga): dos columnas — izquierda (nombre + productos), TOTAL a la derecha. */
   .informe-list{margin-top:var(--space-1)}
@@ -679,13 +681,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260606-143201-aea496b"></script>
-  <script src="js/util.js?v=20260606-143201-aea496b"></script>
-  <script src="js/api.js?v=20260606-143201-aea496b"></script>
-  <script src="js/auth.js?v=20260606-143201-aea496b"></script>
-  <script src="js/store.js?v=20260606-143201-aea496b"></script>
-  <script src="js/view.js?v=20260606-143201-aea496b"></script>
-  <script src="js/controller.js?v=20260606-143201-aea496b"></script>
+  <script src="js/config.js?v=20260606-144207-e4ac8cb"></script>
+  <script src="js/util.js?v=20260606-144207-e4ac8cb"></script>
+  <script src="js/api.js?v=20260606-144207-e4ac8cb"></script>
+  <script src="js/auth.js?v=20260606-144207-e4ac8cb"></script>
+  <script src="js/store.js?v=20260606-144207-e4ac8cb"></script>
+  <script src="js/view.js?v=20260606-144207-e4ac8cb"></script>
+  <script src="js/controller.js?v=20260606-144207-e4ac8cb"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
