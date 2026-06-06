@@ -9,25 +9,25 @@
 // así que para crear una primada hay que sembrar ahorradores primero.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// IA list→detalle: HOME (lista) + DETALLE (operación). Sin tab bar, sin selector-overlay.
 const SEL = {
   screen: '#screen',
-  tabbar: '#tabbar',
-  tab: (id) => `.tab[data-tab="${id}"]`,
-  tabActive: '.tab.active',
-  nuevaPrimada: '[data-act="new-primada"]',   // "Nueva primada" en el gear › Primadas (abre el wizard)
-  selector: '[data-act="open-selector"]',     // botón selector (abre la hoja agrupada)
-  selMain: '.sel-main',                        // línea-guía del selector: "Mes Año" (+ punto estado)
-  selSub: '.sel-sub',                          // identidad tenue: nombre corto (sin "Primada")
-  selFila: '.sel-fila',                        // fila de primada dentro de la hoja del selector
-  selAnio: '.sel-anio',                        // encabezado de año en la hoja
+  topbar: '#topbar',
+  nuevaPrimada: '[data-act="new-primada"]',   // "+" en la topbar del HOME (único punto de creación → wizard)
+  ajustes: '[data-act="open-ajustes"]',        // ⚙ Ajustes (gear global interim) en la topbar del HOME
+  cuenta: '#authBtn',                          // 👤 Cuenta en la topbar del HOME
+  hero: '.hero-card',                          // hero de la primada activa en el HOME
+  histFila: '.hist-fila',                      // fila de historial en el HOME
+  entrar: (id) => `[data-act="entrar-primada"][data-id="${id}"]`,
+  volverHome: '[data-act="volver-home"]',      // ← Inicio en la topbar del DETALLE
+  configPrimada: '[data-act="open-config-primada"]',   // ··· en la topbar del DETALLE
   wizard: '.wz',
   wzPrincipal: '#wz-principal',
   wzSiguiente: '[data-act="wz-siguiente"]',
   wzCrear: '[data-act="wz-crear"]',
   wzCancelar: '[data-act="wz-cancelar"]',
   accHead: '.acc-head',     // cabecera de fila-acordeón (Configurar Productos / Personas)
-  asisFila: '.asis-fila',   // fila de asistente en el tab Consumos (Modelo 3, lista viva; tap = activar)
-  prmName: '.prm-name',     // nombre de la primada activa (dashboard Balance)
+  asisFila: '.asis-fila',   // fila de asistente en la cara Consumos (Modelo 3, lista viva; tap = activar)
   cara: (key) => `[data-act="set-cara"][data-cara="${key}"]`,   // switch de cara (Consumos | Balance)
 };
 
@@ -57,10 +57,20 @@ async function sembrarPersonas(page, personas) {
 
 // Flujo completo del wizard: crea una primada con `principalNombre` como principal.
 // Asume que ya hay al menos un ahorrador con ese nombre sembrado.
+async function irHome(page) {
+  if (await page.locator(SEL.volverHome).count()) await page.click(SEL.volverHome);
+}
+
+async function entrarDetalle(page, id) {
+  await irHome(page);
+  const sel = id ? SEL.entrar(id) : SEL.hero;
+  await page.click(sel);
+  await page.waitForSelector(SEL.volverHome, { timeout: 5000 });
+}
+
 async function crearPrimada(page, principalNombre = 'Ana') {
-  // ÚNICO punto de creación: gear global › Calendario › "Nueva primada" (abre el wizard de 3 pasos).
-  await page.click('#gearBtn');
-  await page.click('[data-act="overlay-tab"][data-overlay="calendario"]');
+  // ÚNICO punto de creación: el "+" de la topbar del HOME (abre el wizard de 3 pasos).
+  await irHome(page);
   await page.click(SEL.nuevaPrimada);
   await page.waitForSelector(SEL.wizard, { timeout: 5000 });
   // Paso 1: elegir principal (select de ahorradores).
@@ -91,9 +101,17 @@ async function contarPrimadas(page) {
 
 // ÚNICA config: el gear global › Primadas embebe la config del evento activo (Asistentes/Productos) arriba
 // del calendario. Deja esa vista lista (el gear abre context-aware en Primadas si hay una activa).
+// Config del EVENTO activo = "···" en la topbar del DETALLE → hoja config-primada (Asistentes | Productos).
 async function abrirConfig(page) {
-  await page.click('#gearBtn');
-  await page.click('[data-act="overlay-tab"][data-overlay="primada"]');
+  if (!await page.locator(SEL.volverHome).count()) await entrarDetalle(page);
+  await page.click(SEL.configPrimada);
 }
 
-module.exports = { SEL, abrirApp, sembrarPersonas, crearPrimada, contarPrimadas, abrirConfig };
+// Gear global (interim Fase 1): ⚙ del HOME → overlay de 4 tabs. `tab` opcional para navegar dentro.
+async function abrirGear(page, tab) {
+  await irHome(page);
+  await page.click(SEL.ajustes);
+  if (tab) await page.click(`[data-act="overlay-tab"][data-overlay="${tab}"]`);
+}
+
+module.exports = { SEL, abrirApp, sembrarPersonas, crearPrimada, contarPrimadas, abrirConfig, abrirGear, irHome, entrarDetalle };

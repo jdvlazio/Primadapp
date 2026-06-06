@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260605-200136-a81c1de">
+<meta name="build" content="20260605-213836-aa78aaf">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -156,13 +156,32 @@
      físico sin depender de un position:fixed que iOS ancla mal al lanzar. padding-bottom con el
      safe-area empuja los tabs sobre la barra de gestos; fondo = var(--paper) (= contenido), border
      superior tenue. */
-  .tabbar{flex:none;display:flex;justify-content:center;gap:var(--space-1);border-top:1px solid var(--line);background:var(--paper);padding:var(--space-2) var(--space-2) max(env(safe-area-inset-bottom), 20px)}
-  .tab{flex:1;max-width:160px;min-height:var(--tap-row);display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--ink-soft);font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:13px;letter-spacing:.02em;padding:var(--space-2);border-radius:var(--radius-md);transition:color .15s, background .15s}
-  .tab:active{opacity:.7}
-  /* Activo = SOLO color (acento) + peso. Sin caja/pill (que solo cambie de color es suficiente). */
-  .tab.active{color:var(--accent);font-weight:800}
+  /* IA list→detalle: ya no hay tab bar. Topbar del DETALLE = ← Inicio · nombre · acciones. */
+  .topbar-back{flex:none;display:flex;align-items:center;gap:2px;background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-1) var(--space-1) 0;margin-left:-2px}
+  .topbar-back:active{opacity:.6}
+  .topbar-back .icon{width:20px;height:20px}
+  .topbar-name{flex:1;min-width:0;font-weight:800;font-size:17px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;color:var(--ink)}
 
-  .toast{position:fixed;left:50%;bottom:calc(76px + max(env(safe-area-inset-bottom), 20px));transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:1200;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+  /* HOME — hero card de la activa + historial compacto (Próximas/Pasadas). */
+  .home{display:flex;flex-direction:column;gap:var(--space-2)}
+  .home-sub{margin:var(--space-4) 0 var(--space-1);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  .home-anio{margin:var(--space-3) 0 var(--space-1);font-size:12px;font-weight:700;color:var(--ink-soft)}
+  .hero-card{display:flex;align-items:center;gap:var(--space-3);width:100%;background:var(--paper-2);border:2px solid var(--line);border-radius:var(--radius-xl);padding:var(--space-4);cursor:pointer;text-align:left;color:var(--ink);font-family:inherit}
+  .hero-card:active{opacity:.8}
+  .hero-card .hero-dot{flex:none;width:12px;height:12px}
+  .hero-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .hero-name{font-weight:800;font-size:22px;letter-spacing:-.02em;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hero-mes{font-size:13px;font-weight:600;color:var(--ink-soft);text-transform:capitalize}
+  .hist-list{display:flex;flex-direction:column}
+  .hist-fila{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);width:100%;background:transparent;border:none;border-bottom:1px solid var(--line-soft);cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-2) var(--space-1)}
+  .hist-fila:last-child{border-bottom:none}
+  .hist-fila:active{background:var(--paper-2)}
+  .hist-id{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hist-name{font-weight:700}
+  .hist-mes{color:var(--ink-soft);font-size:13px;text-transform:capitalize}
+  .hist-gan{flex:none;font-size:14px;font-weight:800;color:var(--ink)}
+
+  .toast{position:fixed;left:50%;bottom:calc(var(--space-5) + max(env(safe-area-inset-bottom), 20px));transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:1200;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.ok{background:var(--pos-bg);color:var(--pos)}   /* confirmación POSITIVA (pago saldado) — tokens existentes */
 
@@ -549,37 +568,18 @@
 </style>
 </head>
 <body>
-  <!-- .app = raíz de alto = window.innerHeight (vía --app-height, puesto por JS). Columna flex:
-       .app-scroll (scroll) arriba + tabbar abajo. El body NO scrollea (overflow:hidden). Esto fija
-       el bug de cold-start de iOS PWA sin depender de position:fixed ni de 100dvh. -->
+  <!-- .app = raíz de alto = window.innerHeight (vía --app-height, puesto por JS). IA list→detalle:
+       SIN tab bar. .app-scroll es el único hijo flex y llena el alto. El body NO scrollea
+       (overflow:hidden). Cold-start de iOS PWA sigue resuelto por .app=100vh (no 100dvh, no fixed). -->
   <div class="app">
   <div class="app-scroll">
   <div class="wrap">
-    <header class="topbar">
-      <div class="brand">
-        <h1>Primad<span class="accent">app</span></h1>
-        <div class="tagline">AHORRO · ENCUENTRO · BALANCE</div>
-      </div>
-      <div class="header-actions">
-        <button class="gear" id="authBtn" title="Cuenta" aria-label="Cuenta">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </button>
-        <button class="gear" id="gearBtn" title="Configuración" aria-label="Configuración">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-        </button>
-      </div>
-    </header>
+    <!-- Topbar DINÁMICA por vista (la Vista la rinde): home = marca + "+"/⚙/cuenta; detalle = ← + nombre + 🔗/···. -->
+    <header class="topbar" id="topbar"></header>
 
     <main id="screen"><!-- la Vista renderiza aquí --></main>
   </div><!-- /.wrap -->
   </div><!-- /.app-scroll -->
-
-  <!-- Tabbar (3 tabs): hijo FLEX al fondo de .app (cuyo alto = window.innerHeight). Queda pegada al
-       borde físico sin position:fixed → inmune al cold-start de iOS PWA. -->
-  <nav class="tabbar" id="tabbar">
-    <button class="tab active" data-tab="primadas">Primadas</button>
-    <button class="tab" data-tab="fondo">Fondo</button>
-  </nav>
   </div><!-- /.app -->
 
   <!-- Overlay (detrás del engranaje): Personas / Ajustes. Inerte salvo cuando ui.overlay activo. -->
@@ -594,13 +594,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260605-200136-a81c1de"></script>
-  <script src="js/util.js?v=20260605-200136-a81c1de"></script>
-  <script src="js/api.js?v=20260605-200136-a81c1de"></script>
-  <script src="js/auth.js?v=20260605-200136-a81c1de"></script>
-  <script src="js/store.js?v=20260605-200136-a81c1de"></script>
-  <script src="js/view.js?v=20260605-200136-a81c1de"></script>
-  <script src="js/controller.js?v=20260605-200136-a81c1de"></script>
+  <script src="js/config.js?v=20260605-213836-aa78aaf"></script>
+  <script src="js/util.js?v=20260605-213836-aa78aaf"></script>
+  <script src="js/api.js?v=20260605-213836-aa78aaf"></script>
+  <script src="js/auth.js?v=20260605-213836-aa78aaf"></script>
+  <script src="js/store.js?v=20260605-213836-aa78aaf"></script>
+  <script src="js/view.js?v=20260605-213836-aa78aaf"></script>
+  <script src="js/controller.js?v=20260605-213836-aa78aaf"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

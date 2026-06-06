@@ -85,36 +85,49 @@ function activar(pid) {
   if (!fila) throw new Error('activar: no existe la fila de ' + pid);
   if (!fila.closest('.asis').querySelector('.asis-reveal')) click(fila);
 }
-// ÚNICA config: el gear global tiene 4 tabs (Primada · Calendario · Personas · Ajustes). La config del
-// evento activo vive en el tab "Primada". abrirConfig() abre el gear y deja ese tab listo (Asistentes default).
+// IA list→detalle: navegación home↔detalle por data-act (no tab bar, no #gearBtn estático).
+function enDetalle() { return !!q('[data-act="volver-home"]'); }              // la topbar del detalle tiene "← Inicio"
+function irHome() { if (enDetalle()) click('[data-act="volver-home"]'); }
+// Entrar al detalle de una primada desde el home (hero/historial). id por defecto = la activa.
+function entrarDetalle(id) {
+  id = id || st().activePrimadaId;
+  irHome();
+  const f = q(`[data-act="entrar-primada"][data-id="${id}"]`);
+  if (!f) throw new Error('entrarDetalle: no hay hero/fila para ' + id);
+  click(f);
+}
+// Config del EVENTO activo = "···" en la topbar del detalle → hoja config-primada (Asistentes | Productos).
 function abrirConfig() {
-  if (!q('#overlay') || q('#overlay').hidden) click('#gearBtn');            // abre el gear (→ Primada si hay activa)
-  const ptab = q('[data-act="overlay-tab"][data-overlay="primada"]');
-  if (ptab) click(ptab);                                                     // asegura el tab Primada (config)
+  if (!enDetalle()) entrarDetalle();
+  if (!q('#overlay') || q('#overlay').hidden) click('[data-act="open-config-primada"]');
+  const at = q('[data-act="config-tab"][data-ctab="asistentes"]'); if (at) click(at);   // asegura Asistentes
+}
+// Gear GLOBAL (interim Fase 1: sigue siendo el overlay de 4 tabs). Vive en el home (⚙ open-ajustes).
+// `tab` ∈ 'primada'|'calendario'|'personas'|'ajustes'. Abre desde el home (los botones viven ahí).
+function abrirGear(tab) {
+  irHome();
+  if (!q('#overlay') || q('#overlay').hidden) click('[data-act="open-ajustes"]');
+  if (tab) { const t = q(`[data-act="overlay-tab"][data-overlay="${tab}"]`); if (t) click(t); }
 }
 
 /* ============================================================ */
-section('Arranque (bootstrap cableó la Vista sobre el modelo v4)');
+section('Arranque (IA list→detalle: HOME como pantalla de inicio)');
 check('Store, View y Controller existen en window', !!window.Store && !!window.View && !!window.Controller);
-check('Render inicial: tab Primadas con estado vacío ("Tu primera primada")', /Tu primera primada/.test(q('#screen').innerHTML));
-// Estado vacío ESTRICTO: sin selector, sin "+" en la cabecera, y SIN botón inline de crear — orienta al gear.
-check('Estado vacío: NO hay selector de primada (.selrow)', !q('#screen .selrow'));
-check('Estado vacío: NO hay "+" chico (.icon-btn.nueva)', !q('#screen .icon-btn.nueva'));
-check('Estado vacío: SIN botón inline de crear; orienta al gear (⚙ → Calendario → Nueva primada)',
-  !q('#screen [data-act="new-primada"]') && /Nueva primada/.test(q('#screen').innerHTML));
-// ÚNICO punto de creación: gear global › Calendario › "Nueva primada" → abre el wizard. Cancelar cierra todo.
-click('#gearBtn');
-click('[data-act="overlay-tab"][data-overlay="calendario"]');
-check('Gear › Calendario: "Nueva primada" es el único punto de creación', !!q('[data-act="new-primada"]'));
+check('Render inicial: HOME con estado vacío ("Tu primera primada")', /Tu primera primada/.test(q('#screen').innerHTML));
+// Estado vacío: el home orienta al "+" de la topbar (único punto de creación). Sin selrow ni tab bar.
+check('Estado vacío: NO hay selector legado (.selrow)', !q('#screen .selrow'));
+check('Estado vacío: NO hay tab bar (#tabbar eliminado)', !q('#tabbar'));
+check('Estado vacío: la topbar del home ofrece "+" (único punto de creación)', !!q('#topbar [data-act="new-primada"]'));
+// ÚNICO punto de creación: "+" en la topbar del home → abre el wizard. Cancelar cierra y vuelve a la invitación.
 click('[data-act="new-primada"]');
-check('El wizard se abre desde el gear', !!q('.wz'));
+check('El wizard se abre desde el "+" del home', !!q('.wz'));
 click('[data-act="wz-cancelar"]');
-check('Cancelar el wizard cierra todo y vuelve a la invitación', q('#overlay').hidden && /Tu primera primada/.test(q('#screen').innerHTML));
+check('Cancelar el wizard cierra y vuelve a la invitación', q('#overlay').hidden && /Tu primera primada/.test(q('#screen').innerHTML));
 eq('localStorage limpio → 0 personas', st().personas.length, 0);
 
-/* ---------- 1. Directorio de personas (overlay del engranaje) ---------- */
-section('Personas: alta desde el overlay del engranaje');
-click('#gearBtn'); click('[data-act="overlay-tab"][data-overlay="personas"]');   // gear → tab Personas
+/* ---------- 1. Directorio de personas (gear global interim → Personas) ---------- */
+section('Personas: alta desde el gear global (⚙ → Personas)');
+abrirGear('personas');   // home › ⚙ › tab Personas
 check('Pantalla Personas visible', !q('#overlay').hidden && /Agregar persona/.test(q('#overlay').innerHTML));
 click('[data-act="open-nueva-persona"]');            // despliega el form al pie (sin cajas siempre abiertas)
 setVal('#np-nombre', 'Ana'); setVal('#np-estado', 'ahorrador'); click('[data-act="add-persona"]');
@@ -134,7 +147,8 @@ Store.actions.createPrimada({});
 eq('1 primada creada', st().primadas.length, 1);
 const prm = () => st().primadas[0];
 check('Primada activa = la nueva', st().activePrimadaId === prm().id);
-check('Incompleta: sin principal en la UI', /sin principal/.test(q('#screen').innerHTML));
+entrarDetalle();   // IA list→detalle: entrar al detalle para operar (la topbar muestra "sin principal")
+check('Incompleta: sin principal en la topbar del detalle', /sin principal/.test(q('#topbar').innerHTML));
 
 /* ---------- 3. Agregar asistencias desde el directorio ---------- */
 section('Asistencias desde el directorio');
@@ -153,15 +167,10 @@ section('Asignar principal — fix mínimo en Configurar › Asistentes (primada
 // El ROL se fija al crear; el ÚNICO caso editable es asignar el principal de una primada INCOMPLETA
 // (lista compacta agrupada). La config vive en el gear › tab Primada (Asistentes por defecto).
 abrirConfig();
-check('Gear › Primada: config del evento (tab Asistentes, lista agrupada)',
+check('··· del detalle: hoja config-primada (Asistentes, lista agrupada)',
   /data-act="config-tab" data-ctab="asistentes"/.test(q('#overlay').innerHTML) && /Ahorradores/.test(q('#overlay').innerHTML));
-check('Tab Primada = SOLO config (sin Calendario ni segundo engranaje)',
-  !/data-act="new-primada"/.test(q('#overlay').innerHTML) && !q('[data-act="open-config-primada"]'));
-check('El Calendario es un tab SEPARADO (Nueva primada + lista)', (() => {
-  click('[data-act="overlay-tab"][data-overlay="calendario"]');
-  const ok = !!q('[data-act="new-primada"]') && /data-act="borrar-primada"/.test(q('#overlay').innerHTML);
-  click('[data-act="overlay-tab"][data-overlay="primada"]'); return ok;   // volver al tab Primada
-})());
+check('Config-primada = SOLO config del evento (sin Calendario ni "Nueva primada")',
+  !/data-act="new-primada"/.test(q('#overlay').innerHTML) && !/data-act="overlay-tab"/.test(q('#overlay').innerHTML));
 check('Aviso "falta principal" visible (incompleta)', /falta principal/.test(q('#overlay').innerHTML));
 // Beto es INVITADO → la UI NO le ofrece "Hacer principal" (INVARIANTE #2 por construcción).
 check('Beto (invitado) SIN botón "Hacer principal"', !q(`[data-act="hacer-principal"][data-pid="${beto.id}"]`));
@@ -345,9 +354,9 @@ section('Cerrar cuenta (INVARIANTE #4): "Cerrar" salió de Config; congela consu
 // operación SOLO cuando todos saldaron. Mientras Beto deba (7.000), el CTA NO está y Config no lo ofrece.
 check('CTA "Cerrar" ausente mientras Beto debe', !q('[data-act="cerrar-primada"]'));
 abrirConfig();
-check('Gear › Primada: 2 sub-tabs de config (Asistentes | Productos)',
+check('Config-primada: 2 sub-tabs (Asistentes | Productos)',
   !q('#overlay').hidden && !!q('[data-act="config-tab"][data-ctab="asistentes"]') && !!q('[data-act="config-tab"][data-ctab="productos"]'));
-check('La config NO ofrece "Cerrar" (CTA contextual de la operación) ni "Eliminar" (vive en Calendario)',
+check('La config NO ofrece "Cerrar" (CTA contextual de la operación) ni "Eliminar"',
   !/data-act="cerrar-primada"/.test(q('#overlay').innerHTML) && !/data-act="borrar-primada"/.test(q('#overlay').innerHTML));
 click('[data-act="close-overlay"]');
 // El modelo permite cerrar con deuda (la UI lo gatea tras el CTA); aquí cerramos por acción para
@@ -439,7 +448,7 @@ check('Cerrada: el consumo se ve como chip de solo lectura (.chip.has.ro)', !!q(
 /* ---------- 8c. Directorio: cambiar estado NO reescribe snapshots (INVARIANTE #1) vía UI ---------- */
 section('Directorio: cambiar estado vigente conserva la historia (INV#1)');
 eq('Snapshot de Beto en la asistencia = invitado', betoAsis().estadoEnEseMomento, 'invitado');
-click('#gearBtn'); click('[data-act="overlay-tab"][data-overlay="personas"]');   // gear → tab Personas
+abrirGear('personas');   // home › ⚙ › tab Personas
 check('Beto aparece en 1 primada (historia)', Store.select.aparicionesDe(beto.id) === 1);
 click(`[data-act="editar-persona"][data-pid="${beto.id}"]`);   // drill-in al detalle ENFOCADO de Beto
 check('Detalle enfocado de Beto abierto (back + campos)', !!q('[data-act="cerrar-persona-edit"]') && !!q(`[data-ch="rename-persona"][data-pid="${beto.id}"]`));
@@ -462,12 +471,22 @@ click('[data-act="overlay-tab"][data-overlay="personas"]');   // vuelve por el f
 click('[data-act="close-overlay"]');
 check('Pantalla cerrada', q('#overlay').hidden);
 
-/* ---------- 9. Navegación de tabs ---------- */
-section('Navegación: tab Fondo (Próximamente)');
-click('[data-tab="fondo"]');
-check('Tab Fondo muestra Próximamente', /Próximamente/.test(q('#screen').innerHTML));
-click('[data-tab="primadas"]');
-check('Vuelve a Primadas', /Asistentes/.test(q('#screen').innerHTML));
+/* ---------- 9. Navegación list→detalle + back stack ---------- */
+section('Navegación list→detalle + back stack (pushState/popstate)');
+irHome();
+check('Home: hero de la activa + sin tab bar (#tabbar eliminado)', !!q('.hero-card') && !q('#tabbar'));
+check('Home: la topbar ofrece "+" y ⚙ (Ajustes)', !!q('#topbar [data-act="new-primada"]') && !!q('#topbar [data-act="open-ajustes"]'));
+entrarDetalle();
+check('Entrar: vista detalle (← Inicio + seg-nav Consumos|Balance)', enDetalle() && !!q('[data-act="set-cara"]'));
+check('Back stack: pushState dejó una entrada de detalle (history.state.lp)', !!(window.history.state && window.history.state.lp === 'detalle'));
+// popstate (back del sistema): vuelve al home, NO sale de la PWA.
+window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));
+check('popstate (back del sistema) → vuelve al home', !enDetalle() && !!q('.hero-card'));
+// ← Inicio en la topbar también vuelve.
+entrarDetalle();
+click('[data-act="volver-home"]');
+check('← Inicio → vuelve al home', !enDetalle() && !!q('.hero-card'));
+entrarDetalle();   // re-entrar: los tests siguientes operan sobre el detalle/modelo
 
 /* ---------- 10. Persistencia (lo escrito quedó en localStorage v4) ---------- */
 section('Persistencia');
@@ -481,8 +500,7 @@ section('Historial: abrir una primada pasada muestra sus snapshots (no recalcula
 const viejaId = Store.select.activePrimada().id;
 const coverViejo = JSON.stringify(Store.select.activePrimada().cover);   // snapshot original (15.000/10.000)
 // Cambiar el cover GLOBAL en Ajustes (no debe reescribir la vieja)
-click('#gearBtn');
-click('[data-act="overlay-tab"][data-overlay="ajustes"]');
+abrirGear('ajustes');
 setVal('[data-ch="cover-ahorrador"]', '20000');
 setVal('[data-ch="cover-invitado"]', '12000');
 click('[data-act="close-overlay"]');
@@ -491,12 +509,11 @@ eq('Cover global cambiado a invitado 12.000', Store.select.state().settings.cove
 Store.actions.createPrimada({});
 const nuevaId = Store.select.activePrimada().id;
 eq('La primada NUEVA toma el cover global nuevo (12.000)', Store.select.activePrimada().cover.invitado, 12000);
-// El historial vive ahora en el SELECTOR (agrupado por año→mes): abrirlo y tocar la vieja.
-click('[data-act="open-selector"]');
-check('Selector abierto (hoja "Primadas")', !q('#overlay').hidden && /sheet-title">Primadas/.test(q('#overlay').innerHTML));
-check('La vieja aparece en el selector', !!q(`[data-act="select-primada"][data-id="${viejaId}"]`));
-click(`[data-act="select-primada"][data-id="${viejaId}"]`);
-check('El selector se cerró al elegir', q('#overlay').hidden);
+// El historial vive ahora en el HOME (hero la activa, lista las demás): tocar la vieja la abre.
+irHome();
+check('Home: la vieja aparece en la lista (entrar-primada)', !!q(`[data-act="entrar-primada"][data-id="${viejaId}"]`));
+click(`[data-act="entrar-primada"][data-id="${viejaId}"]`);
+check('Al tocar la vieja se entra a su detalle', enDetalle());
 eq('Se abrió la primada vieja', Store.select.activePrimada().id, viejaId);
 eq('Su cover sigue CONGELADO (10.000, no 12.000)', Store.select.activePrimada().cover.invitado, 10000);
 eq('Snapshot del cover idéntico al original', JSON.stringify(Store.select.activePrimada().cover), coverViejo);
@@ -504,10 +521,10 @@ eq('Snapshot del cover idéntico al original', JSON.stringify(Store.select.activ
 /* ---------- 12. Wizard "Nueva primada" (3 pasos) por clics REALES ---------- */
 section('Wizard Nueva primada: organizadores → productos → fecha → crear');
 const primadasAntes = st().primadas.length;
-// Crear vive SOLO en el gear › Primadas (con primada activa, ya no hay "+" en la cabecera).
-click('#gearBtn'); click('[data-act="overlay-tab"][data-overlay="calendario"]');
-check('Gear › Primadas: "Nueva primada" (único punto de creación)', !!q('[data-act="new-primada"]'));
-click('[data-act="new-primada"]');                          // abre el wizard SOBRE el gear
+// ÚNICO punto de creación: el "+" de la topbar del HOME (ya no hay gear › Calendario para crear).
+irHome();
+check('Home: "+" Nueva primada en la topbar', !!q('#topbar [data-act="new-primada"]'));
+click('[data-act="new-primada"]');                          // abre el wizard
 check('Wizard abierto (paso 1, overlay visible)', !q('#overlay').hidden && /wz-title">Organizadores/.test(q('#overlay').innerHTML));
 check('Aún no se creó la primada (solo abrió el wizard)', st().primadas.length === primadasAntes);
 // intentar avanzar sin principal → bloquea
@@ -547,48 +564,40 @@ eq('Wizard: fecha 2026-05-31', nueva.fecha, '2026-05-31');
 eq('Wizard: mes contable 2026-06 (distinto a la fecha)', nueva.mesContable, '2026-06');
 // cancelar un wizard nuevo no crea nada
 const antesCancelar = st().primadas.length;
-click('#gearBtn'); click('[data-act="overlay-tab"][data-overlay="calendario"]');
-click('[data-act="new-primada"]');
+irHome(); click('[data-act="new-primada"]');
 click('[data-act="wz-cancelar"]');
 check('Cancelar el wizard cierra sin crear', q('#overlay').hidden && st().primadas.length === antesCancelar);
 
 /* ---------- 13. Ciclo de vida simplificado: dot DERIVADO de actividad (sin estado 'programada') ---------- */
-section('Dot por actividad: abierta sin consumos = ámbar (idle); con consumos = verde; cerrada = gris');
-// El selector es navegación PURA: ya NO tiene "Programar" ni "+" de crear.
-click('[data-act="open-selector"]');
-check('Selector SIN "Programar" (creación vive en el gear)', !q('#overlay').hidden && !q('[data-act="open-programar"]'));
-click('[data-act="close-overlay"]');
-// PRÓXIMAS vs PASADAS son RELATIVAS a la activa (por fecha, no por estado): una primada de mes POSTERIOR a
-// la activa va en "Próximas", NO en "Pasadas" (bug reportado: Julio caía en Pasadas con Mayo activa).
+section('Dot por actividad (en el HOME): abierta sin consumos = ámbar (idle); con consumos = verde; cerrada = gris');
+// PRÓXIMAS vs PASADAS en el HOME son RELATIVAS a la activa (por fecha, no por estado): una primada de mes
+// POSTERIOR a la activa va en "Próximas", NO en "Pasadas" (bug reportado: Julio caía en Pasadas con Mayo activa).
 const idMay13 = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-05', fecha: '2026-05-10' });
 const idJul13 = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-07', fecha: '2026-07-10' });
 Store.actions.seleccionarPrimada(idMay13);   // Mayo activa
 check('Modelo: Julio es FUTURA relativo a Mayo (esFutura) y está en primadasProximas',
   Store.select.esFutura(st().primadas.find(p => p.id === idJul13), idMay13) === true
   && Store.select.primadasProximas(idMay13).some(p => p.id === idJul13));
-click('[data-act="open-selector"]');
-check('Selector: con Mayo activa, Julio aparece en "Próximas" (no "Pasadas")',
-  /sel-anio">Próximas/.test(q('#overlay').innerHTML) && new RegExp('sel-anio">Próximas[^]*' + window.Util.monthName('2026-07')).test(q('#overlay').innerHTML));
-click('[data-act="close-overlay"]');
+irHome();
+check('Home: con Mayo activa, Julio aparece en "Próximas" (no "Pasadas")',
+  /home-sub">Próximas/.test(q('#screen').innerHTML) && new RegExp('home-sub">Próximas[^]*' + window.Util.monthName('2026-07')).test(q('#screen').innerHTML));
 Store.actions.borrarPrimada(idJul13); Store.actions.borrarPrimada(idMay13);   // limpiar (no afectar el resto)
 // Creamos una primada ABIERTA SIN consumos (vía wizard sería largo; usamos la acción del modelo).
 const idNueva = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-10', fecha: '2026-10-05' });
 Store.actions.seleccionarPrimada(idNueva);   // commit → notify → la Vista re-renderiza (suscripción)
 const nueva13 = () => Store.select.state().primadas.find(p => p.id === idNueva);
 eq('Recién creada → estado abierta (no programada)', nueva13().estado, 'abierta');
-check('Sin consumos → dot ámbar (.dot.idle) en el selector', /class="dot idle"/.test(q('#screen').innerHTML));
-// Registrar el primer consumo → el dot pasa a verde (.dot.open)
+irHome();
+check('Sin consumos → dot ámbar (.dot.idle) en el hero del home', /hero-dot dot idle/.test(q('#screen').innerHTML));
+// Registrar el primer consumo (en el detalle) → el dot del home pasa a verde (.dot.open)
+entrarDetalle(idNueva);
 activar(ana.id);
 click(`[data-act="item-plus"][data-pid="${ana.id}"][data-prod="cerveza"]`);
-check('Con ≥1 consumo → dot verde (.dot.open), ya no ámbar',
-  /class="dot open"/.test(q('#screen').innerHTML) && !/class="dot idle"/.test(q('#screen').innerHTML));
-// El "+" de crear NO existe en la cabecera del selector (único punto = gear)
-check('Cabecera del selector SIN "+" de crear (.icon-btn.nueva)', !q('#screen .icon-btn.nueva'));
-check('Único punto de creación: "Nueva primada" vive en el gear › Primadas', (() => {
-  click('#gearBtn'); click('[data-act="overlay-tab"][data-overlay="calendario"]');
-  const ok = !!q('[data-act="new-primada"]') && !q('[data-act="open-programar"]');
-  click('[data-act="close-overlay"]'); return ok;
-})());
+irHome();
+check('Con ≥1 consumo → dot verde (.dot.open) en el hero, ya no ámbar',
+  /hero-dot dot open/.test(q('#screen').innerHTML) && !/hero-dot dot idle/.test(q('#screen').innerHTML));
+// ÚNICO punto de creación: "+" en la topbar del home (no hay "+" inline ni selector).
+check('Home: "+" Nueva primada en la topbar (único punto de creación)', !!q('#topbar [data-act="new-primada"]'));
 // Migración (tolerancia): inyectar un estado con una 'programada' histórica → carga como abierta autosanada.
 const conProg = JSON.parse(JSON.stringify(Store.select.state()));
 conProg.primadas.unshift({ id: 'prm_legacy_prog', nombre: 'Legacy', fecha: '', mesContable: '2026-11',

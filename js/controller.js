@@ -55,8 +55,11 @@
   //   'operacion'), fijada al seleccionar/crear/cargar/cerrar/reabrir vía fijarCaraPorEstado().
   // - balance: Set de cards-acordeón del Balance abiertas ('reparto'|'informe'); el héroe (cifra grande) va
   //   SIEMPRE visible fuera del acorde, el desglose (derivación) dentro.
-  const ui = { tab: 'primadas', cara: 'operacion', overlay: null, activaPid: null, wizard: null,
-               editPersonaId: null, nuevaPersona: false,
+  // - view: VISTA actual (IA list→detalle) — 'home' (lista de primadas) | 'detalle' (operación de la activa).
+  //   Reemplaza al viejo ui.tab. Cold-start y "volver" → 'home'; entrar a una primada → 'detalle' (+ pushState).
+  // - authEstado: estado de la cuenta para el ícono de la topbar del home ('in'|'out'|'placeholder').
+  const ui = { view: 'home', cara: 'operacion', overlay: null, activaPid: null, wizard: null,
+               authEstado: 'placeholder', editPersonaId: null, nuevaPersona: false,
                configTab: 'asistentes', configProd: new Set(), pagarPid: null,
                balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
                loginEstado: 'form', loginEmail: '' };
@@ -75,7 +78,40 @@
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
   function pedirLogin() { ui.overlay = 'login'; ui.loginEstado = 'form'; rerender(); }
 
-  function rerender() { ui.sesion = sesionActiva; View.render(Store.select.state(), ui); sincronizarVivo(); sincronizarPresencia(); }
+  function rerender() {
+    ui.sesion = sesionActiva;
+    ui.authEstado = backendOn() ? (sesionActiva ? 'in' : 'out') : 'placeholder';
+    View.render(Store.select.state(), ui);
+    sincronizarVivo(); sincronizarPresencia();
+  }
+
+  /* ---------- Navegación list→detalle + back stack (history.pushState/popstate) ----------
+     HOME = lista (ui.view='home', base del history). DETALLE = operación de una primada (un push encima).
+     Entrar empuja UNA entrada; el ← (volver-home) hace history.back() → popstate devuelve a home. Sin esto,
+     el back del sistema (Android hardware / iOS gesture) sacaría al usuario de la PWA. */
+  function entrarDetalle(id) {
+    if (id) Store.actions.seleccionarPrimada(id);
+    if (!Store.select.activePrimada()) return;   // id inválido → quedate en home
+    fijarCaraPorEstado();
+    ui.view = 'detalle'; ui.overlay = null;
+    try {
+      const st = root.history && root.history.state;
+      if (!st || st.lp !== 'detalle') root.history.pushState({ lp: 'detalle' }, '');
+    } catch (_) {}
+    rerender();
+  }
+  function volverHome() {
+    ui.view = 'home'; ui.overlay = null;
+    // Mantener el history consistente: si estamos en una entrada de detalle, retroceder (onPopstate hará un
+    // render idempotente a home). Renderizamos YA para ser deterministas (UX + jsdom donde back es no-fiable).
+    try { if (root.history && root.history.state && root.history.state.lp === 'detalle') root.history.back(); } catch (_) {}
+    rerender();
+  }
+  function onPopstate(ev) {
+    ui.view = (ev && ev.state && ev.state.lp === 'detalle') ? 'detalle' : 'home';
+    ui.overlay = null;
+    rerender();
+  }
 
   // PRESENCE (Fase C): publica mi presencia en la primada ACTIVA y mantiene ui.presentes (los OTROS).
   // "Auto-coordinación, no bloqueo": solo informa quién está y quién apunta. Re-suscribe al cambiar de
@@ -140,16 +176,8 @@
 
   /* ---------- Clicks (delegados en document) ---------- */
   function onClick(ev) {
-    // Navegación: tabs y engranaje
-    const tab = ev.target.closest('[data-tab]');
-    if (tab) { ui.tab = tab.dataset.tab; ui.overlay = null; rerender(); return; }
-    // Gear global = ÚNICA config (4 tabs: Primada · Calendario · Personas · Ajustes). Abre CONTEXT-AWARE:
-    // con primada activa → "Primada" (configurar el evento, ~1 tap); sin activa → "Calendario" (crear una).
-    if (ev.target.closest('#gearBtn')) {
-      if (ui.overlay) { ui.overlay = null; }
-      else { ui.overlay = Store.select.activePrimada() ? 'primada' : 'calendario'; ui.configTab = 'asistentes'; ui.editPersonaId = null; }
-      rerender(); return;
-    }
+    // IA list→detalle: no hay tab bar ni #gearBtn estático. La navegación va por data-act
+    // (entrar-primada / volver-home / open-ajustes / open-config-primada). Cuenta = #authBtn (topbar home).
     // Botón de cuenta (auth) = OPT-IN: el login NO bloquea al entrar; se abre desde acá.
     // Con sesión → cerrar sesión CON CONFIRMACIÓN (está pegado al engranaje → fácil de tocar por error).
     // Sin sesión → abrir la hoja de login (cerrable). Sin backend → aviso.
@@ -211,7 +239,12 @@
         return;
       }
 
-      // ----- selector de primada (navegación: abre la hoja agrupada por año→mes) -----
+      // ----- navegación list→detalle (IA Tricount) -----
+      case 'entrar-primada':  entrarDetalle(id); return;     // tap en hero/historial del home → abre el detalle
+      case 'volver-home':     volverHome(); return;          // ← Inicio en la topbar del detalle
+      case 'open-config-primada': ui.overlay = 'config-primada'; ui.configTab = 'asistentes'; rerender(); return;  // ··· del detalle
+
+      // ----- selector de primada (LEGADO, dead en IA list→detalle; lo reemplaza el home) -----
       case 'open-selector': ui.overlay = 'selector-primada'; rerender(); return;
 
       // ----- cara del tab Primadas (Consumos | Balance): navegación, NO escritura (no entra al gate) -----
@@ -261,10 +294,9 @@
             productos: w.productos.filter(p => (p.nombre || '').trim()),
             fecha: w.fecha, mesContable: w.mesContable,
           });
-          ui.wizard = null; ui.overlay = null;   // cierra wizard + gear → aterriza en la primada nueva
-          A.seleccionarPrimada(id);
-          fijarCaraPorEstado();            // recién creada → abierta → cara 'operacion'
-          View.toast('Primada creada'); rerender();   // pintar con la cara ya fijada (el commit rindió con la vieja)
+          ui.wizard = null;                // cierra wizard → aterriza DENTRO de la primada nueva (detalle)
+          entrarDetalle(id);               // selecciona + fija cara + ui.view='detalle' + pushState + render
+          View.toast('Primada creada');
         } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo crear'); }
         return;
       }
@@ -460,6 +492,8 @@
     document.addEventListener('blur', (ev) => {
       if (ev.target && ev.target.matches && ev.target.matches('[data-ch]') && Store.flushQuiet) Store.flushQuiet();
     }, true);
+    // Back stack (IA list→detalle): el back del sistema en el detalle vuelve al home, no sale de la PWA.
+    root.addEventListener('popstate', onPopstate);
   }
 
   let appIniciada = false;

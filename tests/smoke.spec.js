@@ -3,7 +3,7 @@
 // Criterio: ¿la app carga sin errores? ¿los 3 tabs responden? ¿el wizard abre
 // y se crea una primada? Réplica del smoke de Otrofestiv, adaptado al dominio.
 const { test, expect } = require('@playwright/test');
-const { SEL, abrirApp, sembrarPersonas, crearPrimada, contarPrimadas } = require('./helpers');
+const { SEL, abrirApp, sembrarPersonas, crearPrimada, contarPrimadas, entrarDetalle } = require('./helpers');
 
 // Filtra ruido de extensiones del navegador / telemetría — solo errores reales de la app.
 function erroresReales(errs) {
@@ -17,34 +17,30 @@ test('S1 — carga inicial sin errores JS', async ({ page }) => {
   expect(erroresReales(errors)).toHaveLength(0);
 });
 
-test('S2 — el shell está presente (screen + tabbar + 2 tabs)', async ({ page }) => {
-  // El Balance dejó de ser un tab (ahora es una CARA dentro de Primadas) → la tabbar tiene 2 tabs.
+test('S2 — el shell está presente (screen + topbar del home, sin tab bar)', async ({ page }) => {
+  // IA list→detalle: NO hay tab bar. El home arranca con el "+" en la topbar.
   await abrirApp(page);
   await expect(page.locator(SEL.screen)).toBeVisible();
-  await expect(page.locator(SEL.tabbar)).toBeVisible();
-  for (const id of ['primadas', 'fondo']) {
-    await expect(page.locator(SEL.tab(id))).toBeVisible();
-  }
-  await expect(page.locator(SEL.tab('resumen'))).toHaveCount(0);   // ya no existe como tab
-  // Primadas es el tab activo por defecto.
-  await expect(page.locator(SEL.tabActive)).toHaveText('Primadas');
+  await expect(page.locator(SEL.topbar)).toBeVisible();
+  await expect(page.locator('#tabbar')).toHaveCount(0);          // tab bar eliminado
+  await expect(page.locator(SEL.nuevaPrimada)).toBeVisible();    // "+" en la topbar del home
 });
 
-test('S3 — navegar entre los 2 tabs no lanza errores', async ({ page }) => {
+test('S3 — navegar home↔detalle (back stack) no lanza errores', async ({ page }) => {
   await abrirApp(page);
+  await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
+  await crearPrimada(page, 'Ana');   // tras crear, aterriza en el DETALLE
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  for (const id of ['fondo', 'primadas']) {
-    await page.click(SEL.tab(id));
-    await expect(page.locator(`${SEL.tab(id)}.active`)).toBeVisible();
-  }
+  await page.click(SEL.volverHome);                              // ← Inicio
+  await expect(page.locator(SEL.hero)).toBeVisible();
+  await entrarDetalle(page);                                     // volver a entrar
+  await expect(page.locator(SEL.volverHome)).toBeVisible();
   expect(erroresReales(errors)).toHaveLength(0);
 });
 
-test('S4 — el wizard "Nueva primada" abre (desde el gear › Calendario) y se puede cancelar', async ({ page }) => {
+test('S4 — el wizard "Nueva primada" abre (desde el "+" del home) y se puede cancelar', async ({ page }) => {
   await abrirApp(page);
-  await page.click('#gearBtn');
-  await page.click('[data-act="overlay-tab"][data-overlay="calendario"]');
   await page.click(SEL.nuevaPrimada);
   await expect(page.locator(SEL.wizard)).toBeVisible();
   await page.click(SEL.wzCancelar);
@@ -61,9 +57,9 @@ test('S5 — se crea una primada (wizard completo) y aparece su detalle', async 
 
   await crearPrimada(page, 'Ana');
 
-  // Se creó 1 primada; el selector (con "Mes Año") y la fila del principal están en pantalla.
+  // Se creó 1 primada; tras crear se entra al DETALLE (← Inicio + lista de asistentes).
   expect(await contarPrimadas(page)).toBe(1);
-  await expect(page.locator(SEL.selMain).first()).toBeVisible();
+  await expect(page.locator(SEL.volverHome)).toBeVisible();
   await expect(page.locator(SEL.asisFila).first()).toBeVisible();
 });
 

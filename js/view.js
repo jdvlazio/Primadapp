@@ -17,7 +17,8 @@
     els.screen  = document.getElementById('screen');
     els.overlay = document.getElementById('overlay');
     els.toast   = document.getElementById('toast');
-    els.tabbar  = document.getElementById('tabbar');
+    els.topbar  = document.getElementById('topbar');
+    els.tabbar  = document.getElementById('tabbar');   // ya no existe (IA list→detalle); guard tolera null
   }
 
   /* ---------- helpers de marcado ---------- */
@@ -619,23 +620,101 @@
   // Tab Primadas: SELECTOR de primada arriba (navegación: activa + acceso a todas, agrupadas por
   // año→mes, vía la hoja) + la OPERACIÓN de la activa debajo. El historial ya NO es una lista aparte:
   // vive dentro del selector. CREAR vive SOLO en el gear global › Primadas › "Nueva primada".
-  function tabPrimadas(state, ui) {
-    const activa = S().activePrimada();
-    // Estado vacío (0 primadas = primer uso absoluto): orienta al ÚNICO punto de creación (gear global),
-    // SIN botón inline (decisión: punto único de creación). Solo texto que guía al engranaje.
-    const vacio = `<div class="empty-soft big primada-vacia">
-        <div class="ph-title">Tu primera primada</div>
-        <div>Creá la primera desde <b>⚙ → Calendario → Nueva primada</b>.</div>
+  // ── TOPBAR (dinámica por vista) ────────────────────────────────────────────
+  function authIcon(estado) { return estado === 'in' ? 'log-out' : (estado === 'out' ? 'log-in' : 'user'); }
+
+  // HOME: marca + acciones [ + Nueva primada · ⚙ Ajustes · 👤 Cuenta ]. El "+" es el ÚNICO punto de creación.
+  function topbarHome(state, ui) {
+    return `<div class="brand"><h1>Primad<span class="accent">app</span></h1></div>
+      <div class="header-actions">
+        <button class="gear" data-act="new-primada" title="Nueva primada" aria-label="Nueva primada">${icon('plus-circle')}</button>
+        <button class="gear" data-act="open-ajustes" title="Ajustes" aria-label="Ajustes">${icon('settings-2')}</button>
+        <button class="gear" id="authBtn" title="Cuenta" aria-label="Cuenta">${icon(authIcon(ui && ui.authEstado))}</button>
       </div>`;
-    if (!activa) return `${vacio}`;
-    // El BALANCE ya NO es un tab: es una CARA de la primada (junto a la operación). Se conmuta con un
-    // seg-nav. ui.cara = 'operacion' | 'balance'. Una cerrada abre en 'balance' (su documento final); la
-    // cara 'Consumos' sigue accesible en solo-lectura (la operación ya congela edición si está cerrada).
+  }
+
+  // DETALLE: ← Inicio · nombre de la primada · [ 🔗 compartir · ··· configurar ].
+  function topbarDetalle(state, ui) {
+    const p = S().activePrimada();
+    if (!p) return topbarHome(state, ui);
+    const inc = S().primadaIncompleta(p) ? ' ' + badge('sin principal', 'warn') : '';
+    return `<button class="topbar-back" data-act="volver-home" aria-label="Volver a inicio">${icon('chevron-left')}<span>Inicio</span></button>
+      <span class="topbar-name">${e(nombreCorto(p.nombre))}${inc}</span>
+      <div class="header-actions">
+        ${hayDatosInforme(p) ? `<button class="gear" data-act="compartir-informe" title="Compartir informe" aria-label="Compartir informe">${icon('share-2')}</button>` : ''}
+        <button class="gear" data-act="open-config-primada" title="Configurar primada" aria-label="Configurar primada">${icon('settings-2')}</button>
+      </div>`;
+  }
+
+  /* ============================================================
+     HOME — lista de primadas (pantalla de inicio). Reemplaza el tab bar y el selector-overlay.
+     · Hero card de la ACTIVA: nombre + mes + dot (SIN monto). · Historial: filas compactas con GANANCIA.
+     Tap en cualquier fila/hero = entrar a su detalle (data-act="entrar-primada"). Secciones relativas a la
+     activa (Próximas/Pasadas) para no meter una primada futura en "Pasadas" (determinista, no por reloj).
+     ============================================================ */
+  function homeBody(state, ui) {
+    const sel = S();
+    if (!state.primadas.length) {
+      return `<div class="empty-soft big primada-vacia">
+        <div class="ph-title">Tu primera primada</div>
+        <div>Tocá <b>+</b> arriba para crear la primera.</div>
+      </div>`;
+    }
+    const activeId = state.activePrimadaId;
+    const activa = sel.activePrimada();
+    const proximas = sel.primadasProximas(activeId);
+    const pasadas = sel.primadasPorAnio()
+      .map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId && !sel.esFutura(p, activeId)) }))
+      .filter(g => g.primadas.length);
+    const secProx = proximas.length
+      ? `<div class="home-sub">Próximas</div><div class="hist-list">${proximas.map(historialFila).join('')}</div>` : '';
+    const secPas = pasadas.length
+      ? `<div class="home-sub">Pasadas</div>` + pasadas.map(g =>
+          `<div class="home-anio">${e(g.anio)}</div><div class="hist-list">${g.primadas.map(historialFila).join('')}</div>`).join('')
+      : '';
+    return `<div class="home">${activa ? heroCard(activa) : ''}${secProx}${secPas}</div>`;
+  }
+
+  // Hero card de la primada activa: nombre + mes + dot de estado. SIN monto (decisión de producto).
+  function heroCard(p) {
+    return `<button class="hero-card" data-act="entrar-primada" data-id="${p.id}" aria-label="Abrir ${e(nombreCorto(p.nombre))}">
+      <span class="hero-dot dot ${dotClase(p)}"></span>
+      <span class="hero-id">
+        <span class="hero-name">${e(nombreCorto(p.nombre))}</span>
+        <span class="hero-mes">${e(Util.monthYear(p.mesContable))}</span>
+      </span>
+    </button>`;
+  }
+
+  // Fila compacta de historial: dot + nombre + mes + GANANCIA al final. Sin chevron (el tap es el affordance).
+  function historialFila(p) {
+    return `<button class="hist-fila" data-act="entrar-primada" data-id="${p.id}" aria-label="Abrir ${e(nombreCorto(p.nombre))}">
+      <span class="hist-id"><span class="dot ${dotClase(p)}"></span><span class="hist-name">${e(nombreCorto(p.nombre))}</span> <span class="hist-mes">${e(Util.monthName(p.mesContable))}</span></span>
+      <span class="hist-gan">${$peso(S().ganancia(p))}</span>
+    </button>`;
+  }
+
+  /* ============================================================
+     DETALLE — espacio operativo de la primada activa. La identidad (nombre/mes) vive en la topbar.
+     INTERINO (Fase 1): el seg-nav Consumos|Balance se mantiene; en Fase 2 el Balance pasa a panel inferior.
+     ============================================================ */
+  function detalleBody(state, ui) {
+    const activa = S().activePrimada();
+    if (!activa) return homeBody(state, ui);
     const cara = (ui && ui.cara === 'balance') ? 'balance' : 'operacion';
     const seg = (key, label) => `<button class="seg ${cara === key ? 'on' : ''}" data-act="set-cara" data-cara="${key}">${label}</button>`;
     const switcher = `<div class="cara-switch"><div class="seg-nav">${seg('operacion', 'Consumos')}${seg('balance', 'Balance')}</div></div>`;
     const face = cara === 'balance' ? balancePrimada(activa, ui) : primadaDetalle(activa, ui);
-    return `${primadaSelectorRow(state, ui)}${switcher}${face}`;
+    return `${switcher}${face}`;
+  }
+
+  // Hoja "···" de configuración de la primada activa (re-wrap de configPrimadaBody: Asistentes | Productos).
+  function configPrimadaSheet(state, ui) {
+    const p = S().activePrimada();
+    const head = `<div class="sheet-head"><div class="sheet-title">${p ? e(nombreCorto(p.nombre)) : 'Configurar'}</div>
+      <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>`;
+    if (!p) return `<div class="sheet full">${head}<div class="empty-soft">Sin primada activa.</div></div>`;
+    return `<div class="sheet full">${head}<div class="sheet-body">${configPrimadaBody(p, ui)}</div></div>`;
   }
 
   /* ============================================================
@@ -899,19 +978,21 @@
      ============================================================ */
   let lastOverlayKey = null;   // overlay del último render (para preservar el scroll del .sheet entre re-renders)
   function render(state, ui) {
-    ui = ui || { tab: 'primadas', overlay: null, activaPid: null, editPersonaId: null };
+    ui = ui || { view: 'home', overlay: null, activaPid: null, editPersonaId: null };
 
-    // 1) tabbar: marcar el activo
-    if (els.tabbar) {
-      els.tabbar.querySelectorAll('.tab').forEach(t =>
-        t.classList.toggle('active', t.dataset.tab === ui.tab));
-    }
+    // IA LISTA→DETALLE (estilo Tricount): la app tiene DOS vistas, `ui.view` ∈ {'home','detalle'}.
+    //  · HOME = lista de primadas (pantalla de inicio). · DETALLE = el espacio operativo de la primada activa.
+    // No hay tab bar. La topbar es DINÁMICA por vista (home: marca + "+" + ajustes; detalle: ← + nombre + 🔗 + ···).
+    const enDetalle = ui.view === 'detalle' && !!(state && S().activePrimada());
 
-    // 2) contenido del tab. El Balance ya NO es un tab: es una CARA dentro de Primadas (ver tabPrimadas).
+    // 1) Topbar dinámica.
+    if (els.topbar) els.topbar.innerHTML = !state ? '' : (enDetalle ? topbarDetalle(state, ui) : topbarHome(state, ui));
+
+    // 2) Contenido: HOME (lista) o DETALLE (operación de la activa).
     let html;
-    if (!state)                  html = '<div class="empty-soft">Cargando…</div>';   // primer pintado: aún hidratando (load async)
-    else if (ui.tab === 'fondo') html = placeholder('Fondo', 'Tesorería');
-    else                         html = tabPrimadas(state, ui);
+    if (!state)        html = '<div class="empty-soft">Cargando…</div>';   // primer pintado: aún hidratando (load async)
+    else if (enDetalle) html = detalleBody(state, ui);
+    else               html = homeBody(state, ui);
     els.screen.innerHTML = html;
 
     // 3) overlay: wizard (prioridad) · pantalla del engranaje (Personas / Primadas / Ajustes) · etc.
@@ -926,6 +1007,7 @@
     else if (ui.overlay === 'login')                           els.overlay.innerHTML = loginSheet(state, ui);
     else if (ui.overlay === 'pagar')                           els.overlay.innerHTML = pagarSheet(state, ui);
     else if (ui.overlay === 'selector-primada')                els.overlay.innerHTML = selectorSheet(state, ui);
+    else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
     else if (ui.overlay === 'primada' || ui.overlay === 'calendario' || ui.overlay === 'personas' || ui.overlay === 'ajustes') els.overlay.innerHTML = overlaySheet(ui.overlay, state, ui);
     else                                                        els.overlay.innerHTML = '';

@@ -15,7 +15,7 @@
  * Fuente de verdad: DESIGN.md §1 (tokens), §2 (componentes canónicos), §3 (jerarquía).
  */
 const { test, expect } = require('@playwright/test');
-const { SEL, abrirApp, sembrarPersonas, crearPrimada, abrirConfig } = require('./helpers');
+const { SEL, abrirApp, sembrarPersonas, crearPrimada, abrirConfig, abrirGear, irHome, entrarDetalle } = require('./helpers');
 
 const ACCENT = 'rgb(45, 212, 191)';   // --accent #2DD4BF resuelto
 const VISUAL = 'test-results/visual';
@@ -36,11 +36,12 @@ async function appConPrimadaAbierta(page) {
 // 1 · EVIDENCIA VISUAL — screenshots de los estados principales
 // ─────────────────────────────────────────────────────────────────────────────
 test.describe('Evidencia visual', () => {
-  test('V1 — tab Primadas (vacío): orienta al gear, SIN botón inline', async ({ page }) => {
+  test('V1 — HOME (vacío): invitación + "+" en la topbar (único punto de creación)', async ({ page }) => {
     await abrirApp(page);
     await page.screenshot({ path: `${VISUAL}/primadas-vacio.png`, fullPage: false });
     await expect(page.locator('#screen').getByText('Tu primera primada')).toBeVisible();
-    expect(await page.locator('#screen [data-act="new-primada"]').count()).toBe(0);  // único punto = gear
+    expect(await page.locator('#screen [data-act="new-primada"]').count()).toBe(0);  // no inline
+    expect(await page.locator('#topbar [data-act="new-primada"]').count()).toBe(1);  // sí en la topbar
   });
 
   test('V2 — cara Balance (ya no es tab: se conmuta dentro de Primadas)', async ({ page }) => {
@@ -51,17 +52,17 @@ test.describe('Evidencia visual', () => {
     await expect(page.locator(SEL.screen)).toContainText('Ganancia');
   });
 
-  test('V3 — tab Fondo (placeholder)', async ({ page }) => {
+  test('V3 — HOME con primadas (hero de la activa + historial)', async ({ page }) => {
     await abrirApp(page);
-    await page.click(SEL.tab('fondo'));
-    await page.screenshot({ path: `${VISUAL}/fondo.png`, fullPage: false });
-    await expect(page.locator(`${SEL.tab('fondo')}.active`)).toBeVisible();
+    await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
+    await crearPrimada(page, 'Ana');
+    await irHome(page);
+    await page.screenshot({ path: `${VISUAL}/home.png`, fullPage: false });
+    await expect(page.locator(SEL.hero)).toBeVisible();
   });
 
-  test('V4 — wizard Nueva primada (desde el gear › Calendario)', async ({ page }) => {
+  test('V4 — wizard Nueva primada (desde el "+" del home)', async ({ page }) => {
     await abrirApp(page);
-    await page.click('#gearBtn');
-    await page.click('[data-act="overlay-tab"][data-overlay="calendario"]');
     await page.click(SEL.nuevaPrimada);
     await expect(page.locator(SEL.wizard)).toBeVisible();
     await page.screenshot({ path: `${VISUAL}/wizard.png`, fullPage: false });
@@ -102,19 +103,18 @@ test.describe('Conformidad DESIGN.md — verde', () => {
     expect(tok.space4).toBe('20px');
   });
 
-  test('C3 — tab activo diferenciado en acento (§2 tabbar / DESIGN.md §2.7)', async ({ page }) => {
+  test('C3 — acción de topbar (gear/cuenta) diferenciada en acento (§1)', async ({ page }) => {
     await abrirApp(page);
-    const color = await page.evaluate(() => getComputedStyle(document.querySelector('.tab.active')).color);
+    const color = await page.evaluate(() => getComputedStyle(document.querySelector('#topbar .gear')).color);
     expect(color).toBe(ACCENT);
   });
 
-  test('C4 — fix cold-start: .app a la altura del viewport + tabbar flex al borde (§6 safe-area)', async ({ page }) => {
+  test('C4 — fix cold-start (IA list→detalle, SIN tabbar): .app=100vh, .app-scroll llena y es el único scroll (§6)', async ({ page }) => {
     await abrirApp(page);
     const r = await page.evaluate(() => {
       const app = document.querySelector('.app');
       const sc = document.querySelector('.app-scroll');
-      const tb = document.querySelector('.tabbar');
-      const rect = tb.getBoundingClientRect();
+      const rect = sc.getBoundingClientRect();
       return {
         hasApp: !!app,
         appDisplay: app ? getComputedStyle(app).display : null,
@@ -122,21 +122,21 @@ test.describe('Conformidad DESIGN.md — verde', () => {
         scrollerFlexGrow: sc ? getComputedStyle(sc).flexGrow : null,
         scrollerOverflowY: sc ? getComputedStyle(sc).overflowY : null,
         bodyOverflow: getComputedStyle(document.body).overflow,
-        tabbarPosition: getComputedStyle(tb).position,
-        tabbarBottom: Math.round(rect.bottom),
+        hasTabbar: !!document.querySelector('.tabbar'),
+        scrollerBottom: Math.round(rect.bottom),
         innerHeight: window.innerHeight,
       };
     });
-    // FIX del cold-start de iOS PWA: el alto lo manda .app=100vh (pantalla completa fiable en
-    // standalone), NO 100dvh ni un position:fixed que iOS ancla mal al lanzar. Tabbar = hijo flex al fondo.
+    // FIX del cold-start de iOS PWA: el alto lo manda .app=100vh (pantalla completa fiable en standalone),
+    // NO 100dvh ni un fixed. Sin tab bar, .app-scroll es el único hijo flex → llena hasta el borde físico.
     expect(r.hasApp).toBe(true);
     expect(r.appDisplay).toBe('flex');              // columna flex
     expect(r.appHeight).toBe(r.innerHeight);        // .app = 100vh = alto del viewport
     expect(r.scrollerFlexGrow).toBe('1');           // .app-scroll ocupa el alto disponible
     expect(r.scrollerOverflowY).toBe('auto');       // y es el único que scrollea
     expect(r.bodyOverflow).toBe('hidden');          // el body no scrollea
-    expect(r.tabbarPosition).toBe('static');        // tabbar EN FLUJO (flex), no fixed
-    expect(r.tabbarBottom).toBe(r.innerHeight);     // queda pegada al borde inferior físico
+    expect(r.hasTabbar).toBe(false);                // tab bar eliminado (IA list→detalle)
+    expect(r.scrollerBottom).toBe(r.innerHeight);   // el scroller llega al borde inferior físico
   });
 
   test('C5 — deuda/pendiente = ÁMBAR en el NÚMERO, no borde (DESIGN.md §1 escalera de estado)', async ({ page }) => {
@@ -251,29 +251,27 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     expect(await page.locator('.overlay [data-act="toggle-cfg-prod"]').count()).toBeGreaterThan(0);
     await page.click('[data-act="close-overlay"]');
     // Personas: ahora es LISTA COMPACTA (.persona-fila), no acordeón inline.
-    await page.click('#gearBtn');
-    await page.click('[data-act="overlay-tab"][data-overlay="personas"]');
+    await abrirGear(page, 'personas');
     expect(await page.locator('.overlay .persona-fila').count()).toBeGreaterThan(0);
   });
 
-  test('E3 — tabbar anclada por estructura: el scroll del CONTENIDO (.app-scroll) no la mueve', async ({ page }) => {
+  test('E3 — el scroll del CONTENIDO (.app-scroll) no mueve la ventana (body fijo, sin tabbar)', async ({ page }) => {
     await appConPrimadaAbierta(page);
     const r = await page.evaluate(() => {
-      const tb = document.querySelector('.tabbar');
       const scroller = document.querySelector('.app-scroll');
       const spacer = document.createElement('div');     // forzar contenido alto en el scroller
       spacer.style.height = '3000px';
       scroller.appendChild(spacer);
-      const bottom0 = Math.round(tb.getBoundingClientRect().bottom);
+      const bottom0 = Math.round(scroller.getBoundingClientRect().bottom);
       scroller.scrollTop = 600;                          // scrollea el contenedor interno, no el body
-      const bottom1 = Math.round(tb.getBoundingClientRect().bottom);
+      const bottom1 = Math.round(scroller.getBoundingClientRect().bottom);
       const scrolled = scroller.scrollTop;
       const windowScrolled = window.scrollY;
       spacer.remove();
       return { bottom0, bottom1, scrolled, windowScrolled, innerHeight: window.innerHeight };
     });
-    // La tabbar es hermana del scroller (hijo flex de .app) → el scroll interno no la mueve, y el
-    // body no scrollea (overflow:hidden) → no hay scroll-away de la barra.
+    // El scroll vive SOLO en .app-scroll; el body no scrollea (overflow:hidden). Sin tab bar, el scroller
+    // llega al borde inferior físico y se mantiene ahí aunque el contenido interno scrollee.
     expect(r.scrolled).toBeGreaterThan(0);    // el contenido interno SÍ scrollea
     expect(r.windowScrolled).toBe(0);         // el body/ventana NO scrollea
     expect(r.bottom0).toBe(r.innerHeight);    // tocaba el borde inferior...
@@ -283,8 +281,7 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
   test('E4 — los <select> usan appearance:none + chevron (no flechas nativas)', async ({ page }) => {
     await appConPrimadaAbierta(page);
     // El select de rol salió de Configurar; usamos el select de estado del alta de Personas (mismas clases).
-    await page.click('#gearBtn');
-    await page.click('[data-act="overlay-tab"][data-overlay="personas"]');
+    await abrirGear(page, 'personas');
     await page.click('.overlay [data-act="open-nueva-persona"]');
     const sel = page.locator('.overlay select.sel').first();
     await expect(sel).toBeVisible();
@@ -323,8 +320,7 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
   test('E7 — editar persona ENFOCADO (drill-in) en el tab Personas', async ({ page }) => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
-    await page.click('#gearBtn');
-    await page.click('[data-act="overlay-tab"][data-overlay="personas"]');
+    await abrirGear(page, 'personas');
     await expect(page.locator('.overlay .persona-fila')).toBeVisible();              // lista compacta
     expect(await page.locator('.overlay [data-ch="rename-persona"]').count()).toBe(0); // lista: sin editor inline
     await page.locator('.overlay [data-act="editar-persona"]').first().click();      // drill-in al detalle
@@ -344,8 +340,7 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
       const A = window.Store.actions;
       for (let i = 1; i <= 20; i++) A.addPersona({ nombre: 'Persona ' + i, estado: i % 2 ? 'ahorrador' : 'invitado' });
     });
-    await page.click('#gearBtn');
-    await page.click('[data-act="overlay-tab"][data-overlay="personas"]');
+    await abrirGear(page, 'personas');
     await page.evaluate(() => { document.querySelector('#overlay .sheet').scrollTop = 300; });
     const before = await page.evaluate(() => document.querySelector('#overlay .sheet').scrollTop);
     expect(before).toBeGreaterThan(0);
@@ -357,46 +352,41 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5 · SELECTOR de primada (año→mes) + "+" chico + nombre automático
+// 5 · HOME (lista→detalle): hero + historial + entrar; nombre automático
 // ─────────────────────────────────────────────────────────────────────────────
-test.describe('Selector de primada + nombre automático', () => {
-  test('F1 — estado vacío = orienta al gear (sin botón inline, sin "+"); con ≥1 primada = selector (sin "+")', async ({ page }) => {
+test.describe('Home lista→detalle + nombre automático', () => {
+  test('F1 — vacío = invitación + "+" en la topbar; con ≥1 primada = hero en el home', async ({ page }) => {
     await abrirApp(page);
-    // VACÍO (primer uso): invitación centrada que orienta al gear; SIN selector, SIN botón de crear inline.
+    // VACÍO (primer uso): invitación centrada; el "+" vive en la topbar (único punto), no inline.
     await expect(page.locator('#screen .primada-vacia')).toBeVisible();
     await expect(page.locator('#screen').getByText('Tu primera primada')).toBeVisible();
-    expect(await page.locator('#screen [data-act="new-primada"]').count()).toBe(0);   // único punto = gear
-    expect(await page.locator('#screen .selrow').count()).toBe(0);
-    expect(await page.locator('#screen .icon-btn.nueva').count()).toBe(0);
-    // Tras crear la primera, aparece el selector — pero NUNCA el "+" en la cabecera (creación vive en el gear).
+    expect(await page.locator('#screen [data-act="new-primada"]').count()).toBe(0);
+    expect(await page.locator('#topbar [data-act="new-primada"]').count()).toBe(1);
+    // Tras crear la primera y volver al home, aparece el hero de la activa.
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
     await crearPrimada(page, 'Ana');
-    expect(await page.locator('#screen .selrow').count()).toBe(1);
-    expect(await page.locator('#screen .icon-btn.nueva').count()).toBe(0);
-    expect(await page.locator('#screen [data-act="new-primada"]').count()).toBe(0);
+    await irHome(page);
+    expect(await page.locator('#screen .hero-card').count()).toBe(1);
     await expect(page.locator('#screen .primada-vacia')).toHaveCount(0);
   });
 
-  test('F2 — selector cerrado: NOMBRE corto primario (sin "Primada") + mes guía; crear vive en el gear', async ({ page }) => {
+  test('F2 — hero del home: NOMBRE corto (sin "Primada") + mes; "+" en la topbar', async ({ page }) => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
     await crearPrimada(page, 'Ana');
-    const main = page.locator('.sel-main').first();
-    const sub = page.locator('.sel-sub').first();
-    await expect(main).toBeVisible();                      // identidad (primaria) = el nombre
-    await expect(main).toContainText('Ana');              // el organizador identifica la primada
-    await expect(main).not.toContainText('Primada');      // SIN la palabra "Primada" (reducido)
-    await expect(sub).toBeVisible();                       // guía (secundaria) = el mes/año
-    await expect(sub).not.toContainText('Ana');           // el mes NO lleva el nombre
-    // crear NO vive en la cabecera; el único punto es el gear › Primadas › "Nueva primada" → wizard.
-    expect(await page.locator('#screen [data-act="new-primada"]').count()).toBe(0);
-    await page.click('#gearBtn');
-    await page.click('[data-act="overlay-tab"][data-overlay="calendario"]');
-    await page.click('[data-act="new-primada"]');
+    await irHome(page);
+    const name = page.locator('#screen .hero-name').first();
+    const mes = page.locator('#screen .hero-mes').first();
+    await expect(name).toBeVisible();
+    await expect(name).toContainText('Ana');              // el organizador identifica la primada
+    await expect(name).not.toContainText('Primada');      // SIN la palabra "Primada" (reducido)
+    await expect(mes).toBeVisible();                       // mes/año como guía secundaria
+    // crear vive en la topbar del home → "+".
+    await page.click('#topbar [data-act="new-primada"]');
     await expect(page.locator('.wz')).toBeVisible();
   });
 
-  test('F3 — selector con secciones Próximas · Activa · Pasadas (relativas a la activa) + check', async ({ page }) => {
+  test('F3 — home con secciones Próximas · Pasadas (relativas a la activa) + hero', async ({ page }) => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }, { nombre: 'Beto', estado: 'invitado' }]);
     // tres primadas: pasada (2025-12), activa (2026-06, mes medio), futura (2026-09). Determinista (relativo a la activa).
@@ -409,27 +399,23 @@ test.describe('Selector de primada + nombre automático', () => {
       S.actions.seleccionarPrimada(act);   // 2026-06 activa
       return { pas, fut, act };
     });
-    await page.click('[data-act="open-selector"]');
-    await expect(page.locator('.overlay .sheet-title')).toHaveText('Primadas');
-    // tres secciones RELATIVAS a la activa (2026-06): Próximas (2026-09 futura) · Activa (2026-06) · Pasadas (2025-12).
-    await expect(page.locator('.overlay .sel-anio', { hasText: 'Próximas' })).toHaveCount(1);
-    await expect(page.locator('.overlay .sel-anio', { hasText: 'Activa' })).toHaveCount(1);
-    await expect(page.locator('.overlay .sel-anio', { hasText: 'Pasadas' })).toHaveCount(1);
-    await expect(page.locator('.overlay .sel-subanio', { hasText: '2025' })).toHaveCount(1);   // Pasadas agrupa por año
-    // la activa (2026-06) lleva check
-    await expect(page.locator(`.overlay [data-act="select-primada"][data-id="${ids.act}"] .sel-check`)).toHaveCount(1);
-    // elegir la pasada la activa y cierra la hoja
-    await page.click(`.overlay [data-act="select-primada"][data-id="${ids.pas}"]`);
-    await expect(page.locator('.overlay')).toBeHidden();
+    await irHome(page);
+    // El home: hero = la activa (2026-06); secciones RELATIVAS: Próximas (2026-09) · Pasadas (2025-12).
+    await expect(page.locator('#screen .hero-card')).toHaveCount(1);
+    await expect(page.locator('#screen .home-sub', { hasText: 'Próximas' })).toHaveCount(1);
+    await expect(page.locator('#screen .home-sub', { hasText: 'Pasadas' })).toHaveCount(1);
+    await expect(page.locator(`#screen [data-act="entrar-primada"][data-id="${ids.fut}"]`)).toHaveCount(1);
+    await expect(page.locator(`#screen [data-act="entrar-primada"][data-id="${ids.pas}"]`)).toHaveCount(1);
+    // tocar la pasada → entra a su detalle y la activa
+    await page.click(`#screen [data-act="entrar-primada"][data-id="${ids.pas}"]`);
+    await expect(page.locator(SEL.volverHome)).toBeVisible();
     expect(await page.evaluate(() => window.Store.select.state().activePrimadaId)).toBe(ids.pas);
   });
 
   test('F4 — nombre automático "Primada N1 + N2" con dos organizadores (vía wizard)', async ({ page }) => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana López', estado: 'ahorrador' }, { nombre: 'Beto', estado: 'invitado' }]);
-    await page.click('#gearBtn');
-    await page.click('[data-act="overlay-tab"][data-overlay="calendario"]');
-    await page.click('[data-act="new-primada"]');
+    await page.click('#topbar [data-act="new-primada"]');
     await page.waitForSelector('.wz');
     await page.evaluate((n) => {
       const sel = document.getElementById('wz-principal');
