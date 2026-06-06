@@ -639,6 +639,25 @@ click(`[data-act="borrar-primada"][data-id="${idMenu}"]`);   // confirm() stubbe
 eq('Eliminar desde el "···" borra la primada', st().primadas.length, antesBorrar - 1);
 check('Menú se cerró tras eliminar', q('#overlay').hidden);
 
+/* ---------- 15. Nombre de la primada: suma TODOS los organizadores + editable en Configurar ---------- */
+section('Nombre: suma de TODOS los organizadores (no capa en 2) + edición manual');
+const caroId = Store.actions.addPersona({ nombre: 'Caro', estado: 'ahorrador' });
+eq('nombreSugerido con 3 organizadores los suma a todos',
+  Store.select.nombreSugerido([ana.id, beto.id, caroId]), 'Primada Ana + Beto + Caro');
+const id3 = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id, beto.id, caroId], mesContable: '2027-02', fecha: '2027-02-07' });
+eq('Primada con 3 organizadores muestra los 3 en el nombre',
+  st().primadas.find(p => p.id === id3).nombre, 'Primada Ana + Beto + Caro');
+// Editar el nombre desde Configurar (campo data-ch="rename-primada" → renombrarPrimada, commitQuiet).
+entrarDetalle(id3);
+click('[data-act="open-config-primada"]');
+const inpNombre = q('[data-ch="rename-primada"]');
+check('Configurar tiene el campo Nombre editable', !!inpNombre && inpNombre.value === 'Primada Ana + Beto + Caro');
+setVal(inpNombre, 'Cumple de Caro');
+eq('Renombrar desde Configurar aplica al modelo', st().primadas.find(p => p.id === id3).nombre, 'Cumple de Caro');
+click('[data-act="close-overlay"]');
+irHome();
+check('El nombre editado se refleja en el home (hero/topbar)', /Cumple de Caro/.test(q('#screen').innerHTML) || /Cumple de Caro/.test(q('#topbar').innerHTML));
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`E2E: ${pass} pasaron, ${fail} fallaron`);

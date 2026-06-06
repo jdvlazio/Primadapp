@@ -482,14 +482,16 @@
     // Nombre automático: "Primada {N1} + {N2}" con el PRIMER token del nombre de cada persona.
     // N1 = principal (primero de la lista). N2 = segundo organizador. Solo los dos primeros entran
     // (3+ organizadores → igual solo N1 + N2). Un solo organizador → "Primada {N1}" (sin el +).
+    // Nombre por defecto = SUMA de TODOS los organizadores (primer token c/u), unidos con " + ".
+    // (Antes capaba en 2 → una primada con 3 organizadores mostraba solo 2.) Se recorta a 40 por seguridad;
+    // para casos especiales el nombre es editable en Configurar (acción renombrarPrimada).
     nombreSugerido(organizadorIds) {
       const primerToken = s => String(s || '').trim().split(/\s+/)[0] || '';
       const nombres = (organizadorIds || [])
         .map(id => { const p = select.persona(id); return p ? primerToken(p.nombre) : null; })
         .filter(Boolean);
       if (!nombres.length) return 'Primada';
-      if (nombres.length === 1) return 'Primada ' + nombres[0];
-      return 'Primada ' + nombres[0] + ' + ' + nombres[1];
+      return ('Primada ' + nombres.join(' + ')).slice(0, 40);
     },
     anioContable(primada) { return String(primada.mesContable || '').slice(0, 4); },
     // PRÓXIMAS: primadas de mes POSTERIOR al de la primada ACTIVA (referencia), excepto la activa, en orden

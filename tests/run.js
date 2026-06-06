@@ -424,9 +424,9 @@ section('Nombre automático de la primada + agrupación del selector');
   const id2 = Store.actions.createPrimada({ principalId: juan, organizadores: [juan, carla], mesContable: '2026-05' });
   eq('Nombre 2 orgs = "Primada Juan + Carla"', Store.select.state().primadas.find(p => p.id === id2).nombre, 'Primada Juan + Carla');
 
-  // 3+ organizadores → SOLO los dos primeros
+  // 3+ organizadores → SUMA TODOS (antes capaba en 2; el nombre es editable para casos especiales)
   const id3 = Store.actions.createPrimada({ principalId: juan, organizadores: [juan, carla, luis], mesContable: '2025-12' });
-  eq('Nombre 3 orgs = solo los dos primeros', Store.select.state().primadas.find(p => p.id === id3).nombre, 'Primada Juan + Carla');
+  eq('Nombre 3 orgs = suma los tres', Store.select.state().primadas.find(p => p.id === id3).nombre, 'Primada Juan + Carla + Luis');
 
   // Override manual: nombre explícito al crear se respeta
   const idOv = Store.actions.createPrimada({ principalId: luis, organizadores: [luis], nombre: 'Mi fiesta', mesContable: '2026-04' });

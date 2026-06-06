@@ -215,7 +215,11 @@
     const tab = (ui && ui.configTab === 'productos') ? 'productos' : 'asistentes';
     const seg = (key, label, n) => `<button class="seg ${tab === key ? 'on' : ''}" data-act="config-tab" data-ctab="${key}">${label} <span class="muted">${n}</span></button>`;
     const body = tab === 'productos' ? productosConfig(p, ui) : asistentesListaCompacta(p, ui);
-    return `<div class="seg-nav cfg-seg">${seg('asistentes', 'Asistentes', p.asistencias.length)}${seg('productos', 'Productos', p.productos.length)}</div>${body}`;
+    // Nombre EDITABLE (commitQuiet, no re-render → no pierde foco). Por defecto = suma de organizadores;
+    // editable para casos especiales. Al cerrar la hoja, el próximo render refleja el nombre en topbar/home.
+    const nombreFld = `<label class="fld cfg-nombre"><span>Nombre</span>
+      <input class="ti" data-ch="rename-primada" data-id="${p.id}" value="${e(p.nombre)}" maxlength="40" aria-label="Nombre de la primada"></label>`;
+    return `${nombreFld}<div class="seg-nav cfg-seg">${seg('asistentes', 'Asistentes', p.asistencias.length)}${seg('productos', 'Productos', p.productos.length)}</div>${body}`;
   }
 
   // Tab ASISTENTES: lista COMPACTA agrupada (Ahorradores / Invitados). PRINCIPIO "muestra la excepción,

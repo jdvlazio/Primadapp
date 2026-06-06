@@ -449,6 +449,7 @@
       // INVARIANTE #2: setRol('principal') lanza si el snapshot no es ahorrador → atrapamos y avisamos.
       case 'rol':            tryAction(() => A.setRol(prm, pid, v)); break;
       case 'rename-persona': A.renombrarPersona(pid, v); break;
+      case 'rename-primada': A.renombrarPrimada(id, v); break;   // nombre editable (commitQuiet, sin re-render)
       case 'breb-persona':   A.setBreBPersona(pid, v); break;
       case 'cover-ahorrador': A.setCover({ ahorrador: v }); break;
       case 'cover-invitado':  A.setCover({ invitado: v }); break;

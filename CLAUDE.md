@@ -214,7 +214,9 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
   **Personas** (lista compacta + drill-in `personaEditView`) · **Cover** · **Legal** · **Versión** · **Cuenta**.
   Reusa `personasBody` + `ajustesBody`. (El viejo gear de 4 tabs, `overlaySheet`/`calendarioBody`/`primadaConfigTab`, se ELIMINÓ.)
 - **Fondo** (tesorería futura) ya NO es un tab: se reubicará en una pasada futura (placeholder pendiente).
-- **Identidad de la primada** (nombre/fecha/mes) se fija al **crear** (wizard). No hay edición posterior de mes/fecha.
+- **Identidad de la primada:** fecha/mes se fijan al **crear** (wizard, sin edición posterior). El **nombre** por
+  defecto = **suma de TODOS los organizadores** (`nombreSugerido`, ya no capa en 2) y es **EDITABLE** en Configurar
+  (campo "Nombre", acción `renombrarPrimada`, commitQuiet) para casos especiales.
 - Toda feature nueva debe caber en esta IA (home ↔ detalle). Si no cabe → **pausar y consultar**.
 
 ## Modelo de datos (esquema v6 — DEFINITIVO)
