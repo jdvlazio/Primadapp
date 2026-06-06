@@ -617,7 +617,6 @@
     return `<button class="topbar-back" data-act="volver-home" aria-label="Volver a inicio">${icon('chevron-left')}<span>Inicio</span></button>
       <span class="topbar-name">${e(nombreCorto(p.nombre))}${inc}</span>
       <div class="header-actions">
-        ${hayDatosInforme(p) ? `<button class="gear" data-act="compartir-informe" title="Compartir informe" aria-label="Compartir informe">${icon('share-2')}</button>` : ''}
         <button class="gear" data-act="open-config-primada" title="Configurar primada" aria-label="Configurar primada">${icon('settings-2')}</button>
       </div>`;
   }
@@ -713,7 +712,12 @@
     const abierto = balanceAbierto(activa, ui);
     const chip = `<button class="balance-toggle ${abierto ? 'on' : ''}" data-act="toggle-balance-panel" aria-expanded="${abierto ? 'true' : 'false'}">
       <span>Balance</span>${icon(abierto ? 'chevron-down' : 'chevron-up')}</button>`;
-    const panel = abierto ? `<div class="balance-panel">${balancePrimada(activa, ui)}</div>` : '';
+    // "Compartir informe" vive AL FINAL del panel (es lo que el informe muestra: Ganancia + Recaudo), no en la
+    // topbar (allí confundía / se tocaba sin querer en medio de operar). Solo si hay datos que compartir.
+    const compartir = hayDatosInforme(activa)
+      ? `<button class="compartir-link" data-act="compartir-informe">${icon('share-2')}Compartir informe</button>`
+      : '';
+    const panel = abierto ? `<div class="balance-panel">${balancePrimada(activa, ui)}${compartir}</div>` : '';
     return `${primadaDetalle(activa, ui)}<div class="balance-dock">${chip}${panel}</div>`;
   }
 

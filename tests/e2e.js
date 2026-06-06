@@ -307,9 +307,12 @@ check('Recaudo: "provisional" NO aparece en esta tarjeta (sí queda en Ganancia)
 cerrarBalance();
 
 /* ---------- 7b. Informe compartible (template PNG) ---------- */
-section('Compartir informe: trigger en la cabecera + template HTML (puro)');
-// El botón "Compartir informe" aparece en la cabecera (hay datos: Beto consumió) y vive en ambas caras.
-check('Trigger "Compartir informe" visible con datos', !!q('[data-act="compartir-informe"]'));
+section('Compartir informe: trigger AL PIE del panel de Balance + template HTML (puro)');
+// El botón "Compartir informe" se MOVIÓ de la topbar al final del panel de Balance (es lo que el informe muestra).
+// Hay datos (Beto consumió) → aparece al desplegar el Balance. NO debe estar en la topbar.
+abrirBalance();
+check('Trigger "Compartir informe" al pie del panel de Balance', !!q('.balance-panel [data-act="compartir-informe"].compartir-link'));
+check('Trigger ya NO está en la topbar', !q('#topbar [data-act="compartir-informe"]'));
 const informe = window.View.informeTemplateHTML(prm());
 check('Informe: marca "Primadapp" + período', /informe-brand">Primadapp/.test(informe) && /Junio 2026/.test(informe));
 check('Informe: título = nombre de la primada', new RegExp('informe-title">' + prm().nombre).test(informe));
