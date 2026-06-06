@@ -162,8 +162,8 @@
     const fechaFld = `<div class="grid2 cfg-fecha">
       <label class="fld"><span>Mes</span>
         <input class="ti" type="month" data-ch="mes-primada" data-id="${p.id}" value="${e(p.mesContable)}" aria-label="Mes de la primada"></label>
-      <label class="fld"><span>Día <span class="muted">(opcional)</span></span>
-        <input class="ti" type="number" min="1" max="31" inputmode="numeric" placeholder="—" data-ch="dia-primada" data-id="${p.id}" value="${dia}" aria-label="Día de la primada (opcional)"></label>
+      <label class="fld"><span>Día</span>
+        <input class="ti" type="number" min="1" max="31" inputmode="numeric" placeholder="—" data-ch="dia-primada" data-id="${p.id}" value="${dia}" aria-label="Día de la primada"></label>
     </div>`;
     return `${nombreFld}${fechaFld}<div class="seg-nav cfg-seg">${seg('asistentes', 'Asistentes', p.asistencias.length)}${seg('productos', 'Productos', p.productos.length)}</div>${body}`;
   }
@@ -892,7 +892,7 @@
       <div class="grid2">
         <label class="fld"><span>Mes</span>
           <input class="ti" type="month" id="wz-mes" value="${e(w.mesContable)}"></label>
-        <label class="fld"><span>Día <span class="muted">(opcional)</span></span>
+        <label class="fld"><span>Día</span>
           <input class="ti" type="number" min="1" max="31" inputmode="numeric" placeholder="—" id="wz-dia" value="${dia}"></label>
       </div>
       <div class="muted small mt-2">Si aún no sabés el día, dejalo vacío — lo agregás después en Configurar.</div>
