@@ -461,9 +461,9 @@
     const heroLabel = cerrada ? 'Entregado al Tesorero' : 'Por cobrar';
     const deud = sel.deudores(p).filter(d => d.personaId !== prinId);
     // El teaser añade el OTRO número (NO repite el héroe ni son comparables — son cosas distintas):
-    //   ABIERTA: cuánto entregás al Tesorero (la ganancia, número FIJO). CERRADA: cuánto recuperaste de tu costo.
+    //   ABIERTA: cuánto entregás al Tesorero (la ganancia, número FIJO). CERRADA: cuánto recuperaste de lo que pusiste.
     const teaser = cerrada
-      ? (inf.recuperaPrincipal > 0 ? `Recuperaste ${$peso(inf.recuperaPrincipal)} de tu costo` : 'Cuenta entregada')
+      ? (inf.recuperaPrincipal > 0 ? `Recuperaste ${$peso(inf.recuperaPrincipal)} que pusiste en productos` : 'Cuenta entregada')
       : `Entregás ${$peso(inf.entregaTesorero)} al Tesorero`;
     // Lista de cobro COMPLETA (nadie desaparece): PENDIENTES (saldo>0, ámbar = lo que falta) arriba; SALDADAS
     // (terceros que ya pagaron, saldo 0) abajo, con check teal + nombre gris + el MONTO que pagaron (su total,
@@ -488,11 +488,12 @@
     // bolsillo, cuánto entrega al Tesorero, y quién debe. Se ELIMINARON: "Recaudo teórico", el desglose de
     // "Recaudado / · de terceros / · del principal" (la plomería del auto-abono, confusa) y "Por cobrar"
     // (ya es el héroe cuando está abierta). Las identidades viven en el modelo (informePrincipal), no en pantalla.
-    // Desglose con LENGUAJE claro: "Recuperás (tu costo)" = lo que pusiste de tu bolsillo y vuelve a vos;
-    // "Al Tesorero (la ganancia)" = la ganancia que entregás. Así no se confunde qué es cada número.
+    // Desglose con LENGUAJE claro y SIN ambigüedad ("tu costo" no decía CUÁL costo): el anfitrión frontea lo que
+    // compra para vender → "Recuperás (lo que pusiste en productos)" = ese adelanto vuelve a vos; el resto,
+    // "Al Tesorero (la ganancia)", es lo único que entrega. Así se entiende qué es cada número.
     const body = abierto ? `<div class="acc-body">
         <div class="kv"><span>Bre-B</span><b>${breBRecaudo ? e(breBRecaudo) : '—'}</b></div>
-        <div class="kv"><span>Recuperás <span class="muted">tu costo</span></span><b>${$peso(inf.recuperaPrincipal)}</b></div>
+        <div class="kv"><span>Recuperás <span class="muted">lo que pusiste en productos</span></span><b>${$peso(inf.recuperaPrincipal)}</b></div>
         <div class="kv total"><span>Al Tesorero <span class="muted">la ganancia</span></span><b>${$peso(inf.entregaTesorero)}</b></div>
         <div class="sub">Debe</div>
         ${deudList}

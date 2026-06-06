@@ -464,8 +464,8 @@ check('Chip de Balance marcado activo (on) al abrir cerrada',
 check('Cerrada: SIN nota "Provisional" (ni en Ganancia ni en Recaudo)', !/[Pp]rovisional/.test(q('#screen').innerHTML));
 check('Cerrada Recaudo: héroe tono "entregado" (teal/--accent)', /class="bal-amount entregado"/.test(q('#screen').innerHTML));
 check('Cerrada Recaudo: héroe etiquetado "Entregado al Tesorero"', /Entregado al Tesorero/.test(q('#screen').innerHTML));
-// CERRADA: el teaser añade el OTRO número en pasado — lo que el Anfitrión recuperó de su costo (5.000 = 2×2.500).
-check('Cerrada Recaudo: teaser "Recuperaste … de tu costo"', /Recuperaste .*de tu costo/.test(q('#screen').innerHTML));
+// CERRADA: el teaser añade el OTRO número en pasado — lo que el Anfitrión recuperó de lo que puso en productos (5.000 = 2×2.500).
+check('Cerrada Recaudo: teaser "Recuperaste … que pusiste en productos"', /Recuperaste .*que pusiste en productos/.test(q('#screen').innerHTML));
 // CERRADA: el héroe ya NO dice "Por cobrar" (es lo entregado, no lo pendiente).
 check('Cerrada Recaudo: sin "Por cobrar"', !/Por cobrar/.test(q('#screen').innerHTML));
 cerrarBalance();           // la cara Consumos sigue accesible…
