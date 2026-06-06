@@ -454,17 +454,17 @@
     const prinId = p.organizadorPrincipalId;
     const abierto = ui && ui.balance && ui.balance.has('informe');
     const cerrada = p.estado === 'cerrada';
-    // ABIERTA: el héroe es lo que FALTA cobrar (Por cobrar). CERRADA: lo que se entregó al Tesorero.
+    // El HÉROE se etiqueta por lo que ES (antes decía "Recaudo" pero el número era lo contrario, "por cobrar",
+    // y confundía): ABIERTA → "Por cobrar" (lo que FALTA, ámbar); CERRADA → "Entregado al Tesorero" (lo definitivo, teal).
     const heroAmount = cerrada ? inf.entregaTesorero : inf.saldoPendiente;
-    const heroTone = cerrada ? 'entregado' : 'por-cobrar';   // teal (definitivo) vs ámbar (proceso)
+    const heroTone = cerrada ? 'entregado' : 'por-cobrar';
+    const heroLabel = cerrada ? 'Entregado al Tesorero' : 'Por cobrar';
     const deud = sel.deudores(p).filter(d => d.personaId !== prinId);
-    // SIN microcopy en el héroe del Recaudo: "menos es más". El conteo "de N personas" confundía (parecía
-    // que faltaba alguien); QUIÉN debe ya vive un nivel abajo, en la lista del acordeón ("Debe"). El héroe
-    // comunica el número clave; el detalle vive dentro. El concepto lo dan el tono (ámbar/teal) y el teaser.
-    // El teaser NO repite el héroe: ABIERTA solo añade el OTRO número (lo que se entrega). CERRADA: pasado.
+    // El teaser añade el OTRO número (NO repite el héroe ni son comparables — son cosas distintas):
+    //   ABIERTA: cuánto entregás al Tesorero (la ganancia, número FIJO). CERRADA: cuánto recuperaste de tu costo.
     const teaser = cerrada
-      ? `Entregó ${$peso(inf.entregaTesorero)} al Tesorero`
-      : `Entrega ${$peso(inf.entregaTesorero)} al Tesorero`;
+      ? (inf.recuperaPrincipal > 0 ? `Recuperaste ${$peso(inf.recuperaPrincipal)} de tu costo` : 'Cuenta entregada')
+      : `Entregás ${$peso(inf.entregaTesorero)} al Tesorero`;
     // Lista de cobro COMPLETA (nadie desaparece): PENDIENTES (saldo>0, ámbar = lo que falta) arriba; SALDADAS
     // (terceros que ya pagaron, saldo 0) abajo, con check teal + nombre gris + el MONTO que pagaron (su total,
     // en teal = saldado, NO ámbar). El valor NO desaparece: se lee cuánto aportó cada quien de un vistazo.
@@ -473,7 +473,7 @@
     const saldList = saldadas.map(a => `<div class="kv saldada"><span><span class="asis-check">${icon('check', 'sm')}</span> ${e(nombrePersona(a.personaId))}</span><b class="pagado">${$peso(sel.totalAsistencia(p, a))}</b></div>`).join('');
     const deudList = (deud.length || saldadas.length) ? (pendList + saldList) : `<div class="muted small">Nadie debe</div>`;
     const hero = `<div class="bal-hero">
-        <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Recaudo</div>
+        <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>${heroLabel}</div>
         <div class="bal-amount ${heroTone}">${$peso(heroAmount)}</div>
       </div>`;
     const toggle = `<button class="acc-head bal-toggle" data-act="toggle-balance" data-sec="informe" aria-expanded="${abierto ? 'true' : 'false'}">
@@ -488,10 +488,12 @@
     // bolsillo, cuánto entrega al Tesorero, y quién debe. Se ELIMINARON: "Recaudo teórico", el desglose de
     // "Recaudado / · de terceros / · del principal" (la plomería del auto-abono, confusa) y "Por cobrar"
     // (ya es el héroe cuando está abierta). Las identidades viven en el modelo (informePrincipal), no en pantalla.
+    // Desglose con LENGUAJE claro: "Recuperás (tu costo)" = lo que pusiste de tu bolsillo y vuelve a vos;
+    // "Al Tesorero (la ganancia)" = la ganancia que entregás. Así no se confunde qué es cada número.
     const body = abierto ? `<div class="acc-body">
         <div class="kv"><span>Bre-B</span><b>${breBRecaudo ? e(breBRecaudo) : '—'}</b></div>
-        <div class="kv"><span>Recupera</span><b>${$peso(inf.recuperaPrincipal)}</b></div>
-        <div class="kv total"><span>Entrega al Tesorero</span><b>${$peso(inf.entregaTesorero)}</b></div>
+        <div class="kv"><span>Recuperás <span class="muted">tu costo</span></span><b>${$peso(inf.recuperaPrincipal)}</b></div>
+        <div class="kv total"><span>Al Tesorero <span class="muted">la ganancia</span></span><b>${$peso(inf.entregaTesorero)}</b></div>
         <div class="sub">Debe</div>
         ${deudList}
       </div>` : '';

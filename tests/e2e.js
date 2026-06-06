@@ -275,30 +275,29 @@ check('Informe completo (ya hay principal)', inf.incompleta === false);
 eq('Entrega al Tesorero = ganancia', inf.entregaTesorero, Store.select.ganancia(prm()));
 eq('Parte igual a la única ahorradora (Ana) = ganancia', Store.select.parteIgual(prm()), 2000);
 eq('Sobrante indivisible = 0', Store.select.sobranteFondo(prm()), 0);
-// La 2ª tarjeta se llama RECAUDO (proceso de cobro), sin nombre ni rol.
+// La 2ª tarjeta etiqueta el héroe por lo que ES: ABIERTA → "Por cobrar" (antes decía "Recaudo" pero el
+// número era lo contrario y confundía). Sin nombre ni rol.
 abrirBalance();
-check('2ª tarjeta titulada "Recaudo" (sin nombre/rol)', /Recaudo/.test(q('#screen').innerHTML) && !/Principal — Ana/.test(q('#screen').innerHTML));
+check('2ª tarjeta: héroe "Por cobrar" (no nombre/rol)', /Por cobrar/.test(q('#screen').innerHTML) && !/Principal — Ana/.test(q('#screen').innerHTML));
 // Beto debe (cover 0, pero 2 cervezas = 7.000 sin pagar) → ABIERTA: héroe en registro PENDIENTE ámbar
 // (.por-cobrar). NO destructivo (salmón) ni "entregado" (teal): la deuda es proceso, no alarma (DESIGN.md §1).
 check('Recaudo ABIERTA: el héroe usa el registro pendiente ámbar (.por-cobrar), no "entregado"',
   /class="bal-amount por-cobrar"/.test(q('#screen').innerHTML) && !/bal-amount entregado/.test(q('#screen').innerHTML));
-// El TEASER no repite el héroe: el héroe ya es el "por cobrar" (saldoPendiente) → el teaser solo añade
-// el OTRO número (lo que se entrega), sin "· Por cobrar $Y".
-check('Recaudo ABIERTA: teaser solo "Entrega … al Tesorero" (no repite el número del héroe)',
-  /Entrega .*al Tesorero/.test(q('#screen').innerHTML) && !/al Tesorero · Por cobrar/.test(q('#screen').innerHTML));
+// El TEASER añade el OTRO número (lo que ENTREGÁS al Tesorero, la ganancia) — distinto y no comparable al héroe.
+check('Recaudo ABIERTA: teaser "Entregás … al Tesorero" (el otro número, la ganancia)',
+  /Entregás .*al Tesorero/.test(q('#screen').innerHTML));
 // MENOS ES MÁS: el héroe del Recaudo NO lleva microcopy (el conteo "de N personas" confundía). Quién debe
 // vive un nivel abajo, en la lista del acordeón ("Debe").
 check('Recaudo ABIERTA: el héroe NO muestra conteo "de N personas"', !/de \d+ persona/.test(q('#screen').innerHTML));
-check('Recaudo ABIERTA: el texto "Por cobrar" ya NO aparece (0 veces, acorde colapsado)',
-  (q('#screen').innerHTML.match(/Por cobrar/g) || []).length === 0);
 // El detalle de quién debe sigue disponible al abrir el acordeón del Recaudo.
 click('[data-act="toggle-balance"][data-sec="informe"]');
 check('Recaudo: la lista de deudores vive DENTRO del acorde ("Debe" + el deudor)',
   /Debe/.test(q('#screen').innerHTML) && new RegExp(beto.nombre).test(q('#screen').innerHTML));
-// PODA del Balance: el body deja Bre-B · Recupera · Entrega al Tesorero · Debe; SIN la plomería del auto-abono.
-check('Recaudo PODADO: body con Bre-B / Recupera / Entrega al Tesorero',
-  /<span>Bre-B<\/span>/.test(q('#screen').innerHTML) && /<span>Recupera<\/span>/.test(q('#screen').innerHTML)
-  && /Entrega al Tesorero/.test(q('#screen').innerHTML));
+// PODA del Balance: el body deja Bre-B · Recuperás · Al Tesorero · Debe; SIN la plomería del auto-abono.
+// Lenguaje claro: "Recuperás (tu costo)" y "Al Tesorero (la ganancia)" para que se entienda cada número.
+check('Recaudo PODADO: body con Bre-B / Recuperás / Al Tesorero',
+  /<span>Bre-B<\/span>/.test(q('#screen').innerHTML) && /Recuperás/.test(q('#screen').innerHTML)
+  && /Al Tesorero/.test(q('#screen').innerHTML));
 check('Recaudo PODADO: SIN "Recaudo teórico" / "de terceros" / "del principal"',
   !/Recaudo teórico/.test(q('#screen').innerHTML) && !/de terceros/.test(q('#screen').innerHTML) && !/del principal/.test(q('#screen').innerHTML));
 click('[data-act="toggle-balance"][data-sec="informe"]');   // colapsar de nuevo
@@ -464,8 +463,10 @@ check('Chip de Balance marcado activo (on) al abrir cerrada',
 // STATE-AWARE en CERRADA: documento final → SIN nota provisional (Ganancia); Recaudo = lo ENTREGADO.
 check('Cerrada: SIN nota "Provisional" (ni en Ganancia ni en Recaudo)', !/[Pp]rovisional/.test(q('#screen').innerHTML));
 check('Cerrada Recaudo: héroe tono "entregado" (teal/--accent)', /class="bal-amount entregado"/.test(q('#screen').innerHTML));
-check('Cerrada Recaudo: teaser en pasado "Entregó … al Tesorero"', /Entregó .*al Tesorero/.test(q('#screen').innerHTML));
-// CERRADA: sin "Por cobrar"; y el microcopy se OMITE (el teaser ya lo dice todo) → no hay .bal-note en Recaudo.
+check('Cerrada Recaudo: héroe etiquetado "Entregado al Tesorero"', /Entregado al Tesorero/.test(q('#screen').innerHTML));
+// CERRADA: el teaser añade el OTRO número en pasado — lo que el Anfitrión recuperó de su costo (5.000 = 2×2.500).
+check('Cerrada Recaudo: teaser "Recuperaste … de tu costo"', /Recuperaste .*de tu costo/.test(q('#screen').innerHTML));
+// CERRADA: el héroe ya NO dice "Por cobrar" (es lo entregado, no lo pendiente).
 check('Cerrada Recaudo: sin "Por cobrar"', !/Por cobrar/.test(q('#screen').innerHTML));
 cerrarBalance();           // la cara Consumos sigue accesible…
 check('Cara Consumos accesible con la cuenta cerrada', /Asistentes/.test(q('#screen').innerHTML));
