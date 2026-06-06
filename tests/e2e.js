@@ -427,17 +427,21 @@ check('Consumos: Beto saldado muestra .asis-check junto al nombre',
   /asis-check/.test(q('#screen').querySelector(`[data-act="activar-asis"][data-pid="${beto.id}"]`).innerHTML));
 check('Consumos: la fila saldada lleva el nombre en teal (.asis-fila-id.saldado)',
   !!q('#screen').querySelector(`.asis-fila[data-pid="${beto.id}"] .asis-fila-id.saldado`));
-// Balance: nadie debe → el bloque COBRO desaparece y el teaser pasa al reparto. El saldado NO se lista en el
-// Balance (este muestra solo quién DEBE; el "ya pagó" vive en el check de Consumos — minimalismo).
+// Balance: nadie debe → el teaser pasa al reparto y NO hay "Debe"/Bre-B; PERO el saldado NO desaparece —
+// aparece al final con check teal + el monto que pagó, SIN rótulo (solo el color y el check lo dicen).
 abrirBalance();
 check('Balance: nadie debe → teaser al reparto ("a cada ahorrador"), sin "Falta cobrar"',
   /a cada ahorrador/.test(q('#screen').innerHTML) && !/Falta cobrar/.test(q('#screen').innerHTML));
 click('[data-act="toggle-balance"][data-sec="balance"]');   // expandir el desglose
 const tras = q('#screen').innerHTML;
-check('Balance: SIN bloque "Debe" ni el deudor (todos saldados → no hay cobro)',
+check('Balance: SIN bloque "Debe" ni deudor pendiente (Beto ya pagó)',
   !/<div class="sub">Debe<\/div>/.test(tras) && !new RegExp(beto.nombre + '</span><b class="pend"').test(tras));
-check('Balance: SIN línea Bre-B (no hay nada que cobrar)', !/<span>Bre-B<\/span>/.test(tras));
-check('Balance: SIN bloque saldadas (.kv.saldada eliminado — el Balance no lista a quien ya pagó)', !/kv saldada/.test(tras));
+check('Balance: SIN línea Bre-B (nadie debe)', !/<span>Bre-B<\/span>/.test(tras));
+// El saldado SE CONSERVA: Beto al final con .kv.saldada (check teal + nombre gris) y su monto pagado ($7.000, teal).
+check('Balance: Beto saldado presente (.kv.saldada con check + nombre)',
+  /kv saldada/.test(tras) && new RegExp('kv saldada[^]*asis-check[^]*' + beto.nombre).test(tras));
+check('Balance: el saldado conserva su monto ($7.000) en teal (.pagado)',
+  new RegExp('kv saldada"><span>[^]*' + beto.nombre + '</span><b class="pagado">\\$7\\.000').test(tras));
 click('[data-act="toggle-balance"][data-sec="balance"]');   // colapsar de nuevo (no contaminar tests posteriores)
 
 /* ---------- 8b·2. CTA contextual "Todos pagaron · Cerrar primada" (P5 lote visual) ---------- */
@@ -713,6 +717,31 @@ setVal(`[data-ch="dia-primada"][data-id="${idF}"]`, '');
 eq('Quitar el día (vacío) → fecha SIN día', st().primadas.find(p => p.id === idF).fecha, '');
 eq('Al quitar el día, el mes (ancla) se conserva', st().primadas.find(p => p.id === idF).mesContable, '2026-11');
 click('[data-act="close-overlay"]');
+
+/* ---------- 17. Balance: orden de MAYOR a MENOR en Debe y en saldados ---------- */
+section('Balance: Debe (pendientes) y saldados, ambos ordenados de mayor a menor monto');
+const ordZoe = Store.actions.addPersona({ nombre: 'Zoe', estado: 'invitado' });   // addPersona devuelve el ID
+const ordYago = Store.actions.addPersona({ nombre: 'Yago', estado: 'invitado' });
+const ordVera = Store.actions.addPersona({ nombre: 'Vera', estado: 'invitado' });
+const ordUri = Store.actions.addPersona({ nombre: 'Uri', estado: 'invitado' });
+const idO = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-12' });
+[ordZoe, ordYago, ordVera, ordUri].forEach(pid => Store.actions.addAsistencia(idO, pid));
+Store.actions.changeItem(idO, ordZoe, 'cerveza', +1); Store.actions.changeItem(idO, ordZoe, 'cerveza', +1); Store.actions.changeItem(idO, ordZoe, 'cerveza', +1);  // debe MÁS
+Store.actions.changeItem(idO, ordYago, 'cerveza', +1);   // debe MENOS que Zoe
+Store.actions.changeItem(idO, ordVera, 'brownie', +1);   // paga MÁS (saldado mayor)
+Store.actions.changeItem(idO, ordUri, 'cerveza', +1); Store.actions.changeItem(idO, ordUri, 'cerveza', +1);  // paga MENOS (saldado menor)
+Store.actions.setPagado(idO, ordVera, true);   // Vera y Uri saldan; Zoe y Yago quedan debiendo
+Store.actions.setPagado(idO, ordUri, true);
+Store.actions.seleccionarPrimada(idO); entrarDetalle(idO); abrirBalance();
+click('[data-act="toggle-balance"][data-sec="balance"]');
+const bal = q('.balance-panel').innerHTML;   // SOLO el Balance (los nombres también salen en Consumos, arriba)
+const iZoe = bal.indexOf('Zoe'), iYago = bal.indexOf('Yago'), iVera = bal.indexOf('Vera'), iUri = bal.indexOf('Uri');
+check('Debe: Zoe y Yago presentes como pendientes', iZoe > -1 && iYago > -1);
+check('Debe ordenado MAYOR→MENOR: Zoe (3 cervezas) antes que Yago (1)', iZoe < iYago);
+check('Saldados: Vera y Uri presentes (check)', iVera > -1 && iUri > -1 && /kv saldada/.test(bal));
+check('Saldados ordenados MAYOR→MENOR: Vera (brownie 9.000) antes que Uri (2 cervezas 7.000)', iVera < iUri);
+check('Pendientes (Debe) van ANTES que los saldados', iYago < iVera);
+click('[data-act="toggle-balance"][data-sec="balance"]');
 
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);

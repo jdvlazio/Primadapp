@@ -650,7 +650,13 @@
     const cerrada = p.estado === 'cerrada';
     const abierto = ui && ui.balance && ui.balance.has('balance');
     const prinId = p.organizadorPrincipalId;
-    const deud = completa ? sel.deudores(p).filter(d => d.personaId !== prinId) : [];
+    // Listas de cobro, AMBAS de MAYOR a MENOR monto: deudores (por saldo) y saldados (por lo que pagaron).
+    const deud = (completa ? sel.deudores(p).filter(d => d.personaId !== prinId) : [])
+      .slice().sort((a, b) => b.saldo - a.saldo);
+    const saldadas = (completa ? (p.asistencias || []) : [])
+      .filter(a => a.personaId !== prinId && a.pagado && sel.totalAsistencia(p, a) > 0)
+      .map(a => ({ a, total: sel.totalAsistencia(p, a) }))
+      .sort((x, y) => y.total - x.total);
     const pendiente = completa && inf.saldoPendiente > 0;
 
     // HÉROE: Ganancia (la pregunta invariante del Balance). Provisional mientras la primada esté abierta.
@@ -671,13 +677,16 @@
         <span class="acc-sub">${teaser}</span>
       </button>`;
 
-    // COBRO (accionable) PRIMERO: solo si hay algo que cobrar. Bre-B (cómo pagan) + quién Debe (suma al teaser).
+    // COBRO (accionable) PRIMERO. PENDIENTES ("Debe", ámbar) con Bre-B (cómo pagan); luego los SALDADOS al
+    // final SIN rótulo — solo el check teal + nombre en gris + lo que pagaron. Quién pagó y cuánto NO se pierde.
     const breB = (p.pago && p.pago.breB) || (prinId ? (sel.persona(prinId) || {}).breB : null) || '';
-    const cobro = pendiente
-      ? `<div class="kv"><span>Bre-B</span><b>${breB ? e(breB) : '—'}</b></div>
-         <div class="sub">Debe</div>
-         ${deud.map(d => `<div class="kv"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('')}`
-      : (completa ? '' : `<div class="kv"><span class="muted small">Asigná un anfitrión para el cobro</span></div>`);
+    const pendRows = deud.map(d => `<div class="kv"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('');
+    const saldRows = saldadas.map(({ a, total }) => `<div class="kv saldada"><span><span class="asis-check">${icon('check', 'sm')}</span> ${e(nombrePersona(a.personaId))}</span><b class="pagado">${$peso(total)}</b></div>`).join('');
+    const cobro = !completa
+      ? `<div class="kv"><span class="muted small">Asigná un anfitrión para el cobro</span></div>`
+      : (deud.length
+          ? `<div class="kv"><span>Bre-B</span><b>${breB ? e(breB) : '—'}</b></div><div class="sub">Debe</div>${pendRows}${saldRows}`
+          : saldRows);
 
     // CUENTAS (referencia) DESPUÉS: parte igual (lo que toca), cómo se compone (cover/margen), reembolso
     // (costo, atenuado — puede ser > ganancia y NO es ingreso), y el sobrante indivisible solo si > 0.
