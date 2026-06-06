@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260606-144207-e4ac8cb">
+<meta name="build" content="20260606-144617-0295b89">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -338,8 +338,9 @@
   .informe-brand-ac{color:var(--accent)}
   .informe-period{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:capitalize}
   .informe-title{font-weight:800;font-size:24px;line-height:1.06;letter-spacing:-.02em;color:var(--ink)}
-  /* Bre-B: texto NEUTRO (sin teal) — el acento queda solo en la 🔑; el valor es la llave para pagar. */
+  /* Bre-B: la ETIQUETA "🔑 Bre-B:" neutra; el VALOR (la llave para pagar, lo que más importa) en teal. */
   .informe-llave{margin-top:5px;font-weight:600;font-size:12.5px;color:var(--ink-soft);word-break:break-all}
+  .informe-llave-val{color:var(--accent);font-weight:700}
   /* HÉROE: banda con la cifra (Ganancia teal / Por cobrar ámbar). COMPACTA (padding chico) para que quede
      limpio: el peso lo da el color y la tipografía, no el tamaño de la caja. */
   .informe-hero{margin:var(--space-3) 0;padding:var(--space-2) var(--space-3);border-radius:12px;
@@ -681,13 +682,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260606-144207-e4ac8cb"></script>
-  <script src="js/util.js?v=20260606-144207-e4ac8cb"></script>
-  <script src="js/api.js?v=20260606-144207-e4ac8cb"></script>
-  <script src="js/auth.js?v=20260606-144207-e4ac8cb"></script>
-  <script src="js/store.js?v=20260606-144207-e4ac8cb"></script>
-  <script src="js/view.js?v=20260606-144207-e4ac8cb"></script>
-  <script src="js/controller.js?v=20260606-144207-e4ac8cb"></script>
+  <script src="js/config.js?v=20260606-144617-0295b89"></script>
+  <script src="js/util.js?v=20260606-144617-0295b89"></script>
+  <script src="js/api.js?v=20260606-144617-0295b89"></script>
+  <script src="js/auth.js?v=20260606-144617-0295b89"></script>
+  <script src="js/store.js?v=20260606-144617-0295b89"></script>
+  <script src="js/view.js?v=20260606-144617-0295b89"></script>
+  <script src="js/controller.js?v=20260606-144617-0295b89"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

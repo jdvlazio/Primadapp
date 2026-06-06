@@ -84,7 +84,7 @@
     const principalId = p.organizadorPrincipalId;
     const breBRaw = (p.pago && p.pago.breB) || (principalId ? (sel.persona(principalId) || {}).breB : null) || '';
     const breB = breBRaw ? String(breBRaw).trim() : '';
-    const llave = breB ? `<div class="informe-llave">🔑 Bre-B: ${e(breB)}</div>` : '';
+    const llave = breB ? `<div class="informe-llave">🔑 Bre-B: <span class="informe-llave-val">${e(breB)}</span></div>` : '';
     return `<div class="informe-card">
         <div class="informe-head">
           <span class="informe-brand">Primad<span class="informe-brand-ac">app</span></span>
