@@ -397,11 +397,9 @@
         return;
       }
 
-      // ----- pantallas del engranaje (4 tabs: Primada / Calendario / Personas / Ajustes) -----
-      case 'open-personas':  ui.overlay = 'personas'; ui.editPersonaId = null; rerender(); return;
-      case 'open-ajustes':   ui.overlay = 'ajustes';  rerender(); return;
-      // Cambiar de tab del gear: limpia el detalle de edición de persona (vuelve a la lista al re-entrar).
-      case 'overlay-tab':    ui.overlay = b.dataset.overlay; ui.editPersonaId = null; rerender(); return;
+      // ----- Ajustes GLOBALES = pantalla PLANA (sin tabs): Personas · Cover · Legal · Versión · Cuenta -----
+      case 'open-personas':                                     // legado (link del wizard "Agregar en Personas")
+      case 'open-ajustes':   ui.overlay = 'ajustes'; ui.editPersonaId = null; rerender(); return;
       case 'close-overlay':  ui.overlay = null;       rerender(); return;
       // Personas (lista compacta → editar ENFOCADO): tap fila = drill-in al detalle; back = volver a la lista.
       case 'editar-persona':       ui.editPersonaId = pid; ui.nuevaPersona = false; rerender(); return;

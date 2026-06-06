@@ -825,10 +825,10 @@
         <label class="fld"><span>Invitado</span>
           <input class="ti" type="number" min="0" step="500" data-ch="cover-invitado" value="${c.invitado}"></label>
       </div>
-      <div class="sub">Versión</div>
-      <div class="muted small">${e(build)}</div>
       <div class="sub">Legal</div>
       <div class="muted small"><a class="link-legal" href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a></div>
+      <div class="sub">Versión</div>
+      <div class="muted small">${e(build)}</div>
       ${cuenta}`;
   }
 
@@ -915,49 +915,26 @@
   //   Primada (config del evento activo: Asistentes/Productos) · Calendario (todas las primadas: crear/
   //   eliminar/reabrir) · Personas (directorio) · Ajustes (globales). Antes "Primadas" mezclaba config +
   //   calendario en un scroll → mala IA; ahora son tabs distintos. seg-nav full-width (`.cols4`) para 4 tabs.
-  function overlaySheet(active, state, ui) {
-    const seg = (key, label) => `<button class="seg ${active === key ? 'on' : ''}" data-act="overlay-tab" data-overlay="${key}">${label}</button>`;
-    const body = active === 'ajustes' ? ajustesBody(state, ui)
-      : active === 'personas' ? personasBody(state, ui)
-      : active === 'calendario' ? calendarioBody(state, ui)
-      : primadaConfigTab(state, ui);                          // 'primada' (default)
+  // AJUSTES GLOBALES = pantalla PLANA (sin tabs), abierta desde el ⚙ del home. Secciones por aire:
+  // Personas (lista compacta + drill-in) · Cover · Legal · Versión · Cuenta. Reusa personasBody + ajustesBody.
+  // Drill-in de persona: cuando se edita una (editPersonaId), la hoja muestra SOLO el editor enfocado.
+  function ajustesSheet(state, ui) {
+    const editando = ui && ui.editPersonaId && S().persona(ui.editPersonaId);
+    if (editando) {
+      return `<div class="sheet full">
+        <div class="sheet-head"><div class="sheet-title">Persona</div>
+          <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
+        <div class="sheet-body">${personaEditView(editando, ui)}</div>
+      </div>`;
+    }
     return `<div class="sheet full">
-      <div class="sheet-head">
-        <div class="seg-nav sm cols4">${seg('primada', 'Primada')}${seg('calendario', 'Calendario')}${seg('personas', 'Personas')}${seg('ajustes', 'Ajustes')}</div>
-        <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button>
+      <div class="sheet-head"><div class="sheet-title">Ajustes</div>
+        <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
+      <div class="sheet-body">
+        <div class="ajustes-sec"><div class="sub">Personas</div>${personasBody(state, ui)}</div>
+        <div class="ajustes-sec">${ajustesBody(state, ui)}</div>
       </div>
-      <div class="sheet-body">${body}</div>
     </div>`;
-  }
-
-  // Tab PRIMADA = config del EVENTO ACTIVO (Asistentes | Productos). Solo eso (sin calendario). Encabeza con
-  // el nombre de la primada activa para dejar claro QUÉ se está configurando.
-  function primadaConfigTab(state, ui) {
-    const p = S().activePrimada();
-    if (!p) return `<div class="empty-soft">Sin primada activa.<br>Creá una en <b>Calendario</b>.</div>`;
-    return `<div class="cfg-primada-name">${e(nombreCorto(p.nombre))}</div>${configPrimadaBody(p, ui)}`;
-  }
-
-  // Tab CALENDARIO = TODAS las primadas: "Nueva primada" (ÚNICO punto de creación) + lista (Próximas · Activa ·
-  // Pasadas, relativas a la activa) con acciones administrativas por fila (Eliminar / Reabrir). Dot por actividad.
-  function calendarioBody(state, ui) {
-    const sel = S();
-    const activeId = state.activePrimadaId;
-    const proximas = sel.primadasProximas(activeId);             // futuras (mes > activa), asc
-    const grupos = sel.primadasPorAnio();
-    const activa = sel.activePrimada();
-    const pasadas = grupos.map(g => ({ anio: g.anio, primadas: g.primadas.filter(p => p.id !== activeId && !sel.esFutura(p, activeId)) }))
-      .filter(g => g.primadas.length);
-    const secProx = proximas.length
-      ? `<div class="sub">Próximas</div>${proximas.map(p => primadaAdminFila(p, activeId)).join('')}` : '';
-    const secActiva = activa
-      ? `<div class="sub">Activa</div>${primadaAdminFila(activa, activeId)}` : '';
-    const secPasadas = pasadas.length
-      ? `<div class="sub">Pasadas</div>` + pasadas.map(g =>
-          `<div class="sel-subanio">${e(g.anio)}</div>${g.primadas.map(p => primadaAdminFila(p, activeId)).join('')}`).join('') : '';
-    const vacio = (!secProx && !secActiva && !secPasadas) ? '<div class="empty-soft">Sin primadas</div>' : '';
-    return `<button class="add-link" data-act="new-primada">${icon('plus-circle')}Nueva primada</button>
-      ${secProx}${secActiva}${secPasadas}${vacio}`;
   }
   // Fila administrativa: nombre + mes · recaudo · acciones (Reabrir si cerrada, Eliminar siempre con
   // confirmación). Eliminar la ACTIVA en operación lleva data-activa para una advertencia más fuerte.
@@ -1016,7 +993,7 @@
     else if (ui.overlay === 'selector-primada')                els.overlay.innerHTML = selectorSheet(state, ui);
     else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
-    else if (ui.overlay === 'primada' || ui.overlay === 'calendario' || ui.overlay === 'personas' || ui.overlay === 'ajustes') els.overlay.innerHTML = overlaySheet(ui.overlay, state, ui);
+    else if (ui.overlay === 'ajustes' || ui.overlay === 'personas') els.overlay.innerHTML = ajustesSheet(state, ui);
     else                                                        els.overlay.innerHTML = '';
 
     if (keepScroll) { const ns = els.overlay.querySelector('.sheet'); if (ns) ns.scrollTop = keepScroll; }

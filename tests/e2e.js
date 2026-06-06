@@ -107,12 +107,10 @@ function abrirConfig() {
 function balanceVisible() { return /class="balance-panel"/.test(q('#screen').innerHTML); }
 function abrirBalance() { if (!balanceVisible()) click('[data-act="toggle-balance-panel"]'); }
 function cerrarBalance() { if (balanceVisible()) click('[data-act="toggle-balance-panel"]'); }
-// Gear GLOBAL (interim Fase 1: sigue siendo el overlay de 4 tabs). Vive en el home (⚙ open-ajustes).
-// `tab` ∈ 'primada'|'calendario'|'personas'|'ajustes'. Abre desde el home (los botones viven ahí).
-function abrirGear(tab) {
+// Ajustes GLOBALES = pantalla PLANA (⚙ del home): Personas · Cover · Legal · Versión · Cuenta, sin tabs.
+function abrirGear() {
   irHome();
   if (!q('#overlay') || q('#overlay').hidden) click('[data-act="open-ajustes"]');
-  if (tab) { const t = q(`[data-act="overlay-tab"][data-overlay="${tab}"]`); if (t) click(t); }
 }
 
 /* ============================================================ */
@@ -462,17 +460,18 @@ eq('Estado VIGENTE de Beto ahora = ahorrador', Store.select.persona(beto.id).est
 eq('Snapshot histórico INTACTO (sigue invitado)', betoAsis().estadoEnEseMomento, 'invitado');
 check('Reparto no cambió: Beto sigue sin contar como ahorradora (snapshot)',
   Store.select.asistenciasAhorradoras(prm()).every(a => a.personaId !== beto.id));
-// Editar la llave Bre-B desde el directorio
-click('[data-act="overlay-tab"][data-overlay="ajustes"]');
-check('Seg-nav cambia a Ajustes (cover)', /Cover/.test(q('#overlay').innerHTML));
-check('Ajustes enlaza la Política de Privacidad', !!q('#overlay a[href="privacy.html"]'));
+// AJUSTES PLANO (sin tabs): al salir del drill-in de la persona, Cover/Legal/Cuenta viven en el mismo scroll.
+click('[data-act="cerrar-persona-edit"]');                     // back de la edición enfocada → lista + secciones
+check('Ajustes plano: sección Cover en la misma pantalla', /Cover/.test(q('#overlay').innerHTML));
+check('Ajustes plano: Personas y Cover coexisten (sin tabs)',
+  !!q('#overlay .persona-fila') && /Cover/.test(q('#overlay').innerHTML) && !/data-act="overlay-tab"/.test(q('#overlay').innerHTML));
+check('Ajustes plano enlaza la Política de Privacidad', !!q('#overlay a[href="privacy.html"]'));
 // FASE 2b: "Borrar mi cuenta" (Apple 5.1.1(v)) SOLO con sesión. Sin sesión (modo local en jsdom): ausente.
 check('Sin sesión: Ajustes NO ofrece "Borrar mi cuenta"', !q('[data-act="borrar-mi-cuenta"]'));
 // La View es pura (state, ui)→DOM: con ui.sesion=true el botón aparece (gate de UI; el RPC lo gatea el server).
 window.View.render(st(), Object.assign({}, window.Controller._ui, { overlay: 'ajustes', sesion: true }));
 check('Con sesión: aparece "Borrar mi cuenta"', !!q('[data-act="borrar-mi-cuenta"]'));
 check('La nota aclara que las primadas se conservan', /se conservan/.test(q('#overlay').innerHTML));
-click('[data-act="overlay-tab"][data-overlay="personas"]');   // vuelve por el flujo real (rerender resetea sesion)
 click('[data-act="close-overlay"]');
 check('Pantalla cerrada', q('#overlay').hidden);
 

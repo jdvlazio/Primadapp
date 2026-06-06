@@ -108,11 +108,10 @@ async function abrirConfig(page) {
   await page.click(SEL.configPrimada);
 }
 
-// Gear global (interim Fase 1): ⚙ del HOME → overlay de 4 tabs. `tab` opcional para navegar dentro.
-async function abrirGear(page, tab) {
+// Ajustes GLOBALES = pantalla PLANA (⚙ del HOME): Personas · Cover · Legal · Versión · Cuenta, sin tabs.
+async function abrirGear(page) {
   await irHome(page);
   await page.click(SEL.ajustes);
-  if (tab) await page.click(`[data-act="overlay-tab"][data-overlay="${tab}"]`);
 }
 
 module.exports = { SEL, abrirApp, sembrarPersonas, crearPrimada, contarPrimadas, abrirConfig, abrirGear, irHome, entrarDetalle };
