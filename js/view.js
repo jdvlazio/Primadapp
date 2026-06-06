@@ -721,7 +721,7 @@
         <span class="hero-dot dot ${dotClase(p)}"></span>
         <span class="hero-id">
           <span class="hero-name">${e(nombreCorto(p.nombre))}</span>
-          <span class="hero-mes">${e(Util.monthYear(p.mesContable))}</span>
+          <span class="hero-mes">${e(p.fecha ? Util.fechaCompleta(p.fecha) : Util.monthYear(p.mesContable))}</span>
         </span>
       </button>
       ${rowMenuBtn(p)}
@@ -732,7 +732,7 @@
   function historialFila(p) {
     return `<div class="hist-row">
       <button class="hist-fila" data-act="entrar-primada" data-id="${p.id}" aria-label="Abrir ${e(nombreCorto(p.nombre))}">
-        <span class="hist-id"><span class="dot ${dotClase(p)}"></span><span class="hist-name">${e(nombreCorto(p.nombre))}</span> <span class="hist-mes">${e(Util.monthName(p.mesContable))}</span></span>
+        <span class="hist-id"><span class="dot ${dotClase(p)}"></span><span class="hist-name">${e(nombreCorto(p.nombre))}</span> <span class="hist-mes">${e(p.fecha ? Util.diaMes(p.fecha) : Util.monthName(p.mesContable))}</span></span>
         <span class="hist-gan">${$peso(S().ganancia(p))}</span>
       </button>
       ${rowMenuBtn(p)}
@@ -813,21 +813,33 @@
   // Directorio PERSONAS = LISTA COMPACTA agrupada (Ahorradores / Invitados), una línea por persona
   // (nombre + nº de primadas + chevron de drill-in). Tap → EDITAR ENFOCADO (personaEditView): la lista
   // queda escaneable y editar es un detalle de una sola persona, no un muro de acordeones inline.
+  // Sección COLAPSABLE de Ajustes (acordeón con caret (v)). key = clave en ui.ajustesSec (Set de abiertas);
+  // colapsadas por defecto → la primera pantalla queda corta y "Agregar persona" cae a la mano.
+  function ajustesSecAbierta(ui, key) { return !!(ui && ui.ajustesSec && ui.ajustesSec.has && ui.ajustesSec.has(key)); }
+  function accAjustes(key, titulo, meta, abierto, body) {
+    return `<div class="aj-acc">
+      <button class="aj-acc-head" data-act="toggle-ajustes-sec" data-sec="${key}" aria-expanded="${abierto ? 'true' : 'false'}">
+        <span class="aj-acc-title">${titulo}</span>${meta ? `<span class="aj-acc-meta">${meta}</span>` : ''}<span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
+      </button>
+      ${abierto ? `<div class="aj-acc-body">${body}</div>` : ''}
+    </div>`;
+  }
+
   function personasBody(state, ui) {
     if (ui && ui.editPersonaId) {
       const per = S().persona(ui.editPersonaId);
       if (per) return personaEditView(per, ui);
     }
     const personas = S().personasOrdenadas();
+    // Ahorradores / Invitados como ACORDEONES (v): colapsados por defecto → no llenan la pantalla.
     const grupo = (estado, titulo) => {
       const filas = personas.filter(p => p.estado === estado);
-      if (!filas.length) return '';
-      return `<div class="grp-head"><span class="grp-titulo">${titulo}</span><span class="grp-cover">${filas.length}</span></div>
-        <div class="persona-list">${filas.map(personaFilaCompacta).join('')}</div>`;
+      const body = filas.length
+        ? `<div class="persona-list">${filas.map(personaFilaCompacta).join('')}</div>`
+        : '<div class="empty-soft">Ninguno todavía</div>';
+      return accAjustes('per-' + estado, titulo, String(filas.length), ajustesSecAbierta(ui, 'per-' + estado), body);
     };
-    const lista = personas.length
-      ? `${grupo('ahorrador', 'Ahorradores')}${grupo('invitado', 'Invitados')}`
-      : '<div class="empty-soft">Sin personas</div>';
+    const lista = `${grupo('ahorrador', 'Ahorradores')}${grupo('invitado', 'Invitados')}`;
     const nueva = ui && ui.nuevaPersona;
     const alta = nueva
       ? `<div class="prow-new">
@@ -873,22 +885,26 @@
     const build = (typeof document !== 'undefined' && (document.querySelector('meta[name="build"]') || {}).content) || '—';
     // "Borrar mi cuenta" (Apple 5.1.1(v)): SOLO con sesión. Revoca el acceso; el libro de las primadas se
     // conserva (es colectivo). Distinto de cerrar una primada. La acción la gatea el RPC (último admin, etc.).
+    // Cuenta: NO colapsable (acción importante), con espaciado claro entre título, botón y nota.
     const cuenta = (ui && ui.sesion)
-      ? `<div class="sub danger-sub">Cuenta</div>
-         <button class="mini danger" data-act="borrar-mi-cuenta">${icon('trash-2')}Borrar mi cuenta</button>
-         <div class="muted small">Se elimina tu acceso (correo). Las cuentas de las primadas se conservan.</div>`
+      ? `<div class="cuenta-sec">
+          <div class="sub danger-sub">Cuenta</div>
+          <button class="mini danger" data-act="borrar-mi-cuenta">${icon('trash-2')}Borrar mi cuenta</button>
+          <div class="muted small cuenta-nota">Se elimina tu acceso (correo). Las cuentas de las primadas se conservan.</div>
+        </div>`
       : '';
-    return `<div class="sub">Cover</div>
-      <div class="grid2">
+    // Cover / Legal / Versión como ACORDEONES (v): colapsados por defecto.
+    const coverBody = `<div class="grid2">
         <label class="fld"><span>Ahorrador</span>
           <input class="ti" type="number" min="0" step="500" data-ch="cover-ahorrador" value="${c.ahorrador}"></label>
         <label class="fld"><span>Invitado</span>
           <input class="ti" type="number" min="0" step="500" data-ch="cover-invitado" value="${c.invitado}"></label>
-      </div>
-      <div class="sub">Legal</div>
-      <div class="muted small"><a class="link-legal" href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a></div>
-      <div class="sub">Versión</div>
-      <div class="muted small">${e(build)}</div>
+      </div>`;
+    const legalBody = `<a class="link-legal" href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a>`;
+    const versionBody = `<div class="muted small">${e(build)}</div>`;
+    return `${accAjustes('cover', 'Cover', '', ajustesSecAbierta(ui, 'cover'), coverBody)}
+      ${accAjustes('legal', 'Legal', '', ajustesSecAbierta(ui, 'legal'), legalBody)}
+      ${accAjustes('version', 'Versión', '', ajustesSecAbierta(ui, 'version'), versionBody)}
       ${cuenta}`;
   }
 

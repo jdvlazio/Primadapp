@@ -113,5 +113,10 @@ async function abrirGear(page) {
   await irHome(page);
   await page.click(SEL.ajustes);
 }
+// Secciones de Ajustes (per-ahorrador/per-invitado/cover/legal/version) = acordeones colapsados por defecto.
+async function abrirAjustesSec(page, sec) {
+  const head = page.locator(`[data-act="toggle-ajustes-sec"][data-sec="${sec}"]`);
+  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+}
 
-module.exports = { SEL, abrirApp, sembrarPersonas, crearPrimada, contarPrimadas, abrirConfig, abrirGear, irHome, entrarDetalle };
+module.exports = { SEL, abrirApp, sembrarPersonas, crearPrimada, contarPrimadas, abrirConfig, abrirGear, abrirAjustesSec, irHome, entrarDetalle };

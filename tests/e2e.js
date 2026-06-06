@@ -112,6 +112,12 @@ function abrirGear() {
   irHome();
   if (!q('#overlay') || q('#overlay').hidden) click('[data-act="open-ajustes"]');
 }
+// Las secciones de Ajustes (per-ahorrador/per-invitado/cover/legal/version) son acordeones colapsados por
+// defecto; expandir antes de tocar su contenido.
+function abrirAjustesSec(sec) {
+  const head = q(`[data-act="toggle-ajustes-sec"][data-sec="${sec}"]`);
+  if (head && head.getAttribute('aria-expanded') !== 'true') click(head);
+}
 
 /* ============================================================ */
 section('Arranque (IA list→detalle: HOME como pantalla de inicio)');
@@ -461,8 +467,11 @@ check('Cerrada: el consumo se ve como chip de solo lectura (.chip.has.ro)', !!q(
 /* ---------- 8c. Directorio: cambiar estado NO reescribe snapshots (INVARIANTE #1) vía UI ---------- */
 section('Directorio: cambiar estado vigente conserva la historia (INV#1)');
 eq('Snapshot de Beto en la asistencia = invitado', betoAsis().estadoEnEseMomento, 'invitado');
-abrirGear('personas');   // home › ⚙ › tab Personas
+abrirGear('personas');   // home › ⚙ (Ajustes plano)
 check('Beto aparece en 1 primada (historia)', Store.select.aparicionesDe(beto.id) === 1);
+// Acordeones colapsados por defecto: expandir "Invitados" (Beto es invitado) para llegar a su fila.
+check('Personas: grupos colapsados por defecto (sin persona-fila visible)', !q('#overlay .persona-fila'));
+abrirAjustesSec('per-invitado');
 click(`[data-act="editar-persona"][data-pid="${beto.id}"]`);   // drill-in al detalle ENFOCADO de Beto
 check('Detalle enfocado de Beto abierto (back + campos)', !!q('[data-act="cerrar-persona-edit"]') && !!q(`[data-ch="rename-persona"][data-pid="${beto.id}"]`));
 click(`[data-act="set-estado-persona"][data-pid="${beto.id}"][data-estado="ahorrador"]`);
@@ -470,12 +479,16 @@ eq('Estado VIGENTE de Beto ahora = ahorrador', Store.select.persona(beto.id).est
 eq('Snapshot histórico INTACTO (sigue invitado)', betoAsis().estadoEnEseMomento, 'invitado');
 check('Reparto no cambió: Beto sigue sin contar como ahorradora (snapshot)',
   Store.select.asistenciasAhorradoras(prm()).every(a => a.personaId !== beto.id));
-// AJUSTES PLANO (sin tabs): al salir del drill-in de la persona, Cover/Legal/Cuenta viven en el mismo scroll.
+// AJUSTES PLANO (sin tabs): al salir del drill-in, Personas/Cover/Legal/Versión/Cuenta viven en el mismo scroll.
 click('[data-act="cerrar-persona-edit"]');                     // back de la edición enfocada → lista + secciones
-check('Ajustes plano: sección Cover en la misma pantalla', /Cover/.test(q('#overlay').innerHTML));
-check('Ajustes plano: Personas y Cover coexisten (sin tabs)',
-  !!q('#overlay .persona-fila') && /Cover/.test(q('#overlay').innerHTML) && !/data-act="overlay-tab"/.test(q('#overlay').innerHTML));
-check('Ajustes plano enlaza la Política de Privacidad', !!q('#overlay a[href="privacy.html"]'));
+check('Ajustes plano: secciones Personas/Cover/Legal/Versión presentes (acordeones)',
+  /aj-acc-title">Cover/.test(q('#overlay').innerHTML) && /aj-acc-title">Legal/.test(q('#overlay').innerHTML)
+  && /aj-acc-title">Versión/.test(q('#overlay').innerHTML) && !/data-act="overlay-tab"/.test(q('#overlay').innerHTML));
+// Expandir Ahorradores (Beto ya es ahorrador) → aparece la persona-fila; expandir Legal → el enlace.
+abrirAjustesSec('per-ahorrador');
+check('Expandir Ahorradores muestra las filas (persona-fila)', !!q('#overlay .persona-fila'));
+abrirAjustesSec('legal');
+check('Expandir Legal enlaza la Política de Privacidad', !!q('#overlay a[href="privacy.html"]'));
 // FASE 2b: "Borrar mi cuenta" (Apple 5.1.1(v)) SOLO con sesión. Sin sesión (modo local en jsdom): ausente.
 check('Sin sesión: Ajustes NO ofrece "Borrar mi cuenta"', !q('[data-act="borrar-mi-cuenta"]'));
 // La View es pura (state, ui)→DOM: con ui.sesion=true el botón aparece (gate de UI; el RPC lo gatea el server).
@@ -515,6 +528,7 @@ const viejaId = Store.select.activePrimada().id;
 const coverViejo = JSON.stringify(Store.select.activePrimada().cover);   // snapshot original (15.000/10.000)
 // Cambiar el cover GLOBAL en Ajustes (no debe reescribir la vieja)
 abrirGear('ajustes');
+abrirAjustesSec('cover');   // acordeón Cover colapsado por defecto → expandir para editar
 setVal('[data-ch="cover-ahorrador"]', '20000');
 setVal('[data-ch="cover-invitado"]', '12000');
 click('[data-act="close-overlay"]');
@@ -594,7 +608,8 @@ check('Modelo: Julio es FUTURA relativo a Mayo (esFutura) y está en primadasPro
   && Store.select.primadasProximas(idMay13).some(p => p.id === idJul13));
 irHome();
 check('Home: con Mayo activa, Julio aparece en "Próximas" (no "Pasadas")',
-  /home-sub">Próximas/.test(q('#screen').innerHTML) && new RegExp('home-sub">Próximas[^]*' + window.Util.monthName('2026-07')).test(q('#screen').innerHTML));
+  /home-sub">Próximas/.test(q('#screen').innerHTML)
+  && new RegExp('home-sub">Próximas[^]*entrar-primada" data-id="' + idJul13 + '"').test(q('#screen').innerHTML));
 Store.actions.borrarPrimada(idJul13); Store.actions.borrarPrimada(idMay13);   // limpiar (no afectar el resto)
 // Creamos una primada ABIERTA SIN consumos (vía wizard sería largo; usamos la acción del modelo).
 const idNueva = Store.actions.createPrimada({ principalId: ana.id, organizadores: [ana.id], mesContable: '2026-10', fecha: '2026-10-05' });

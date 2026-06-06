@@ -62,7 +62,7 @@
                authEstado: 'placeholder', editPersonaId: null, nuevaPersona: false,
                configTab: 'asistentes', configProd: new Set(), pagarPid: null,
                balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
-               primadaMenuId: null, loginEstado: 'form', loginEmail: '' };
+               primadaMenuId: null, ajustesSec: new Set(), loginEstado: 'form', loginEmail: '' };
   let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
   let miEmail = null;         // email de la sesión (para presence "quién está apuntando")
 
@@ -403,6 +403,8 @@
       // ----- Ajustes GLOBALES = pantalla PLANA (sin tabs): Personas · Cover · Legal · Versión · Cuenta -----
       case 'open-personas':                                     // legado (link del wizard "Agregar en Personas")
       case 'open-ajustes':   ui.overlay = 'ajustes'; ui.editPersonaId = null; rerender(); return;
+      // Acordeón de Ajustes (Ahorradores/Invitados/Cover/Legal/Versión): (v) despliega/colapsa.
+      case 'toggle-ajustes-sec': { const k = b.dataset.sec; if (ui.ajustesSec.has(k)) ui.ajustesSec.delete(k); else ui.ajustesSec.add(k); rerender(); return; }
       case 'close-overlay':  ui.overlay = null;       rerender(); return;
       // Personas (lista compacta → editar ENFOCADO): tap fila = drill-in al detalle; back = volver a la lista.
       case 'editar-persona':       ui.editPersonaId = pid; ui.nuevaPersona = false; rerender(); return;

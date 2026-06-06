@@ -53,6 +53,20 @@
       const s = new Date(y, m - 1, d).toLocaleDateString(CONFIG.locale, { weekday: 'short', day: 'numeric' });
       return s.charAt(0).toUpperCase() + s.slice(1);
     },
+    // 'YYYY-MM-DD' → "Sáb, 6 jun 2026" (día semana + número + mes corto + año). Fecha EXACTA, minimalista
+    // pero diciente. Para el hero del home. Vacío/inválido → '' (la vista cae al mes contable).
+    fechaCompleta(ymd) {
+      const [y, m, d] = String(ymd || '').split('-').map(Number);
+      if (!y || !m || !d) return '';
+      const s = new Date(y, m - 1, d).toLocaleDateString(CONFIG.locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    },
+    // 'YYYY-MM-DD' → "6 jun" (día + mes corto, sin "de"). Para filas compactas (historial del home).
+    diaMes(ymd) {
+      const [y, m, d] = String(ymd || '').split('-').map(Number);
+      if (!y || !m || !d) return '';
+      return new Date(y, m - 1, d).toLocaleDateString(CONFIG.locale, { day: 'numeric', month: 'short' }).replace(/ de /, ' ');
+    },
 
     // ISO 'createdAt' → hora corta local "10:05" (para el detalle de auditoría). Tolerante.
     horaCorta(iso) {

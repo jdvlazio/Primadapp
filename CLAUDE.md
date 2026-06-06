@@ -198,8 +198,9 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
 > (el back del sistema en el detalle vuelve al home, no sale de la PWA).
 
 - **HOME = lista de primadas (pantalla de inicio).** Reemplaza al tab bar y al selector-overlay.
-  - **Hero card** de la primada **activa**: nombre + mes + dot (derivado de actividad, `dotClase`). **SIN monto**.
-  - **Historial**: filas compactas (nombre + mes + **GANANCIA**, `ganancia(p)`), agrupadas en **Próximas / Pasadas**
+  - **Hero card** de la primada **activa**: nombre + **fecha EXACTA** (`Util.fechaCompleta` → "Sáb, 6 jun 2026",
+    cae a `monthYear(mesContable)` si no hay `fecha`) + dot (derivado de actividad, `dotClase`). **SIN monto**.
+  - **Historial**: filas compactas (nombre + **día/mes** `Util.diaMes` → "10 jul" + **GANANCIA**, `ganancia(p)`), agrupadas en **Próximas / Pasadas**
     relativas a la activa (determinista, no por reloj). Tap en hero/fila = **entrar al detalle** (`entrar-primada`).
   - **Topbar del home:** **"+" Nueva primada** (ÚNICO punto de creación → wizard) · **⚙ Ajustes** (pantalla plana) · **👤 Cuenta**.
   - **"···" por primada** (hero + filas) → hoja con **Reabrir** (si cerrada) / **Eliminar** (con confirmación, sin swipe).
@@ -210,9 +211,12 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     **"Balance ▲/▼"** lo despliega/colapsa (`toggle-balance-panel`, `ui.balanceOpen`). Default por estado: ABIERTA =
     colapsado; CERRADA = desplegado (documento final). Reusa `balancePrimada()` (Ganancia + Recaudo, state-aware).
   - **Presencia** ("X está apuntando") y el **indicador offline** viven DENTRO del detalle (se desuscriben en el home).
-- **Ajustes GLOBALES = pantalla PLANA (sin tabs)**, desde el ⚙ del home (`ajustesSheet`): secciones por aire —
-  **Personas** (lista compacta + drill-in `personaEditView`) · **Cover** · **Legal** · **Versión** · **Cuenta**.
-  Reusa `personasBody` + `ajustesBody`. (El viejo gear de 4 tabs, `overlaySheet`/`calendarioBody`/`primadaConfigTab`, se ELIMINÓ.)
+- **Ajustes GLOBALES = pantalla PLANA (sin tabs)**, desde el ⚙ del home (`ajustesSheet`). Secciones como
+  **ACORDEONES con (v)**, COLAPSADAS por defecto (la primera pantalla queda corta; "Agregar persona" a la mano):
+  **Ahorradores** · **Invitados** (`per-ahorrador`/`per-invitado`) · **Cover** · **Legal** · **Versión** —
+  estado en `ui.ajustesSec` (Set), acción `toggle-ajustes-sec`. **Cuenta** NO colapsa (acción), con espaciado
+  claro (`.cuenta-sec`). "+ Agregar persona" siempre visible. Reusa `personasBody` + `ajustesBody` (drill-in
+  `personaEditView`). (El viejo gear de 4 tabs, `overlaySheet`/`calendarioBody`/`primadaConfigTab`, se ELIMINÓ.)
 - **Fondo** (tesorería futura) ya NO es un tab: se reubicará en una pasada futura (placeholder pendiente).
 - **Identidad de la primada:** fecha/mes se fijan al **crear** (wizard, sin edición posterior). El **nombre** por
   defecto = **suma de TODOS los organizadores** (`nombreSugerido`, ya no capa en 2) y es **EDITABLE** en Configurar

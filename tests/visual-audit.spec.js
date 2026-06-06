@@ -15,7 +15,7 @@
  * Fuente de verdad: DESIGN.md §1 (tokens), §2 (componentes canónicos), §3 (jerarquía).
  */
 const { test, expect } = require('@playwright/test');
-const { SEL, abrirApp, sembrarPersonas, crearPrimada, abrirConfig, abrirGear, irHome, entrarDetalle } = require('./helpers');
+const { SEL, abrirApp, sembrarPersonas, crearPrimada, abrirConfig, abrirGear, abrirAjustesSec, irHome, entrarDetalle } = require('./helpers');
 
 const ACCENT = 'rgb(45, 212, 191)';   // --accent #2DD4BF resuelto
 const VISUAL = 'test-results/visual';
@@ -251,8 +251,9 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     expect(await page.locator('.overlay .prow .acc-head').count()).toBeGreaterThan(0);
     expect(await page.locator('.overlay [data-act="toggle-cfg-prod"]').count()).toBeGreaterThan(0);
     await page.click('[data-act="close-overlay"]');
-    // Personas: ahora es LISTA COMPACTA (.persona-fila), no acordeón inline.
+    // Personas: LISTA COMPACTA (.persona-fila) dentro del acordeón Ahorradores (colapsado por defecto).
     await abrirGear(page, 'personas');
+    await abrirAjustesSec(page, 'per-ahorrador');
     expect(await page.locator('.overlay .persona-fila').count()).toBeGreaterThan(0);
   });
 
@@ -322,6 +323,7 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
     await abrirApp(page);
     await sembrarPersonas(page, [{ nombre: 'Ana', estado: 'ahorrador' }]);
     await abrirGear(page, 'personas');
+    await abrirAjustesSec(page, 'per-ahorrador');                                     // expandir el acordeón
     await expect(page.locator('.overlay .persona-fila')).toBeVisible();              // lista compacta
     expect(await page.locator('.overlay [data-ch="rename-persona"]').count()).toBe(0); // lista: sin editor inline
     await page.locator('.overlay [data-act="editar-persona"]').first().click();      // drill-in al detalle
@@ -342,6 +344,8 @@ test.describe('Ajustes: productos en Configurar + tabbar fija', () => {
       for (let i = 1; i <= 20; i++) A.addPersona({ nombre: 'Persona ' + i, estado: i % 2 ? 'ahorrador' : 'invitado' });
     });
     await abrirGear(page, 'personas');
+    await abrirAjustesSec(page, 'per-ahorrador');   // expandir ambos grupos → lista alta que scrollea
+    await abrirAjustesSec(page, 'per-invitado');
     await page.evaluate(() => { document.querySelector('#overlay .sheet').scrollTop = 300; });
     const before = await page.evaluate(() => document.querySelector('#overlay .sheet').scrollTop);
     expect(before).toBeGreaterThan(0);
