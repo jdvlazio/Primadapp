@@ -460,11 +460,12 @@
     const heroTone = cerrada ? 'entregado' : 'por-cobrar';
     const heroLabel = cerrada ? 'Entregado al Tesorero' : 'Por cobrar';
     const deud = sel.deudores(p).filter(d => d.personaId !== prinId);
-    // El teaser añade el OTRO número (NO repite el héroe ni son comparables — son cosas distintas):
-    //   ABIERTA: cuánto entregás al Tesorero (la ganancia, número FIJO). CERRADA: cuánto recuperaste de lo que pusiste.
+    // El teaser añade el OTRO número (NO repite el héroe ni son comparables). VOZ IMPERSONAL: la tarjeta la
+    // ven TODOS (primos, asistentes), no solo el anfitrión → nada de 2ª persona ("Entregás/Recuperaste").
+    //   ABIERTA: la ganancia que va al Tesorero (FIJA). CERRADA: el costo que vuelve al Anfitrión.
     const teaser = cerrada
-      ? (inf.recuperaPrincipal > 0 ? `Recuperaste ${$peso(inf.recuperaPrincipal)} que pusiste en productos` : 'Cuenta entregada')
-      : `Entregás ${$peso(inf.entregaTesorero)} al Tesorero`;
+      ? (inf.recuperaPrincipal > 0 ? `Costo ${$peso(inf.recuperaPrincipal)} al Anfitrión` : 'Cuenta entregada')
+      : `Ganancia ${$peso(inf.entregaTesorero)} al Tesorero`;
     // Lista de cobro COMPLETA (nadie desaparece): PENDIENTES (saldo>0, ámbar = lo que falta) arriba; SALDADAS
     // (terceros que ya pagaron, saldo 0) abajo, con check teal + nombre gris + el MONTO que pagaron (su total,
     // en teal = saldado, NO ámbar). El valor NO desaparece: se lee cuánto aportó cada quien de un vistazo.
@@ -488,12 +489,12 @@
     // bolsillo, cuánto entrega al Tesorero, y quién debe. Se ELIMINARON: "Recaudo teórico", el desglose de
     // "Recaudado / · de terceros / · del principal" (la plomería del auto-abono, confusa) y "Por cobrar"
     // (ya es el héroe cuando está abierta). Las identidades viven en el modelo (informePrincipal), no en pantalla.
-    // Desglose con LENGUAJE claro y SIN ambigüedad ("tu costo" no decía CUÁL costo): el anfitrión frontea lo que
-    // compra para vender → "Recuperás (lo que pusiste en productos)" = ese adelanto vuelve a vos; el resto,
-    // "Al Tesorero (la ganancia)", es lo único que entrega. Así se entiende qué es cada número.
+    // Desglose IMPERSONAL (pantalla compartida → nombrar el destino, no a "vos"): el recaudo se reparte en dos
+    // → "Al Anfitrión (costo de productos)" = cubre lo que frontó; "Al Tesorero (la ganancia)" = lo único que
+    // entrega. Mismo molde en ambas líneas; describe a dónde va cada parte (la acción de pago vive en Bre-B/Debe).
     const body = abierto ? `<div class="acc-body">
         <div class="kv"><span>Bre-B</span><b>${breBRecaudo ? e(breBRecaudo) : '—'}</b></div>
-        <div class="kv"><span>Recuperás <span class="muted">lo que pusiste en productos</span></span><b>${$peso(inf.recuperaPrincipal)}</b></div>
+        <div class="kv"><span>Al Anfitrión <span class="muted">costo de productos</span></span><b>${$peso(inf.recuperaPrincipal)}</b></div>
         <div class="kv total"><span>Al Tesorero <span class="muted">la ganancia</span></span><b>${$peso(inf.entregaTesorero)}</b></div>
         <div class="sub">Debe</div>
         ${deudList}

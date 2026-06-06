@@ -283,9 +283,10 @@ check('2ª tarjeta: héroe "Por cobrar" (no nombre/rol)', /Por cobrar/.test(q('#
 // (.por-cobrar). NO destructivo (salmón) ni "entregado" (teal): la deuda es proceso, no alarma (DESIGN.md §1).
 check('Recaudo ABIERTA: el héroe usa el registro pendiente ámbar (.por-cobrar), no "entregado"',
   /class="bal-amount por-cobrar"/.test(q('#screen').innerHTML) && !/bal-amount entregado/.test(q('#screen').innerHTML));
-// El TEASER añade el OTRO número (lo que ENTREGÁS al Tesorero, la ganancia) — distinto y no comparable al héroe.
-check('Recaudo ABIERTA: teaser "Entregás … al Tesorero" (el otro número, la ganancia)',
-  /Entregás .*al Tesorero/.test(q('#screen').innerHTML));
+// El TEASER añade el OTRO número (la ganancia que va al Tesorero) — distinto, no comparable, y EN VOZ IMPERSONAL
+// (la tarjeta la ven todos, no solo el anfitrión → sin "Entregás" 2ª persona).
+check('Recaudo ABIERTA: teaser "Ganancia … al Tesorero" (impersonal, el otro número)',
+  /Ganancia .*al Tesorero/.test(q('#screen').innerHTML) && !/Entregás/.test(q('#screen').innerHTML));
 // MENOS ES MÁS: el héroe del Recaudo NO lleva microcopy (el conteo "de N personas" confundía). Quién debe
 // vive un nivel abajo, en la lista del acordeón ("Debe").
 check('Recaudo ABIERTA: el héroe NO muestra conteo "de N personas"', !/de \d+ persona/.test(q('#screen').innerHTML));
@@ -293,11 +294,11 @@ check('Recaudo ABIERTA: el héroe NO muestra conteo "de N personas"', !/de \d+ p
 click('[data-act="toggle-balance"][data-sec="informe"]');
 check('Recaudo: la lista de deudores vive DENTRO del acorde ("Debe" + el deudor)',
   /Debe/.test(q('#screen').innerHTML) && new RegExp(beto.nombre).test(q('#screen').innerHTML));
-// PODA del Balance: el body deja Bre-B · Recuperás · Al Tesorero · Debe; SIN la plomería del auto-abono.
-// Lenguaje claro: "Recuperás (tu costo)" y "Al Tesorero (la ganancia)" para que se entienda cada número.
-check('Recaudo PODADO: body con Bre-B / Recuperás / Al Tesorero',
-  /<span>Bre-B<\/span>/.test(q('#screen').innerHTML) && /Recuperás/.test(q('#screen').innerHTML)
-  && /Al Tesorero/.test(q('#screen').innerHTML));
+// PODA del Balance: el body deja Bre-B · Al Anfitrión · Al Tesorero · Debe; SIN la plomería del auto-abono.
+// VOZ IMPERSONAL (pantalla compartida): "Al Anfitrión (costo de productos)" y "Al Tesorero (la ganancia)".
+check('Recaudo PODADO: body con Bre-B / Al Anfitrión / Al Tesorero (sin "Recuperás" 2ª persona)',
+  /<span>Bre-B<\/span>/.test(q('#screen').innerHTML) && /Al Anfitrión/.test(q('#screen').innerHTML)
+  && /Al Tesorero/.test(q('#screen').innerHTML) && !/Recuperás/.test(q('#screen').innerHTML));
 check('Recaudo PODADO: SIN "Recaudo teórico" / "de terceros" / "del principal"',
   !/Recaudo teórico/.test(q('#screen').innerHTML) && !/de terceros/.test(q('#screen').innerHTML) && !/del principal/.test(q('#screen').innerHTML));
 click('[data-act="toggle-balance"][data-sec="informe"]');   // colapsar de nuevo
@@ -464,8 +465,9 @@ check('Chip de Balance marcado activo (on) al abrir cerrada',
 check('Cerrada: SIN nota "Provisional" (ni en Ganancia ni en Recaudo)', !/[Pp]rovisional/.test(q('#screen').innerHTML));
 check('Cerrada Recaudo: héroe tono "entregado" (teal/--accent)', /class="bal-amount entregado"/.test(q('#screen').innerHTML));
 check('Cerrada Recaudo: héroe etiquetado "Entregado al Tesorero"', /Entregado al Tesorero/.test(q('#screen').innerHTML));
-// CERRADA: el teaser añade el OTRO número en pasado — lo que el Anfitrión recuperó de lo que puso en productos (5.000 = 2×2.500).
-check('Cerrada Recaudo: teaser "Recuperaste … que pusiste en productos"', /Recuperaste .*que pusiste en productos/.test(q('#screen').innerHTML));
+// CERRADA: el teaser añade el OTRO número en voz IMPERSONAL — el costo que vuelve al Anfitrión (5.000 = 2×2.500).
+check('Cerrada Recaudo: teaser "Costo … al Anfitrión" (impersonal, sin "Recuperaste")',
+  /Costo .*al Anfitrión/.test(q('#screen').innerHTML) && !/Recuperaste/.test(q('#screen').innerHTML));
 // CERRADA: el héroe ya NO dice "Por cobrar" (es lo entregado, no lo pendiente).
 check('Cerrada Recaudo: sin "Por cobrar"', !/Por cobrar/.test(q('#screen').innerHTML));
 cerrarBalance();           // la cara Consumos sigue accesible…
