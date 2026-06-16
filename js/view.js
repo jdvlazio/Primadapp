@@ -69,12 +69,20 @@
         ${cerrada ? '' : '<span class="informe-hero-note">Provisional — se confirma al cerrar</span>'}
       </div>`;
 
-    // KPI Parte igual c/u — el segundo número clave (lo que recibe cada ahorrador).
+    // REPARTO — A QUIÉNES se distribuye: la ganancia se reparte en partes iguales entre los AHORRADORES
+    // (cada uno recibe parteIgual). El ANFITRIÓN también recibe (siempre es ahorrador) → va en la lista, marcado.
+    // Los INVITADOS no reciben (generan ganancia pero no la cobran). Esto es lo que el Tesorero distribuye —
+    // distinto del COBRO (quién paga). Anfitrión primero, luego por nombre.
+    const ahorrLista = ahorr.slice().sort((a, b) =>
+      (sel.esPrincipal(p, b) ? 1 : 0) - (sel.esPrincipal(p, a) ? 1 : 0)
+      || nombrePersona(a.personaId).localeCompare(nombrePersona(b.personaId)));
+    const repRows = ahorrLista.map(a =>
+      `<div class="informe-rep"><span class="informe-rep-n">${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</span><span class="informe-rep-v">${$peso(pi)}</span></div>`).join('');
     const stat = ahorr.length
       ? `<div class="informe-stat">
-          <div class="informe-stat-k">Parte igual c/u<span class="informe-stat-sub">${ahorr.length} ahorrador${ahorr.length === 1 ? '' : 'es'}</span></div>
-          <div class="informe-stat-v">${$peso(pi)}</div>
-        </div>`
+          <div class="informe-stat-k">Reparto a ahorradores<span class="informe-stat-sub">${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'} · ${$peso(pi)} c/u</span></div>
+        </div>
+        <div class="informe-rep-list">${repRows}</div>`
       : '';
 
     // COMPOSICIÓN — Cover · Margen (cómo se arma) · Reembolso de productos (atenuado, passthrough) · Sobrante (si > 0).
@@ -714,12 +722,19 @@
         ${cerrada ? '' : `<div class="bal-note">Provisional — se confirma al cerrar</div>`}
       </div>`;
 
-    // 2) KPI Parte igual c/u — el reparto por ahorrador (el segundo número que el Tesorero necesita).
+    // 2) REPARTO — A QUIÉNES se distribuye: los AHORRADORES (cada uno recibe parteIgual). El ANFITRIÓN también
+    // recibe (siempre es ahorrador) → va en la lista, marcado. Los invitados NO reciben. Es lo que el Tesorero
+    // distribuye —distinto del COBRO (quién paga). Anfitrión primero, luego por nombre.
+    const ahorrLista = ahorr.slice().sort((a, b) =>
+      (sel.esPrincipal(p, b) ? 1 : 0) - (sel.esPrincipal(p, a) ? 1 : 0)
+      || nombrePersona(a.personaId).localeCompare(nombrePersona(b.personaId)));
+    const repRows = ahorrLista.map(a =>
+      `<div class="bal-rep"><span class="bal-rep-n">${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</span><span class="bal-rep-v">${$peso(pi)}</span></div>`).join('');
     const stat = ahorr.length
       ? `<div class="bal-stat">
-          <div class="bal-stat-k">Parte igual c/u<span class="bal-stat-sub">${ahorr.length} ahorrador${ahorr.length === 1 ? '' : 'es'}</span></div>
-          <div class="bal-stat-v">${$peso(pi)}</div>
-        </div>`
+          <div class="bal-stat-k">Reparto a ahorradores<span class="bal-stat-sub">${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'} · ${$peso(pi)} c/u</span></div>
+        </div>
+        <div class="bal-rep-list">${repRows}</div>`
       : `<div class="bal-stat"><div class="bal-stat-k">Sin ahorradores aún</div></div>`;
 
     // 3) COMPOSICIÓN — sin líneas por fila; el espacio agrupa. Reembolso atenuado (passthrough, NO ingreso).

@@ -459,8 +459,11 @@ la topbar del detalle → el panel **no repite cabecera**.
    entrega al Tesorero (`= entregaTesorero`). **SIEMPRE teal** (`.entregado`, regla global de la Ganancia),
    abierta y cerrada. Cerrada: etiqueta **"Ganancia · al Tesorero"** + `.dot.closed`. Abierta: **"Ganancia"** +
    nota `.bal-note` **"Provisional — se confirma al cerrar"** (la única condición que añade; no repite el héroe).
-2. **KPI Parte igual c/u** (`.bal-stat` → `.bal-stat-k` con `.bal-stat-sub` "N ahorradores" + `.bal-stat-v`
-   teal `20px/800`): el **segundo número clave** (lo que recibe cada ahorrador). Separado del héroe por una línea.
+2. **REPARTO — a QUIÉNES distribuye el Tesorero** (`.bal-stat` cabecera "Reparto a ahorradores · N · $X c/u" +
+   `.bal-rep-list`): la lista **nombrada de los ahorradores** que reciben `parteIgual`, cada uno con su monto (teal).
+   El **ANFITRIÓN va en la lista, marcado `.bal-rep-anf` "Anfitrión"** (siempre es ahorrador → también recibe);
+   los **invitados NO** (generan ganancia, no la cobran). Es **distinto del COBRO** (quién paga): esto es quién
+   COBRA del fondo. Sin nombrar a los beneficiarios, el Tesorero no sabría a quién entregarle.
 3. **COMPOSICIÓN** (`.bal-group` con `.bal-row`, **SIN línea por fila** — el espacio agrupa, §0): **Cover ·
    Margen** (cómo se arma la ganancia) · **Reembolso de productos** (`.bal-row.dim`, atenuado: passthrough del
    costo, **NO ingreso**, puede ser > ganancia) · **Sobrante al fondo** (solo si > 0).
@@ -478,7 +481,8 @@ la topbar del detalle → el panel **no repite cabecera**.
 |---|---|
 | `.bal-card` | la card (sin padding; cada bloque pone el suyo). Sin acordeón interno: el resumen se ve completo al abrir el panel |
 | `.bal-hero` / `.bal-amount.entregado` | héroe Ganancia, cifra `34px/800` (iguala al wordmark), **teal** (`--accent`) siempre. `.bal-amount.por-cobrar` (ámbar) quedó **sin uso** (no hay 2º héroe de cobro) |
-| `.bal-stat` | KPI Parte igual c/u: `.bal-stat-k` (etiqueta + `.bal-stat-sub`) + `.bal-stat-v` (`20px/800`, teal). Borde-top tenue lo separa del héroe |
+| `.bal-stat` | cabecera del REPARTO: `.bal-stat-k` "Reparto a ahorradores" + `.bal-stat-sub` "N · $X c/u". Borde-top tenue lo separa del héroe. (`.bal-stat-v` quedó sin uso: el monto pasó a cada fila del reparto) |
+| `.bal-rep-list` / `.bal-rep` | lista nombrada de beneficiarios (ahorradores): `.bal-rep-n` (nombre; anfitrión + `.bal-rep-anf` "Anfitrión" teal) + `.bal-rep-v` (su `parteIgual`, teal). Anfitrión primero, luego por nombre |
 | `.bal-group` / `.bal-row` | grupo de filas SIN línea por fila (espacio = agrupación). `.bal-row.dim` atenúa (reembolso); `b.pend` (ámbar) / `b.pagado` (teal); `.bal-row.saldada` = check + gris |
 | `.bal-cobro-head` | cabecera del bloque de cobro: "Por cobrar $X" (`.pend` ámbar) / "✓ Todo cobrado" (`.bal-cobro-ok` teal) |
 | `.bal-breb` | llave 🔑 Bre-B del anfitrión (etiqueta tenue + valor teal `.breb-val`). Se pinta **solo si `saldoPendiente > 0`** (hay quién pague); oculta al estar todo cobrado |

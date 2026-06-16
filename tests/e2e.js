@@ -242,7 +242,7 @@ check('Balance visible al desplegar el panel (héroe Ganancia)', /Ganancia/.test
 // El resumen se ve COMPLETO al abrir (SIN acordeón interno, sin segundo toque): héroe + KPI + composición.
 check('Balance: cifra héroe (.bal-amount) visible', !!q('.bal-amount'));
 check('Balance: resumen directo (Margen en .bal-row, sin segundo toque)', /<span>Margen<\/span>/.test(q('#screen').innerHTML));
-check('Balance: KPI "Parte igual c/u" (.bal-stat) visible', !!q('.bal-stat') && /Parte igual c\/u/.test(q('#screen').innerHTML));
+check('Balance: REPARTO a ahorradores (.bal-stat) visible', !!q('.bal-stat') && /Reparto a ahorradores/.test(q('#screen').innerHTML));
 // STATE-AWARE: primada ABIERTA → nota provisional bajo el héroe.
 check('Balance ABIERTA: nota "Provisional" bajo el héroe', /Provisional/.test(q('#screen').innerHTML));
 check('Resumen NO repite "Ganancia" como línea (vive solo en el héroe)', !/<span>Ganancia<\/span>/.test(q('#screen').innerHTML));
@@ -282,9 +282,12 @@ const cuerpo = q('#screen').innerHTML;
 // UN solo héroe = Ganancia (ya NO hay un 2º héroe "Por cobrar"/"Entregado"). Sin nombre ni rol.
 check('Balance: un solo héroe "Ganancia" (sin 2ª cifra "Entregado"/principal)',
   /class="bal-label">[^]*?Ganancia/.test(cuerpo) && !/Entregado al Tesorero/.test(cuerpo) && !/Principal — Ana/.test(cuerpo));
-// KPI Parte igual c/u (.bal-stat) con el nº de ahorradores — el segundo número clave.
-check('Balance: KPI "Parte igual c/u" + ahorradores (.bal-stat)',
-  /class="bal-stat"/.test(cuerpo) && /Parte igual c\/u/.test(cuerpo) && /ahorrador/.test(cuerpo));
+// REPARTO: a QUIÉNES se distribuye. El Anfitrión (Ana, principal) DEBE aparecer en la lista de beneficiarios.
+check('Balance: REPARTO nombra a los ahorradores, con el Anfitrión (Ana) incluido y marcado',
+  /class="bal-stat"/.test(cuerpo) && /bal-stat-k">Reparto a ahorradores/.test(cuerpo) && /ahorrador/.test(cuerpo)
+  && /class="bal-rep-list"/.test(cuerpo)
+  && new RegExp('bal-rep-n">' + ana.nombre + ' <span class="bal-rep-anf">Anfitrión').test(cuerpo)
+  && new RegExp('bal-rep-v">' + window.Util.peso(Store.select.parteIgual(prm())).replace(/[$.]/g, '\\$&')).test(cuerpo));
 // COMPOSICIÓN sin líneas por fila (.bal-group): Cover · Margen · Reembolso (atenuado .bal-row.dim).
 check('Composición: Cover · Margen · Reembolso atenuado (.bal-row.dim)',
   /<span>Cover<\/span>/.test(cuerpo) && /<span>Margen<\/span>/.test(cuerpo)
@@ -332,10 +335,12 @@ check('Informe ABIERTA: héroe "Ganancia" (gan) con la ganancia + nota Provision
   informe.includes('informe-hero gan') && informe.includes('informe-hero-lbl">Ganancia')
   && informe.includes('informe-hero-val">' + window.Util.peso(Store.select.ganancia(prm())))
   && informe.includes('informe-hero-note'));
-// KPI "Parte igual c/u" + N ahorradores + el valor (espejo del Balance in-app, .informe-stat).
-check('Informe: KPI "Parte igual c/u" + ahorradores + valor (.informe-stat)',
-  informe.includes('informe-stat') && informe.includes('Parte igual c/u') && informe.includes('informe-stat-sub') && /ahorrador/.test(informe)
-  && informe.includes('informe-stat-v">' + window.Util.peso(Store.select.parteIgual(prm()))));
+// REPARTO: a QUIÉNES se distribuye (los ahorradores). El Anfitrión (Ana) DEBE aparecer en la lista, marcado.
+check('Informe: REPARTO nombra a los ahorradores, con el Anfitrión (Ana) incluido y su parte',
+  informe.includes('informe-stat') && /informe-stat-k">Reparto a ahorradores/.test(informe) && informe.includes('informe-stat-sub') && /ahorrador/.test(informe)
+  && /informe-rep-list/.test(informe)
+  && new RegExp('informe-rep-n">' + ana.nombre + ' <span class="informe-rep-anf">Anfitrión').test(informe)
+  && new RegExp('informe-rep-v">' + window.Util.peso(Store.select.parteIgual(prm())).replace(/[$.]/g, '\\$&')).test(informe));
 // COMPOSICIÓN: Cover · Margen · Reembolso de productos (atenuado .informe-kv.dim) — como el Balance.
 check('Informe: composición Cover · Margen · Reembolso atenuado (.informe-comp / .informe-kv.dim)',
   /informe-comp/.test(informe) && /<span>Cover<\/span>/.test(informe) && /<span>Margen<\/span>/.test(informe)
