@@ -580,8 +580,8 @@
      Tap en cualquier fila/hero = entrar a su detalle (data-act="entrar-primada"). Secciones relativas a la
      activa (Próximas/Pasadas) para no meter una primada futura en "Pasadas" (determinista, no por reloj).
      ============================================================ */
-  // ESTADÍSTICAS (home) = tarjeta COLAPSABLE, directa, separada de la próxima primada. Toggle CENTRADO/teal
-  // (mismo patrón del Balance). Solo aparece si hay primadas CERRADAS (datos firmes). Minimalista: fondo +
+  // ESTADÍSTICAS (home) = tarjeta COLAPSABLE AL PIE del home (mismo lugar y dock que el Balance en el detalle).
+  // Toggle CENTRADO/teal (mismo patrón del Balance). Solo aparece si hay primadas CERRADAS. Minimalista: fondo +
   // promedio, repartido, asistencia promedio, PRODUCTO estrella (vendido/rentable) y CONSUMIDOR estrella.
   function estadisticasBody(st) {
     const heroe = `<div class="bal-hero">
@@ -632,7 +632,7 @@
       ? `<div class="home-sub">Pasadas</div>` + pasadas.map(g =>
           `<div class="home-anio">${e(g.anio)}</div><div class="hist-list">${g.primadas.map(historialFila).join('')}</div>`).join('')
       : '';
-    return `<div class="home">${estadisticasCard(state, ui)}${activa ? heroCard(activa) : ''}${secProx}${secPas}</div>`;
+    return `<div class="home">${activa ? heroCard(activa) : ''}${secProx}${secPas}${estadisticasCard(state, ui)}</div>`;
   }
 
   // Botón "···" de opciones administrativas de una primada (Reabrir / Eliminar). Abre primadaMenuSheet.
