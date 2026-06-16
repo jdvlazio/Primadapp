@@ -52,39 +52,53 @@
      ============================================================ */
   function informeTemplateHTML(p) {
     const sel = S();
-    // Una persona por fila (lo que ESTÁ pagando): nombre + total; productos inline debajo. SALDADAS (saldo 0)
-    // → check ✓ + total teal; PENDIENTES → total ámbar. El PNG refleja el estado completo del cobro.
-    const filaInforme = (a) => {
-      const consumos = sel.resumenConsumoDe(p, a);                 // [{prod, cantidad}]
-      const cover = sel.coverDe(p, a);
-      if (!consumos.length && cover <= 0) return '';               // omite quien no consumió ni paga cover
-      const chips = consumos.map(({ prod, cantidad }) => `${e(prod.emoji)} ${e(prod.nombre)} ×${cantidad}`);
-      if (cover > 0) chips.push('Cover');
-      const detalle = chips.length ? `<div class="informe-prods">${chips.join(' · ')}</div>` : '';
-      const saldada = sel.saldoDe(p, a) === 0 && sel.totalAsistencia(p, a) > 0;
-      return `<div class="informe-asis">
-          <div class="informe-left">
-            <div class="informe-nombre">${saldada ? '<span class="informe-check">✓</span> ' : ''}${e(nombrePersona(a.personaId))}</div>
-            ${detalle}
-          </div>
-          <div class="informe-total ${saldada ? 'ok' : 'pend'}">${$peso(sel.totalAsistencia(p, a))}</div>
-        </div>`;
-    };
-    // Pendientes (saldo>0) PRIMERO, saldadas (saldo 0) al FINAL; dentro de cada grupo, orden por consumo.
-    const ordenadas = sel.asistenciasPorConsumo(p);
-    const lineas = ordenadas.filter(a => sel.saldoDe(p, a) > 0).map(filaInforme)
-      .concat(ordenadas.filter(a => sel.saldoDe(p, a) === 0).map(filaInforme)).join('');
+    const inf = sel.informePrincipal(p);
     const cerrada = p.estado === 'cerrada';
-    const heroLbl = cerrada ? 'Ganancia' : 'Por cobrar';
-    const heroVal = cerrada ? sel.ganancia(p) : sel.informePrincipal(p).saldoPendiente;
-    const heroCls = cerrada ? 'gan' : 'cobrar';
-    // Llave Bre-B del principal: snapshot p.pago.breB con FALLBACK a la llave VIGENTE de la persona
-    // principal — si la Bre-B se agregó DESPUÉS de crear la primada, el snapshot es null pero la persona
-    // ya la tiene. Línea 🔑 bajo el título; si no hay, se omite.
+    const completa = !inf.incompleta;
     const principalId = p.organizadorPrincipalId;
+    const ahorr = sel.asistenciasAhorradoras(p);
+    const pi = sel.parteIgual(p);
+    const sob = sel.sobranteFondo(p);
+    const gan = sel.ganancia(p);
+
+    // Llave Bre-B del principal (snapshot con fallback a la persona vigente). Valor en teal (regla .breb-val).
     const breBRaw = (p.pago && p.pago.breB) || (principalId ? (sel.persona(principalId) || {}).breB : null) || '';
     const breB = breBRaw ? String(breBRaw).trim() : '';
     const llave = breB ? `<div class="informe-llave">🔑 Bre-B: <span class="breb-val">${e(breB)}</span></div>` : '';
+
+    // HÉROE = Ganancia (resultado financiero, lo que va al Tesorero). Provisional mientras esté abierta.
+    const hero = `<div class="informe-hero gan">
+        <span class="informe-hero-lbl">Ganancia${cerrada ? ' · al Tesorero' : ''}</span>
+        <span class="informe-hero-val">${$peso(gan)}</span>
+        ${cerrada ? '' : '<span class="informe-hero-note">Provisional — se confirma al cerrar</span>'}
+      </div>`;
+
+    // RESUMEN financiero: parte igual c/u (a N ahorradores) + sobrante al fondo (si > 0).
+    const resumen = `<div class="informe-resumen">
+        <div class="informe-kv"><span>Parte igual c/u <span class="informe-kv-sub">${ahorr.length} ahorrador${ahorr.length === 1 ? '' : 'es'}</span></span><b>${$peso(pi)}</b></div>
+        ${sob > 0 ? `<div class="informe-kv"><span>Sobrante al fondo</span><b>${$peso(sob)}</b></div>` : ''}
+      </div>`;
+
+    // COBRO (debe/pagó, SIN detalle de productos): pendientes (ámbar) y saldados (✓ teal), de mayor a menor.
+    const deud = (completa ? sel.deudores(p).filter(d => d.personaId !== principalId) : [])
+      .slice().sort((a, b) => b.saldo - a.saldo);
+    const saldadas = (completa ? (p.asistencias || []) : [])
+      .filter(a => a.personaId !== principalId && a.pagado && sel.totalAsistencia(p, a) > 0)
+      .map(a => ({ a, total: sel.totalAsistencia(p, a) }))
+      .sort((x, y) => y.total - x.total);
+    const fila = (nombre, monto, cls, check) => `<div class="informe-asis">
+        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombre)}</div></div>
+        <div class="informe-total ${cls}">${$peso(monto)}</div>
+      </div>`;
+    const pendRows = deud.map(d => fila(nombrePersona(d.personaId), d.saldo, 'pend', false)).join('');
+    const saldRows = saldadas.map(({ a, total }) => fila(nombrePersona(a.personaId), total, 'ok', true)).join('');
+    const cobroTot = inf.saldoPendiente > 0
+      ? `<div class="informe-cobro-tot pend">Por cobrar ${$peso(inf.saldoPendiente)}</div>`
+      : `<div class="informe-cobro-tot ok">✓ Todo cobrado</div>`;
+    const cobro = completa
+      ? `<div class="informe-cobro"><div class="informe-sub">Cobro</div>${pendRows}${saldRows}${cobroTot}</div>`
+      : '';
+
     return `<div class="informe-card">
         <div class="informe-head">
           <span class="informe-brand">Primad<span class="informe-brand-ac">app</span></span>
@@ -92,11 +106,9 @@
         </div>
         <div class="informe-title">${e(nombreCorto(p.nombre))}</div>
         ${llave}
-        <div class="informe-hero ${heroCls}">
-          <span class="informe-hero-lbl">${heroLbl}</span>
-          <span class="informe-hero-val">${$peso(heroVal)}</span>
-        </div>
-        <div class="informe-list">${lineas}</div>
+        ${hero}
+        ${resumen}
+        ${cobro}
       </div>`;
   }
 

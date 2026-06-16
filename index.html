@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260607-142131-3e9de23">
+<meta name="build" content="20260616-145216-c985874">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -352,6 +352,17 @@
   .informe-hero-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft)}
   .informe-hero-val{font-size:29px;font-weight:800;line-height:1.05;letter-spacing:-.02em;color:var(--accent)}
   .informe-hero.cobrar .informe-hero-val{color:var(--amber)}
+  .informe-hero-note{margin-top:2px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
+  /* RESUMEN financiero (espejo del Balance): parte igual c/u + sobrante. label·valor. */
+  .informe-resumen{margin-top:var(--space-3)}
+  .informe-kv{display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;font-size:13px;color:var(--ink)}
+  .informe-kv b{font-weight:800}
+  .informe-kv-sub{color:var(--ink-soft);font-weight:600;font-size:11px;margin-left:5px}
+  /* COBRO: rótulo (con divisor arriba) + filas debe/pagó (reusa .informe-asis/.informe-total) + total. */
+  .informe-sub{margin-top:var(--space-3);margin-bottom:2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);border-top:1px solid var(--line-soft);padding-top:var(--space-2)}
+  .informe-cobro-tot{margin-top:var(--space-2);text-align:right;font-weight:800;font-size:15px}
+  .informe-cobro-tot.pend{color:var(--amber)}
+  .informe-cobro-tot.ok{color:var(--accent)}
   /* Detalle por persona (lo que paga): dos columnas — izquierda (nombre + productos), TOTAL a la derecha. */
   .informe-list{margin-top:var(--space-1)}
   .informe-asis{display:flex;align-items:center;gap:var(--space-2);padding:7px 0}
@@ -685,13 +696,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260607-142131-3e9de23"></script>
-  <script src="js/util.js?v=20260607-142131-3e9de23"></script>
-  <script src="js/api.js?v=20260607-142131-3e9de23"></script>
-  <script src="js/auth.js?v=20260607-142131-3e9de23"></script>
-  <script src="js/store.js?v=20260607-142131-3e9de23"></script>
-  <script src="js/view.js?v=20260607-142131-3e9de23"></script>
-  <script src="js/controller.js?v=20260607-142131-3e9de23"></script>
+  <script src="js/config.js?v=20260616-145216-c985874"></script>
+  <script src="js/util.js?v=20260616-145216-c985874"></script>
+  <script src="js/api.js?v=20260616-145216-c985874"></script>
+  <script src="js/auth.js?v=20260616-145216-c985874"></script>
+  <script src="js/store.js?v=20260616-145216-c985874"></script>
+  <script src="js/view.js?v=20260616-145216-c985874"></script>
+  <script src="js/controller.js?v=20260616-145216-c985874"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
