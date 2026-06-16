@@ -282,12 +282,14 @@ const cuerpo = q('#screen').innerHTML;
 // UN solo héroe = Ganancia (ya NO hay un 2º héroe "Por cobrar"/"Entregado"). Sin nombre ni rol.
 check('Balance: un solo héroe "Ganancia" (sin 2ª cifra "Entregado"/principal)',
   /class="bal-label">[^]*?Ganancia/.test(cuerpo) && !/Entregado al Tesorero/.test(cuerpo) && !/Principal — Ana/.test(cuerpo));
-// REPARTO: a QUIÉNES se distribuye. El Anfitrión (Ana, principal) DEBE aparecer en la lista de beneficiarios.
-check('Balance: REPARTO nombra a los ahorradores, con el Anfitrión (Ana) incluido y marcado',
+// REPARTO: a QUIÉNES se distribuye. El Anfitrión (Ana) DEBE aparecer en la lista, marcado. §0: el monto
+// (parteIgual) se dice UNA vez en la cabecera (.bal-stat-v) y NO se repite por fila (no hay .bal-rep-v).
+check('Balance: REPARTO nombra a los ahorradores, Anfitrión (Ana) incluido; monto solo en cabecera',
   /class="bal-stat"/.test(cuerpo) && /bal-stat-k">Reparto a ahorradores/.test(cuerpo) && /ahorrador/.test(cuerpo)
   && /class="bal-rep-list"/.test(cuerpo)
-  && new RegExp('bal-rep-n">' + ana.nombre + ' <span class="bal-rep-anf">Anfitrión').test(cuerpo)
-  && new RegExp('bal-rep-v">' + window.Util.peso(Store.select.parteIgual(prm())).replace(/[$.]/g, '\\$&')).test(cuerpo));
+  && new RegExp('bal-rep">' + ana.nombre + ' <span class="bal-rep-anf">Anfitrión').test(cuerpo)
+  && new RegExp('bal-stat-v">' + window.Util.peso(Store.select.parteIgual(prm())).replace(/[$.]/g, '\\$&')).test(cuerpo)
+  && !/bal-rep-v/.test(cuerpo));
 // COMPOSICIÓN sin líneas por fila (.bal-group): Cover · Margen · Reembolso (atenuado .bal-row.dim).
 check('Composición: Cover · Margen · Reembolso atenuado (.bal-row.dim)',
   /<span>Cover<\/span>/.test(cuerpo) && /<span>Margen<\/span>/.test(cuerpo)
@@ -336,11 +338,13 @@ check('Informe ABIERTA: héroe "Ganancia" (gan) con la ganancia + nota Provision
   && informe.includes('informe-hero-val">' + window.Util.peso(Store.select.ganancia(prm())))
   && informe.includes('informe-hero-note'));
 // REPARTO: a QUIÉNES se distribuye (los ahorradores). El Anfitrión (Ana) DEBE aparecer en la lista, marcado.
-check('Informe: REPARTO nombra a los ahorradores, con el Anfitrión (Ana) incluido y su parte',
+// §0: el monto (parteIgual) se dice UNA vez en la cabecera (.informe-stat-v) y NO se repite por fila (no .informe-rep-v).
+check('Informe: REPARTO nombra a los ahorradores, Anfitrión (Ana) incluido; monto solo en cabecera',
   informe.includes('informe-stat') && /informe-stat-k">Reparto a ahorradores/.test(informe) && informe.includes('informe-stat-sub') && /ahorrador/.test(informe)
   && /informe-rep-list/.test(informe)
-  && new RegExp('informe-rep-n">' + ana.nombre + ' <span class="informe-rep-anf">Anfitrión').test(informe)
-  && new RegExp('informe-rep-v">' + window.Util.peso(Store.select.parteIgual(prm())).replace(/[$.]/g, '\\$&')).test(informe));
+  && new RegExp('informe-rep">' + ana.nombre + ' <span class="informe-rep-anf">Anfitrión').test(informe)
+  && new RegExp('informe-stat-v">' + window.Util.peso(Store.select.parteIgual(prm())).replace(/[$.]/g, '\\$&')).test(informe)
+  && !/informe-rep-v/.test(informe));
 // COMPOSICIÓN: Cover · Margen · Reembolso de productos (atenuado .informe-kv.dim) — como el Balance.
 check('Informe: composición Cover · Margen · Reembolso atenuado (.informe-comp / .informe-kv.dim)',
   /informe-comp/.test(informe) && /<span>Cover<\/span>/.test(informe) && /<span>Margen<\/span>/.test(informe)

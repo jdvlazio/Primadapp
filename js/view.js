@@ -76,11 +76,14 @@
     const ahorrLista = ahorr.slice().sort((a, b) =>
       (sel.esPrincipal(p, b) ? 1 : 0) - (sel.esPrincipal(p, a) ? 1 : 0)
       || nombrePersona(a.personaId).localeCompare(nombrePersona(b.personaId)));
+    // §0 "no repetir entre niveles": el MONTO (parteIgual) es igual para todos y se dice UNA vez (cabecera teal).
+    // La lista aporta el dato NUEVO: los NOMBRES (a quiénes). NO se repite el monto por fila.
     const repRows = ahorrLista.map(a =>
-      `<div class="informe-rep"><span class="informe-rep-n">${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</span><span class="informe-rep-v">${$peso(pi)}</span></div>`).join('');
+      `<div class="informe-rep">${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div>`).join('');
     const stat = ahorr.length
       ? `<div class="informe-stat">
-          <div class="informe-stat-k">Reparto a ahorradores<span class="informe-stat-sub">${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'} · ${$peso(pi)} c/u</span></div>
+          <div class="informe-stat-k">Reparto a ahorradores<span class="informe-stat-sub">${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'}</span></div>
+          <div class="informe-stat-v">${$peso(pi)} <span class="informe-stat-cu">c/u</span></div>
         </div>
         <div class="informe-rep-list">${repRows}</div>`
       : '';
@@ -728,11 +731,14 @@
     const ahorrLista = ahorr.slice().sort((a, b) =>
       (sel.esPrincipal(p, b) ? 1 : 0) - (sel.esPrincipal(p, a) ? 1 : 0)
       || nombrePersona(a.personaId).localeCompare(nombrePersona(b.personaId)));
+    // §0 "no repetir entre niveles": el MONTO (parteIgual, igual para todos) UNA vez en la cabecera; la lista
+    // solo NOMBRES (el dato nuevo: a quiénes). NO se repite el monto por fila.
     const repRows = ahorrLista.map(a =>
-      `<div class="bal-rep"><span class="bal-rep-n">${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</span><span class="bal-rep-v">${$peso(pi)}</span></div>`).join('');
+      `<div class="bal-rep">${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</div>`).join('');
     const stat = ahorr.length
       ? `<div class="bal-stat">
-          <div class="bal-stat-k">Reparto a ahorradores<span class="bal-stat-sub">${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'} · ${$peso(pi)} c/u</span></div>
+          <div class="bal-stat-k">Reparto a ahorradores<span class="bal-stat-sub">${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'}</span></div>
+          <div class="bal-stat-v">${$peso(pi)} <span class="bal-stat-cu">c/u</span></div>
         </div>
         <div class="bal-rep-list">${repRows}</div>`
       : `<div class="bal-stat"><div class="bal-stat-k">Sin ahorradores aún</div></div>`;

@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260616-162455-7485bc9">
+<meta name="build" content="20260616-164811-1af1f3f">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -337,12 +337,12 @@
   .bal-stat-k{display:flex;flex-direction:column;gap:1px;font-size:13px;color:var(--ink-soft)}
   .bal-stat-sub{font-size:11px;color:var(--ink-soft);opacity:.75}
   .bal-stat-v{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.01em;color:var(--accent)}
-  /* REPARTO: A QUIÉNES se distribuye (ahorradores, anfitrión incluido). Nombre + lo que recibe (teal). */
+  /* REPARTO: A QUIÉNES se distribuye (ahorradores, anfitrión incluido). Solo NOMBRES: el monto ($X c/u) se
+     dice UNA vez en la cabecera (.bal-stat-v, §0 no repetir). El anfitrión va marcado. */
+  .bal-stat-cu{font-size:11px;font-weight:700;color:var(--ink-soft)}
   .bal-rep-list{padding:0 var(--space-4) var(--space-3);display:flex;flex-direction:column;gap:var(--space-2)}
-  .bal-rep{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);font-size:13px}
-  .bal-rep-n{font-weight:700;color:var(--ink)}
+  .bal-rep{font-size:13px;font-weight:700;color:var(--ink)}
   .bal-rep-anf{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-left:5px}
-  .bal-rep-v{font-weight:800;color:var(--accent);white-space:nowrap}
   /* Grupo de filas SIN línea por fila: el espacio agrupa (DESIGN.md §0 "el espacio organiza, no las cajas") */
   .bal-group{padding:var(--space-3) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2)}
   .bal-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);font-size:13px}
@@ -384,12 +384,12 @@
   .informe-stat-k{display:flex;flex-direction:column;gap:0;font-size:13px;color:var(--ink-soft)}
   .informe-stat-sub{font-size:10.5px;color:var(--ink-soft);opacity:.75}
   .informe-stat-v{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;color:var(--accent)}
-  /* REPARTO: A QUIÉNES se distribuye (los ahorradores, anfitrión incluido). Nombre + lo que recibe (teal). */
+  /* REPARTO: A QUIÉNES se distribuye (los ahorradores, anfitrión incluido). Solo NOMBRES: el monto ($X c/u)
+     se dice UNA vez en la cabecera (.informe-stat-v, §0 no repetir). El anfitrión va marcado. */
+  .informe-stat-cu{font-size:11px;font-weight:700;color:var(--ink-soft)}
   .informe-rep-list{margin-top:6px;display:flex;flex-direction:column;gap:4px}
-  .informe-rep{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);font-size:14px}
-  .informe-rep-n{font-weight:700;color:var(--ink)}
+  .informe-rep{font-size:14px;font-weight:700;color:var(--ink)}
   .informe-rep-anf{font-size:10.5px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-left:5px}
-  .informe-rep-v{font-weight:800;color:var(--accent);white-space:nowrap}
   /* COMPOSICIÓN: Cover · Margen · Reembolso (atenuado) · Sobrante. Filas livianas, sin línea por fila. */
   .informe-comp{margin-top:var(--space-2);display:flex;flex-direction:column;gap:3px}
   .informe-kv{display:flex;align-items:baseline;justify-content:space-between;padding:2px 0;font-size:13px;color:var(--ink)}
@@ -735,13 +735,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260616-162455-7485bc9"></script>
-  <script src="js/util.js?v=20260616-162455-7485bc9"></script>
-  <script src="js/api.js?v=20260616-162455-7485bc9"></script>
-  <script src="js/auth.js?v=20260616-162455-7485bc9"></script>
-  <script src="js/store.js?v=20260616-162455-7485bc9"></script>
-  <script src="js/view.js?v=20260616-162455-7485bc9"></script>
-  <script src="js/controller.js?v=20260616-162455-7485bc9"></script>
+  <script src="js/config.js?v=20260616-164811-1af1f3f"></script>
+  <script src="js/util.js?v=20260616-164811-1af1f3f"></script>
+  <script src="js/api.js?v=20260616-164811-1af1f3f"></script>
+  <script src="js/auth.js?v=20260616-164811-1af1f3f"></script>
+  <script src="js/store.js?v=20260616-164811-1af1f3f"></script>
+  <script src="js/view.js?v=20260616-164811-1af1f3f"></script>
+  <script src="js/controller.js?v=20260616-164811-1af1f3f"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

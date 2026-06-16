@@ -213,9 +213,10 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     (SIN acordeón interno — el viejo `toggle-balance`/`ui.balance` se ELIMINÓ). El motor (`informePrincipal` + selectores)
     calcula TODO con las identidades, pero el body **solo MUESTRA lo accionable**, en este orden: **1) HÉROE Ganancia**
     (teal siempre — regla global; cerrada "· al Tesorero", abierta + nota "Provisional") · **2) REPARTO** (`.bal-stat`
-    "Reparto a ahorradores" + **lista NOMBRADA de beneficiarios** `.bal-rep`: cada ahorrador con su `parteIgual`; el
-    **ANFITRIÓN va en la lista, marcado** —siempre es ahorrador, también recibe; los invitados NO. Es a quiénes
-    distribuye el Tesorero, distinto del cobro) · **3) Composición** (Cover · Margen · Reembolso de productos atenuado · Sobrante si >0,
+    "Reparto a ahorradores" + `$X c/u` UNA vez + **lista NOMBRADA de beneficiarios** `.bal-rep`: **solo los nombres**
+    —el monto va en la cabecera, NO por fila (§0 no repetir); el **ANFITRIÓN va en la lista, marcado** —siempre es
+    ahorrador, también recibe; los invitados NO. Es a quiénes distribuye el Tesorero, distinto del cobro) ·
+    **3) Composición** (Cover · Margen · Reembolso de productos atenuado · Sobrante si >0,
     SIN líneas por fila) · **4) Cobro** (cabecera "Por cobrar $X"/"✓ Todo cobrado" + **🔑 Bre-B del anfitrión SOLO si
     hay saldo pendiente** —los deudores la miran para pagar, abierta o cerrada; se oculta al estar todo cobrado— +
     deudores ámbar / saldados check teal). **Bre-B: Balance SÍ (operativo), informe PNG NO (resumen financiero).**
