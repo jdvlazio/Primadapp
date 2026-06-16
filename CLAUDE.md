@@ -323,6 +323,9 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 ## Convenciones
 - Comentarios y nombres de dominio en español (persona, asistencia, primada, organizador, cover, abono, fondo, Tesorero).
 - IDs vía `Util.uid(prefix)`. Escapar texto de usuario con `Util.esc()` antes de inyectar HTML.
+- **Nombres de PRODUCTO en Title Case (regla enforced en datos):** `Util.titleCase` normaliza al guardar
+  ("club colombia" → "Club Colombia"); se aplica en `normProducts` (alta/wizard/carga, idempotente) y `setIdProducto`
+  (renombrar). Conectores en minúscula salvo si abren el nombre. Los defaults del `CONFIG` ya cumplen la regla. Ver `DESIGN.md` §4.
 - Acciones nuevas van en `Store.actions`; selectores/derivados en `Store.select`. Nada de lógica en la Vista.
 - **Un solo término en toda la app para quien recibe la ganancia: "Tesorero".**
 - **El organizador principal se LLAMA "Anfitrión" en la UI** (etiquetas, badges, tooltips, wizard, toasts). El término

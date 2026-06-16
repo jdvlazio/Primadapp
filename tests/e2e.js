@@ -449,8 +449,10 @@ const czProd = () => prm().productos.find(x => x.id === 'cerveza');
 const inpProd = q('[data-ch="nombre-producto"][data-id="cerveza"]');
 check('Configurar › Productos: input de NOMBRE editable en la fila (sin borrar)', !!inpProd && inpProd.value === czProd().nombre);
 const czCount = cervezas();
-setVal(inpProd, 'Pilsen artesanal');
-eq('Producto renombrado sin borrarlo', czProd().nombre, 'Pilsen artesanal');
+setVal(inpProd, 'club colombia');   // tecleado en minúscula → la regla lo pasa a Title Case
+eq('Producto renombrado con regla Title Case ("Club Colombia")', czProd().nombre, 'Club Colombia');
+check('El input refleja la regla al confirmar ("Club Colombia")',
+  q('[data-ch="nombre-producto"][data-id="cerveza"]').value === 'Club Colombia');
 eq('Mismo id tras renombrar (no se recrea el producto)', czProd().id, 'cerveza');
 eq('Consumos del producto intactos (referencian el id)', cervezas(), czCount);
 setVal(q('[data-ch="nombre-producto"][data-id="cerveza"]'), 'Costeñita');   // restaurar para el resto del flujo

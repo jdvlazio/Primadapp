@@ -601,6 +601,10 @@ Reglas de borde:
 - **Títulos de sección** se guardan en Sentence/Title en la string; el **`uppercase` lo aplica
   el CSS** (`.h2`). No escribir la string en mayúsculas a mano.
 - **Glosario** (§7) → siempre el mismo término, en Title Case cuando es nombre propio del dominio.
+- **Nombres de PRODUCTO → Title Case obligatorio (regla enforced en datos).** El usuario teclea como sea;
+  `Util.titleCase` normaliza al guardar ("club colombia" → **"Club Colombia"**, "postre vainilla" → **"Postre
+  Vainilla"**). Conectores en minúscula salvo si abren ("Rollo de Canela"). Se aplica en `normProducts` (alta /
+  wizard / carga, idempotente) y en `setIdProducto` (renombrar); el input refleja el nombre normalizado al confirmar.
 - **Sin emoji** en texto de estado: el estado se comunica con color/dot, no con 🟢/🔒.
 
 ---

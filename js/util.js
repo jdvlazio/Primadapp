@@ -12,6 +12,15 @@
     peso: n => '$' + Number(n || 0).toLocaleString(CONFIG.locale),
     esc: s => String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])),
 
+    // Title Case para NOMBRES (regla de producto): cada palabra con inicial mayúscula EXCEPTO conectores
+    // cortos en español (de, la, y…), que van en minúscula salvo si son la primera palabra. "club colombia"
+    // → "Club Colombia"; "rollo de canela" → "Rollo de canela". Idempotente (re-aplicar no cambia nada).
+    titleCase(s) {
+      const min = new Set(['de', 'del', 'la', 'las', 'el', 'los', 'un', 'una', 'unos', 'unas', 'y', 'e', 'o', 'u', 'con', 'en', 'a', 'al', 'por', 'para', 'sin']);
+      const words = String(s == null ? '' : s).trim().toLowerCase().split(/\s+/).filter(Boolean);
+      return words.map((w, i) => (i > 0 && min.has(w)) ? w : (w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+    },
+
     // 'YYYY-MM' del mes actual
     currentMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; },
     // 'YYYY-MM-DD' de hoy

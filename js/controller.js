@@ -469,7 +469,14 @@
       case 'costo-producto':  A.setPreciosProducto(prm, id, { costoNeto: v }); break;
       case 'venta-producto':  A.setPreciosProducto(prm, id, { precioVenta: v }); break;
       // Renombrar / cambiar emoji del producto SIN borrarlo (commitQuiet; los consumos van por id, no se rompen).
-      case 'nombre-producto': A.setIdProducto(prm, id, { nombre: v }); break;
+      case 'nombre-producto': {
+        A.setIdProducto(prm, id, { nombre: v });
+        // Reflejar la regla (Title Case) en el input al confirmar: leo el nombre ya normalizado del modelo.
+        const ap = Store.select.activePrimada();
+        const prod = ap && (ap.productos || []).find(x => x.id === id);
+        if (prod) t.value = prod.nombre;
+        break;
+      }
       case 'emoji-producto':  A.setIdProducto(prm, id, { emoji: v }); break;
       default: break;
     }

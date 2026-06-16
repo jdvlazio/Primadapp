@@ -525,6 +525,15 @@ section('Util.emojiSugerido (autosugerencia de emoji por nombre)');
   eq('horaCorta: null → —', Util.horaCorta(null), '—');
   eq('horaCorta: basura → —', Util.horaCorta('no-fecha'), '—');
   check('horaCorta: ISO válido → HH:MM', /^\d{1,2}:\d{2}/.test(Util.horaCorta('2026-06-03T10:05:00.000Z')));
+  // Util.titleCase (regla de nombres de producto): cada palabra capitalizada, conectores en minúscula.
+  eq('titleCase: "club colombia" → "Club Colombia"', Util.titleCase('club colombia'), 'Club Colombia');
+  eq('titleCase: "postre vainilla" → "Postre Vainilla"', Util.titleCase('postre vainilla'), 'Postre Vainilla');
+  eq('titleCase: conector "de" en minúscula', Util.titleCase('rollo de canela'), 'Rollo de Canela');
+  eq('titleCase: primera palabra "de" SÍ capitaliza', Util.titleCase('de una'), 'De una');
+  eq('titleCase: TODO MAYÚS → Title Case', Util.titleCase('POSTRE VAINILLA'), 'Postre Vainilla');
+  eq('titleCase: espacios colapsados + trim', Util.titleCase('  club   colombia  '), 'Club Colombia');
+  eq('titleCase: idempotente', Util.titleCase('Club Colombia'), 'Club Colombia');
+  eq('titleCase: null/vacío tolerante', Util.titleCase(null), '');
 }
 
 /* ============================================================ 10. v5 → v6: consumos como filas */
@@ -646,19 +655,19 @@ section('setIdProducto: renombrar/cambiar emoji sin borrar; consumos (por id) in
   const cz = () => prm().productos.find(x => x.id === 'cerveza');
   const betoAsis = () => prm().asistencias.find(a => a.personaId === beto);
   const totalAntes = Store.select.consumoDe(prm(), betoAsis());
-  Store.actions.setIdProducto(p1, 'cerveza', { nombre: 'Pilsen', emoji: '🍻' });
-  eq('Producto renombrado a "Pilsen"', cz().nombre, 'Pilsen');
+  Store.actions.setIdProducto(p1, 'cerveza', { nombre: 'club colombia', emoji: '🍻' });   // minúscula → regla Title Case
+  eq('Producto renombrado con regla Title Case ("Club Colombia")', cz().nombre, 'Club Colombia');
   eq('Emoji cambiado a 🍻', cz().emoji, '🍻');
   eq('Mismo id (no se recrea el producto)', cz().id, 'cerveza');
   eq('Consumos intactos (referencian el id): 2 filas', prm().consumos.filter(c => c.productoId === 'cerveza').length, 2);
   eq('Total del consumidor NO cambia (precio igual)', Store.select.consumoDe(prm(), betoAsis()), totalAntes);
   Store.actions.setIdProducto(p1, 'cerveza', { nombre: '   ' });   // vacío → conserva
-  eq('Nombre vacío → conserva "Pilsen"', cz().nombre, 'Pilsen');
+  eq('Nombre vacío → conserva "Club Colombia"', cz().nombre, 'Club Colombia');
   const defCz = Store.select.state().settings.defaultProducts.find(x => x.id === 'cerveza');
   eq('Default global "Costeñita" intacto (es snapshot LOCAL de la primada)', defCz.nombre, 'Costeñita');
   Store.actions.cerrarPrimada(p1);
   Store.actions.setIdProducto(p1, 'cerveza', { nombre: 'Aguila' });
-  eq('Cerrada: setIdProducto es no-op (sigue "Pilsen")', cz().nombre, 'Pilsen');
+  eq('Cerrada: setIdProducto es no-op (sigue "Club Colombia")', cz().nombre, 'Club Colombia');
 }
 
 /* ============================================================ 13. Estadísticas (agregado, solo cerradas) */

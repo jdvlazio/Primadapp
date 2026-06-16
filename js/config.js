@@ -35,8 +35,8 @@
     defaultProducts: [
       { id: 'cerveza', nombre: 'Costeñita',       emoji: '🍺',  costoNeto: 2500, precioVenta: 3500, aportadoPor: null },
       { id: 'brownie', nombre: 'Brownie',         emoji: '🍫',  costoNeto: 6000, precioVenta: 9000, aportadoPor: null },
-      { id: 'rollo',   nombre: 'Rollo de canela', emoji: '🌀',  costoNeto: 6000, precioVenta: 9000, aportadoPor: null },
-      { id: 'rifa',    nombre: 'Boleta de rifa',  emoji: '🎟️', costoNeto: 0,    precioVenta: 5000, aportadoPor: null },
+      { id: 'rollo',   nombre: 'Rollo de Canela', emoji: '🌀',  costoNeto: 6000, precioVenta: 9000, aportadoPor: null },
+      { id: 'rifa',    nombre: 'Boleta de Rifa',  emoji: '🎟️', costoNeto: 0,    precioVenta: 5000, aportadoPor: null },
     ],
 
     // Autosugerencia de emoji por palabra clave del nombre del producto (primer match gana; el cómo

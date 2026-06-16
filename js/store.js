@@ -75,7 +75,7 @@
       const costoNetoRaw = (p.costoNeto != null) ? p.costoNeto : (p.costoReal != null ? p.costoReal : precioVenta);
       return {
         id: p.id || Util.uid('prod'),
-        nombre: String(p.nombre || p.name || 'Ítem').slice(0, 40),
+        nombre: Util.titleCase(String(p.nombre || p.name || 'Ítem').slice(0, 40)),   // regla: Título Por Palabras
         emoji: p.emoji || '•',
         costoNeto: Number(costoNetoRaw) || 0,
         precioVenta,
@@ -706,7 +706,7 @@
     setIdProducto(primadaId, prodId, { nombre, emoji } = {}) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const prod = p.productos.find(x => x.id === prodId); if (!prod) return;
-      if (nombre != null) { const n = String(nombre).slice(0, 40).trim(); if (n) prod.nombre = n; }
+      if (nombre != null) { const n = Util.titleCase(String(nombre).slice(0, 40)); if (n) prod.nombre = n; }   // regla Title Case
       if (emoji != null) { prod.emoji = String(emoji).slice(0, 4); prod.emojiManual = true; }
       commitQuiet({ kind: 'primada', id: primadaId });
     },
