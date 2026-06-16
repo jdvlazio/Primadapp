@@ -633,6 +633,55 @@ section('Sync en vivo: applyRemoteConsumo (idempotente) + replaceConsumos (snaps
   eq('total recalculado desde snapshot (3×1000)', select.consumoDe(prm(), prm().asistencias[0]), 3000);
 }
 
+/* ============================================================ 13. Estadísticas (agregado, solo cerradas) */
+section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estrella');
+{
+  Store.actions.replaceState(null);
+  const ana = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });   // será principal
+  const cris = Store.actions.addPersona({ nombre: 'Cris', estado: 'ahorrador' });
+  const beto = Store.actions.addPersona({ nombre: 'Beto', estado: 'invitado' });
+  // P1 (cerrada): Ana(princ) + Beto. Ana 1 cerveza, Beto 2 cervezas. 1 ahorradora (Ana).
+  const p1 = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2026-03' });
+  Store.actions.addAsistencia(p1, beto);
+  Store.actions.changeItem(p1, ana, 'cerveza', 1);
+  Store.actions.changeItem(p1, beto, 'cerveza', 2);
+  Store.actions.cerrarPrimada(p1);
+  // P2 (cerrada): Ana(princ) + Cris(ahorr) + Beto. Cris 3 brownies, Beto 1 cerveza, Ana 1 cerveza. 2 ahorradoras.
+  const p2 = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2026-04' });
+  Store.actions.addAsistencia(p2, cris);
+  Store.actions.addAsistencia(p2, beto);
+  Store.actions.changeItem(p2, cris, 'brownie', 3);
+  Store.actions.changeItem(p2, beto, 'cerveza', 1);
+  Store.actions.changeItem(p2, ana, 'cerveza', 1);
+  Store.actions.cerrarPrimada(p2);
+  // P3 (ABIERTA): debe quedar EXCLUIDA de las estadísticas (números provisionales).
+  const p3 = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2026-05' });
+  Store.actions.changeItem(p3, ana, 'cerveza', 9);   // consumo enorme: NO debe contar
+  const cer = Store.select.state().primadas.filter(p => p.estado === 'cerrada');
+  const st = select.estadisticas();
+  // Agregados: comparo contra la suma manual con los MISMOS selectores (verifica la AGREGACIÓN, no el cover config).
+  eq('nPrimadas = solo cerradas (2, no la abierta)', st.nPrimadas, 2);
+  eq('Fondo acumulado = Σ ganancia de cerradas', st.fondoAcumulado, cer.reduce((s, p) => s + select.ganancia(p), 0));
+  eq('Repartido = Σ parteIgual × nAhorradoras', st.repartidoTotal, cer.reduce((s, p) => s + select.parteIgual(p) * select.asistenciasAhorradoras(p).length, 0));
+  eq('Ganancia promedio = fondo / n', st.gananciaPromedio, Math.round(st.fondoAcumulado / 2));
+  eq('Asistencia promedio = round((2+3)/2)', st.asistentesPromedio, 3);
+  // Producto estrella: cerveza más VENDIDA (3+2=5 und); brownie más RENTABLE (3×3000=9000 > cerveza 5×1000=5000).
+  eq('Más vendido = Costeñita (cerveza), 5 unidades', st.masVendido.nombre, 'Costeñita');
+  eq('Más vendido: 5 unidades', st.masVendido.unidades, 5);
+  eq('Más rentable = Brownie (margen 9.000)', st.masRentable.nombre, 'Brownie');
+  eq('Más rentable: margen 9.000', st.masRentable.margen, 9000);
+  check('Más vendido ≠ más rentable (el contraste diciente)', st.masVendido.nombre !== st.masRentable.nombre);
+  // Consumidor estrella: Cris (3 brownies = 27.000) > Beto (10.500) > Ana (7.000).
+  eq('Consumidor estrella = Cris', st.consumidor.nombre, 'Cris');
+  eq('Consumidor estrella: total 27.000', st.consumidor.total, 27000);
+  // Sin cerradas → vacío seguro.
+  Store.actions.replaceState(null);
+  const vacio = select.estadisticas();
+  eq('Sin cerradas: fondo 0', vacio.fondoAcumulado, 0);
+  eq('Sin cerradas: nPrimadas 0', vacio.nPrimadas, 0);
+  check('Sin cerradas: producto/consumidor null', vacio.masVendido === null && vacio.consumidor === null);
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);

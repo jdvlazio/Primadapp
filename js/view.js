@@ -579,6 +579,38 @@
      Tap en cualquier fila/hero = entrar a su detalle (data-act="entrar-primada"). Secciones relativas a la
      activa (Próximas/Pasadas) para no meter una primada futura en "Pasadas" (determinista, no por reloj).
      ============================================================ */
+  // ESTADÍSTICAS (home) = tarjeta COLAPSABLE, directa, separada de la próxima primada. Toggle CENTRADO/teal
+  // (mismo patrón del Balance). Solo aparece si hay primadas CERRADAS (datos firmes). Minimalista: fondo +
+  // promedio, repartido, asistencia promedio, PRODUCTO estrella (vendido/rentable) y CONSUMIDOR estrella.
+  function estadisticasBody(st) {
+    const heroe = `<div class="bal-hero">
+        <div class="bal-label">Fondo acumulado</div>
+        <div class="bal-amount entregado">${$peso(st.fondoAcumulado)}</div>
+        <div class="bal-note">${st.nPrimadas} primada${st.nPrimadas === 1 ? '' : 's'} · ${$peso(st.gananciaPromedio)} promedio</div>
+      </div>`;
+    const kpis = `<div class="bal-group">
+        <div class="bal-row"><span>Repartido a la familia</span><b>${$peso(st.repartidoTotal)}</b></div>
+        <div class="bal-row"><span>Asistencia promedio</span><b>${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'}</b></div>
+      </div>`;
+    const prodRow = (lbl, prod, valStr) => prod
+      ? `<div class="bal-row"><span>${lbl}</span><b>${e(prod.emoji)} ${e(prod.nombre)} · ${valStr}</b></div>` : '';
+    const producto = (st.masVendido || st.masRentable) ? `<div class="bal-sep"></div>
+        <div class="bal-cobro-head">Producto estrella</div>
+        <div class="bal-group">
+          ${prodRow('Más vendido', st.masVendido, st.masVendido ? st.masVendido.unidades + ' und' : '')}
+          ${prodRow('Más rentable', st.masRentable, st.masRentable ? $peso(st.masRentable.margen) : '')}
+        </div>` : '';
+    const consumidor = st.consumidor ? `<div class="bal-cobro-head">Consumidor estrella</div>
+        <div class="bal-group"><div class="bal-row"><span>${e(st.consumidor.nombre)}</span><b class="pagado">${$peso(st.consumidor.total)}</b></div></div>` : '';
+    return `<div class="card dark bal-card">${heroe}${kpis}${producto}${consumidor}</div>`;
+  }
+  function estadisticasCard(state, ui) {
+    const st = S().estadisticas();
+    if (!st.nPrimadas) return '';   // sin primadas cerradas → nada firme que mostrar
+    const open = !!(ui && ui.statsOpen);
+    const toggle = `<button class="balance-toggle ${open ? 'on' : ''}" data-act="toggle-stats" aria-expanded="${open ? 'true' : 'false'}"><span>Estadísticas</span>${icon(open ? 'chevron-down' : 'chevron-up')}</button>`;
+    return `<div class="stats-dock">${toggle}${open ? `<div class="stats-panel">${estadisticasBody(st)}</div>` : ''}</div>`;
+  }
   function homeBody(state, ui) {
     const sel = S();
     if (!state.primadas.length) {
@@ -599,7 +631,7 @@
       ? `<div class="home-sub">Pasadas</div>` + pasadas.map(g =>
           `<div class="home-anio">${e(g.anio)}</div><div class="hist-list">${g.primadas.map(historialFila).join('')}</div>`).join('')
       : '';
-    return `<div class="home">${activa ? heroCard(activa) : ''}${secProx}${secPas}</div>`;
+    return `<div class="home">${estadisticasCard(state, ui)}${activa ? heroCard(activa) : ''}${secProx}${secPas}</div>`;
   }
 
   // Botón "···" de opciones administrativas de una primada (Reabrir / Eliminar). Abre primadaMenuSheet.

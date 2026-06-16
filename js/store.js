@@ -535,6 +535,53 @@
           a.mesContable !== b.mesContable ? desc(a.mesContable, b.mesContable) : desc(a.fecha, b.fecha)),
       }));
     },
+
+    // ESTADÍSTICAS (derivado puro, sin estado nuevo). Agrega SOLO sobre primadas CERRADAS (firmes; las
+    // abiertas son provisionales). Devuelve un bundle minimalista de los datos más dicientes del evento:
+    // fondo acumulado + promedio, repartido a la familia, asistencia promedio, producto estrella
+    // (más vendido / más rentable) y consumidor estrella (quién más consumió). Producto se agrega por NOMBRE
+    // (el mismo "Cerveza" suma parejo entre primadas). Vacío seguro si no hay cerradas.
+    estadisticas() {
+      const cerradas = (state ? state.primadas : []).filter(p => p.estado === 'cerrada');
+      const n = cerradas.length;
+      const fondoAcumulado = cerradas.reduce((s, p) => s + select.ganancia(p), 0);
+      const repartidoTotal = cerradas.reduce((s, p) => s + select.parteIgual(p) * select.asistenciasAhorradoras(p).length, 0);
+      const totalAsis = cerradas.reduce((s, p) => s + (p.asistencias || []).length, 0);
+      // Producto estrella: acumula unidades y margen por NOMBRE de producto a lo largo de las cerradas.
+      const porProd = {};
+      cerradas.forEach(p => (p.productos || []).forEach(prod => {
+        const u = unidadesVendidas(p, prod);
+        if (u <= 0) return;
+        const key = prod.nombre || prod.id;
+        const r = porProd[key] || (porProd[key] = { nombre: prod.nombre || prod.id, emoji: prod.emoji || '', unidades: 0, margen: 0 });
+        r.unidades += u;
+        r.margen += select.margenProducto(prod) * u;
+        if (!r.emoji && prod.emoji) r.emoji = prod.emoji;
+      }));
+      const prods = Object.keys(porProd).map(k => porProd[k]);
+      const masVendido = prods.slice().sort((a, b) => b.unidades - a.unidades)[0] || null;
+      const masRentable = prods.slice().sort((a, b) => b.margen - a.margen)[0] || null;
+      // Consumidor estrella: Σ consumoDe por persona a lo largo de las cerradas (mayor total).
+      const porPersona = {};
+      cerradas.forEach(p => (p.asistencias || []).forEach(a => {
+        porPersona[a.personaId] = (porPersona[a.personaId] || 0) + select.consumoDe(p, a);
+      }));
+      let consumidor = null;
+      Object.keys(porPersona).forEach(pid => {
+        if (porPersona[pid] > 0 && (!consumidor || porPersona[pid] > consumidor.total)) {
+          const per = select.persona(pid);
+          consumidor = { personaId: pid, nombre: per ? per.nombre : '—', total: porPersona[pid] };
+        }
+      });
+      return {
+        nPrimadas: n,
+        fondoAcumulado,
+        gananciaPromedio: n ? Math.round(fondoAcumulado / n) : 0,
+        repartidoTotal,
+        asistentesPromedio: n ? Math.round(totalAsis / n) : 0,
+        masVendido, masRentable, consumidor,
+      };
+    },
   };
 
   /* ---------- Acciones (único punto que muta; hacen cumplir invariantes) ---------- */

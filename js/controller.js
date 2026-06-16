@@ -71,7 +71,7 @@
                authEstado: 'placeholder', editPersonaId: null, nuevaPersona: false,
                configTab: 'asistentes', configProd: new Set(), pagarPid: null,
                auditPid: null, apuntadores: {}, presentes: [],
-               primadaMenuId: null, ajustesSec: new Set(), loginEstado: 'form', loginEmail: '' };
+               primadaMenuId: null, ajustesSec: new Set(), loginEstado: 'form', loginEmail: '', statsOpen: false };
   let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
   let miEmail = null;         // email de la sesión (para presence "quién está apuntando")
 
@@ -259,6 +259,7 @@
 
       // ----- panel de Balance del detalle (debajo de la Lista viva, mismo scroll): NO escritura -----
       case 'toggle-balance-panel': ui.balanceOpen = !View.balanceAbierto(Store.select.activePrimada(), ui); rerender(); return;
+      case 'toggle-stats':         ui.statsOpen = !ui.statsOpen; rerender(); return;   // Estadísticas del home (lectura)
       case 'toggle-asis-panel':    ui.asisOpen = !View.asisAbierto(Store.select.activePrimada(), ui); rerender(); return;
 
       // ----- compartir informe como imagen (PNG → share sheet / descarga): I/O de vista, NO escritura -----

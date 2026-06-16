@@ -799,6 +799,36 @@ check('Saldados ordenados MAYOR→MENOR: Vera (brownie 9.000) antes que Uri (2 c
 check('Pendientes (Debe) van ANTES que los saldados', iYago < iVera);
 cerrarBalance();
 
+/* ---------- 18. Estadísticas en el HOME (tarjeta colapsable, solo cerradas) ---------- */
+section('Estadísticas (home): tarjeta colapsable; fondo + producto + consumidor estrella');
+irHome();                                   // salir del detalle de la sección anterior
+Store.actions.replaceState(null);           // estado limpio
+check('Sin primadas cerradas: NO hay tarjeta de Estadísticas', !q('[data-act="toggle-stats"]'));
+const eAna = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+const eCris = Store.actions.addPersona({ nombre: 'Cris', estado: 'ahorrador' });
+const eBeto = Store.actions.addPersona({ nombre: 'Beto', estado: 'invitado' });
+const ep1 = Store.actions.createPrimada({ principalId: eAna, organizadores: [eAna], mesContable: '2026-03' });
+Store.actions.addAsistencia(ep1, eBeto);
+Store.actions.changeItem(ep1, eBeto, 'cerveza', 2);
+Store.actions.cerrarPrimada(ep1);
+const ep2 = Store.actions.createPrimada({ principalId: eAna, organizadores: [eAna], mesContable: '2026-04' });
+Store.actions.addAsistencia(ep2, eCris);
+Store.actions.changeItem(ep2, eCris, 'brownie', 3);   // Cris = consumidor estrella (27.000)
+Store.actions.cerrarPrimada(ep2);
+Store.actions.seleccionarPrimada(ep2);
+irHome();
+check('Con cerradas: aparece el toggle "Estadísticas" en el home', !!q('[data-act="toggle-stats"]') && /Estadísticas/.test(q('#screen').innerHTML));
+check('Estadísticas colapsada por defecto (sin .stats-panel)', !q('.stats-panel'));
+click('[data-act="toggle-stats"]');
+const stHTML = q('.stats-panel') ? q('.stats-panel').innerHTML : '';
+check('Al desplegar: "Fondo acumulado" + nº primadas (2)', /Fondo acumulado/.test(stHTML) && /2 primadas/.test(stHTML));
+check('Estadísticas: "Producto estrella" (Más vendido / Más rentable)',
+  /Producto estrella/.test(stHTML) && /Más vendido/.test(stHTML) && /Más rentable/.test(stHTML));
+check('Estadísticas: "Consumidor estrella" = Cris (el que más consumió)',
+  /Consumidor estrella/.test(stHTML) && /Cris/.test(stHTML));
+click('[data-act="toggle-stats"]');
+check('Estadísticas se colapsa de nuevo', !q('.stats-panel'));
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`E2E: ${pass} pasaron, ${fail} fallaron`);
