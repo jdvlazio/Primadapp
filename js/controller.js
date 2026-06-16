@@ -61,12 +61,15 @@
   // - balanceOpen: panel de Balance del detalle DESPLEGADO (null = default por estado: cerrada→abierto,
   //   abierta→colapsado; bool = el usuario lo fijó a mano con el chip "Balance ▲/▼"). Se resetea a null
   //   al entrar a una primada y al cerrar/reabrir (re-deriva del nuevo estado). Reemplaza al viejo ui.cara.
+  // - asisOpen: sección Asistentes del detalle DESPLEGADA (acordeón SIMÉTRICO al Balance; null = default por
+  //   estado: abierta→abierto para operar, cerrada→colapsado; bool = manual con el encabezado tocable). Al
+  //   pagar al ÚLTIMO deudor (saldoPendiente >0→0) se colapsa Asistentes y se abre Balance. Se resetea con balanceOpen.
   // - balance: Set de cards-acordeón del Balance abiertas ('reparto'|'informe'); el héroe (cifra grande) va
   //   SIEMPRE visible fuera del acorde, el desglose (derivación) dentro.
   // - view: VISTA actual (IA list→detalle) — 'home' (lista de primadas) | 'detalle' (operación de la activa).
   //   Reemplaza al viejo ui.tab. Cold-start y "volver" → 'home'; entrar a una primada → 'detalle' (+ pushState).
   // - authEstado: estado de la cuenta para el ícono de la topbar del home ('in'|'out'|'placeholder').
-  const ui = { view: 'home', balanceOpen: null, overlay: null, activaPid: null, wizard: null,
+  const ui = { view: 'home', balanceOpen: null, asisOpen: null, overlay: null, activaPid: null, wizard: null,
                authEstado: 'placeholder', editPersonaId: null, nuevaPersona: false,
                configTab: 'asistentes', configProd: new Set(), pagarPid: null,
                balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
@@ -184,7 +187,7 @@
   // El panel de Balance del detalle arranca con su DEFAULT por estado (null → la Vista deriva: cerrada =
   // abierto, abierta = colapsado). Se resetea al entrar a una primada y al cerrar/reabrir, para que el
   // cambio de estado re-derive el default (p. ej. al cerrar, el Balance se despliega solo).
-  function resetBalancePanel() { ui.balanceOpen = null; }
+  function resetBalancePanel() { ui.balanceOpen = null; ui.asisOpen = null; }   // ambos acordeones: default por estado
 
   /* ---------- Clicks (delegados en document) ---------- */
   function onClick(ev) {
@@ -258,6 +261,7 @@
 
       // ----- panel de Balance del detalle (debajo de la Lista viva, mismo scroll): NO escritura -----
       case 'toggle-balance-panel': ui.balanceOpen = !View.balanceAbierto(Store.select.activePrimada(), ui); rerender(); return;
+      case 'toggle-asis-panel':    ui.asisOpen = !View.asisAbierto(Store.select.activePrimada(), ui); rerender(); return;
 
       // ----- compartir informe como imagen (PNG → share sheet / descarga): I/O de vista, NO escritura -----
       case 'compartir-informe': { const p = Store.select.activePrimada(); if (p && View.shareInforme) View.shareInforme(p); return; }
@@ -392,10 +396,10 @@
         A.setPagado(prm, pid, true); ui.overlay = null; ui.pagarPid = null;
         const nom = (Store.select.persona(pid) || {}).nombre || 'Pago';   // confirmación VISIBLE: saldó su cuenta
         View.toast('✓ ' + nom + ' saldado', 'ok');
-        // Si este pago SALDÓ la última deuda (saldoPendiente >0 → 0): cierra la ficha del asistente
-        // (el que acaba de pagar) y DESPLIEGA el Balance —documento de cierre que estaba colapsado.
+        // Si este pago SALDÓ la última deuda (saldoPendiente >0 → 0): cierra la ficha del asistente,
+        // COLAPSA la sección Asistentes y DESPLIEGA el Balance —el documento de cierre. Acordeones simétricos.
         const despues = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
-        if (antes > 0 && despues === 0) { ui.activaPid = null; ui.balanceOpen = true; }
+        if (antes > 0 && despues === 0) { ui.activaPid = null; ui.asisOpen = false; ui.balanceOpen = true; }
         rerender(); return;
       }
       case 'set-no-pagado': A.setPagado(prm, pid, false); break;

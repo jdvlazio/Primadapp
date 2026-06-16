@@ -417,6 +417,21 @@
 
   // Tab Primadas = solo OPERAR: asistencias (registrar consumo). La identidad (mes/nombre/estado) y
   // la navegación viven en el SELECTOR de arriba; la config tras el engranaje; la plata en BALANCE.
+  // ¿La sección Asistentes está desplegada? SIMÉTRICA al Balance (acordeón): null = default por estado
+  // (abierta→abierto para operar, cerrada→colapsado: el documento es el Balance); bool = el usuario lo
+  // fijó a mano con el encabezado tocable. Al pagar el ÚLTIMO deudor, el controller la colapsa y abre Balance.
+  function asisAbierto(p, ui) {
+    if (ui && ui.asisOpen != null) return !!ui.asisOpen;
+    return !(p && p.estado === 'cerrada');
+  }
+  // Resumen tenue que reemplaza a "+ Agregar" cuando Asistentes está COLAPSADO: el estado de cobro
+  // (la señal accionable), no la lista. Nada si la primada está incompleta o aún sin plata.
+  function asisColapsadoHint(p, inf) {
+    if (inf.incompleta || inf.recaudadoTeorico <= 0) return '';
+    return inf.saldoPendiente === 0
+      ? `<span class="asis-hint ok">${icon('check', 'sm')}Todos pagaron</span>`
+      : `<span class="asis-hint pend">${$peso(inf.saldoPendiente)} por cobrar</span>`;
+  }
   function primadaDetalle(p, ui) {
     // CTA contextual para CERRAR (P5 lote visual): NO vive en Configuración. Aparece como banner arriba
     // de la operación SOLO cuando ya hubo plata y TODOS saldaron (saldoPendiente 0 = nadie debe; el
@@ -425,15 +440,23 @@
     const cerrarCTA = (p.estado === 'abierta' && !inf.incompleta && inf.recaudadoTeorico > 0 && inf.saldoPendiente === 0)
       ? `<button class="cerrar-cta" data-act="cerrar-primada" data-id="${p.id}">${icon('check')}Todos pagaron · Cerrar primada</button>`
       : '';
-    return `${cerrarCTA}${presenciaLinea(ui)}<div class="sec-head">
-        <h2 class="h2">Asistentes <span class="muted">${p.asistencias.length}</span></h2>
-        ${pickerAsistentes(p, ui)}
-      </div>
-      <div class="asis-list">
+    // ASISTENTES = acordeón (encabezado tocable). Abierto: "+ Agregar" + lista viva. Colapsado: solo el
+    // encabezado + hint de cobro. El chevron lo refleja (abajo=abierto, igual que Balance).
+    const abierto = asisAbierto(p, ui);
+    const head = `<div class="sec-head">
+        <button class="asis-toggle ${abierto ? 'on' : ''}" data-act="toggle-asis-panel" aria-expanded="${abierto ? 'true' : 'false'}">
+          <h2 class="h2">Asistentes <span class="muted">${p.asistencias.length}</span></h2>${icon(abierto ? 'chevron-down' : 'chevron-up')}
+        </button>
+        ${abierto ? pickerAsistentes(p, ui) : asisColapsadoHint(p, inf)}
+      </div>`;
+    const lista = abierto
+      ? `<div class="asis-list">
         ${p.asistencias.length
           ? S().asistenciasPorConsumo(p).map(a => asistenteFilaViva(p, a, ui)).join('')
           : '<div class="empty-soft">Sin asistentes</div>'}
-      </div>`;
+      </div>`
+      : '';
+    return `${cerrarCTA}${presenciaLinea(ui)}${head}${lista}`;
   }
 
   // PRESENCE (Fase C): línea DISCRETA con quién más está en la primada; si alguien apuntó hace poco
@@ -1117,6 +1140,6 @@
     if (hayError) toast(s.error);
   }
 
-  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, toast, shareInforme, informeTemplateHTML };
+  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML };
   if (typeof module !== 'undefined' && module.exports) module.exports = { View: root.View };
 })(typeof window !== 'undefined' ? window : globalThis);

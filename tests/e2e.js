@@ -80,7 +80,11 @@ function setVal(elOrSel, value) {
 }
 // MODELO 3 — Lista viva: la fila del asistente está SIEMPRE visible; tap = activar (reveal inline con
 // chips + pago). activar(pid) es idempotente: activa solo si no está ya activa (sin .asis-reveal en su .asis).
+// Asistentes = acordeón simétrico al Balance: puede estar colapsado (default cerrada; auto-colapsa post-pago).
+function asisVisible() { return !!q('.asis-list'); }
+function abrirAsis() { if (enDetalle() && !asisVisible()) { const t = q('[data-act="toggle-asis-panel"]'); if (t) click(t); } }
 function activar(pid) {
+  abrirAsis();                                  // si la sección está colapsada, ábrela primero
   const fila = q(`.asis-fila[data-pid="${pid}"]`);
   if (!fila) throw new Error('activar: no existe la fila de ' + pid);
   if (!fila.closest('.asis').querySelector('.asis-reveal')) click(fila);
@@ -388,24 +392,27 @@ check('Informe: sin deuda → cobro-tot "✓ Todo cobrado" (.ok), sin "Por cobra
 Store.actions.setPagado(prm().id, beto.id, false);   // restaurar (Beto debe) para el resto del flujo
 check('Orden es presentación: Ana volvió a total 0 tras restaurar', Store.select.totalAsistencia(prm(), anaAsis()) === 0);
 
-/* ---------- 7d. Pagar al ÚLTIMO deudor → colapsa la ficha + DESPLIEGA el Balance ---------- */
-section('Pagar al último deudor (saldo→0): se cierra la ficha del asistente y se ABRE el Balance');
-// Primada ABIERTA (Balance colapsado por defecto), Beto único deudor ($7.000). Al pagar él, saldo→0:
-// el controller cierra su ficha (ui.activaPid=null) y despliega el Balance —documento de cierre.
-cerrarBalance();
+/* ---------- 7d. Pagar al ÚLTIMO deudor → colapsa Asistentes + DESPLIEGA el Balance (acordeones simétricos) ---------- */
+section('Pagar al último deudor (saldo→0): se colapsa Asistentes y se ABRE el Balance');
+// Primada ABIERTA: Asistentes ABIERTO (operar) / Balance COLAPSADO por defecto. Beto único deudor ($7.000).
+// Al pagar él, saldo→0: el controller cierra su ficha (ui.activaPid=null), COLAPSA Asistentes (ui.asisOpen=false)
+// y despliega el Balance (ui.balanceOpen=true) —el documento de cierre.
+cerrarBalance(); abrirAsis();
 check('Partida: primada abierta', prm().estado === 'abierta');
 eq('Partida: Beto único deudor', Store.select.informePrincipal(prm()).saldoPendiente, 7000);
+check('Partida: Asistentes abierto (operar)', asisVisible());
 check('Partida: Balance colapsado (default abierta)', !balanceVisible());
 activar(beto.id);
 check('Ficha de Beto abierta (botón "Pagar" inline)', !!q(`[data-act="open-pagar"][data-pid="${beto.id}"]`));
 click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);
 click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`);   // paga el ÚLTIMO → saldo 0
 eq('Saldo pendiente = 0 tras pagar al último', Store.select.informePrincipal(prm()).saldoPendiente, 0);
-check('Auto: la ficha del asistente se COLAPSÓ (sin "Pagar" inline)', !q(`[data-act="open-pagar"][data-pid="${beto.id}"]`));
+check('Auto: Asistentes se COLAPSÓ (lista oculta, ficha sin "Pagar")', !asisVisible() && !q(`[data-act="open-pagar"][data-pid="${beto.id}"]`));
+check('Auto: encabezado de Asistentes con hint "Todos pagaron" (.asis-hint.ok)', !!q('.asis-hint.ok'));
 check('Auto: el Balance se DESPLEGÓ solo (panel visible)', balanceVisible());
-// restaurar para el resto del flujo: Beto vuelve a deber, Balance colapsado
+// restaurar para el resto del flujo: Beto vuelve a deber, ambos acordeones a estado de operación
 Store.actions.setPagado(prm().id, beto.id, false);
-cerrarBalance();
+cerrarBalance(); abrirAsis();
 eq('Restaurado: Beto vuelve a deber 7.000', Store.select.informePrincipal(prm()).saldoPendiente, 7000);
 
 /* ---------- 8. Cerrar congela consumos pero la UI sigue viva ---------- */

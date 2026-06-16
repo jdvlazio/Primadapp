@@ -480,7 +480,10 @@ test.describe('Pagar (binario) + llave Bre-B', () => {
     }, betoId);
     expect(r.pagado).toBe(true);
     expect(r.saldo).toBe(0);
-    await expect(page.locator('#screen')).toContainText('Pagado');                  // la tarjeta lo refleja
+    // Beto era el ÚLTIMO deudor → acordeones simétricos: Asistentes se COLAPSA y el Balance se ABRE solo.
+    await expect(page.locator('#screen .asis-list')).toHaveCount(0);                // Asistentes colapsado
+    await expect(page.locator('.asis-hint.ok')).toContainText('Todos pagaron');     // hint de cobro completo
+    await expect(page.locator('.balance-panel')).toBeVisible();                     // Balance desplegado
   });
 });
 
