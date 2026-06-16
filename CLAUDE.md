@@ -214,8 +214,10 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     calcula TODO con las identidades, pero el body **solo MUESTRA lo accionable**, en este orden: **1) HÉROE Ganancia**
     (teal siempre — regla global; cerrada "· al Tesorero", abierta + nota "Provisional") · **2) KPI Parte igual c/u**
     (`.bal-stat`, + N ahorradores) · **3) Composición** (Cover · Margen · Reembolso de productos atenuado · Sobrante si >0,
-    SIN líneas por fila) · **4) Cobro** (cabecera "Por cobrar $X"/"✓ Todo cobrado" + deudores ámbar / saldados check teal).
-    **SIN llave Bre-B** (el cómo-pagar vive en la hoja Pagar) y **un solo divisor** (composición | cobro). Se quitaron:
+    SIN líneas por fila) · **4) Cobro** (cabecera "Por cobrar $X"/"✓ Todo cobrado" + **🔑 Bre-B del anfitrión SOLO si
+    hay saldo pendiente** —los deudores la miran para pagar, abierta o cerrada; se oculta al estar todo cobrado— +
+    deudores ámbar / saldados check teal). **Bre-B: Balance SÍ (operativo), informe PNG NO (resumen financiero).**
+    **Un solo divisor** (composición | cobro). Se quitaron:
     "Ganancia" como línea (vive solo en el héroe), `Recaudo teórico`/`Recaudado · de terceros · del principal`/`Por cobrar`
     duplicado, y los hairlines por fila. El **auto-abono del principal sigue vivo en el modelo** (mantiene
     `real+pendiente=teórico`), solo no se pinta.

@@ -276,6 +276,7 @@ check('Informe completo (ya hay principal)', inf.incompleta === false);
 eq('Entrega al Tesorero = ganancia', inf.entregaTesorero, Store.select.ganancia(prm()));
 eq('Parte igual a la única ahorradora (Ana) = ganancia', Store.select.parteIgual(prm()), 2000);
 eq('Sobrante indivisible = 0', Store.select.sobranteFondo(prm()), 0);
+Store.actions.setBreBPersona(ana.id, 'ana@bre-b');   // el anfitrión tiene llave → los deudores la verán en el cobro
 abrirBalance();
 const cuerpo = q('#screen').innerHTML;
 // UN solo héroe = Ganancia (ya NO hay un 2º héroe "Por cobrar"/"Entregado"). Sin nombre ni rol.
@@ -291,9 +292,11 @@ check('Composición: Cover · Margen · Reembolso atenuado (.bal-row.dim)',
 // Reembolso ($5.000 = 2×2.500) puede ser > Ganancia ($2.000): por eso va ATENUADO (.bal-row.dim), NO como ingreso.
 check('Reembolso de productos = $5.000, atenuado (.bal-row.dim)',
   /class="bal-row dim"><span>Reembolso de productos<\/span><b>\$5\.000/.test(cuerpo));
-// COBRO sin Bre-B (el cómo-pagar vive en la hoja Pagar): cabecera "Por cobrar $7.000" (ámbar) + el deudor (Beto).
-check('Cobro: cabecera "Por cobrar $7.000" + deudor Beto, SIN Bre-B',
-  /class="bal-cobro-head">Por cobrar <b class="pend">\$7\.000/.test(cuerpo) && new RegExp(beto.nombre).test(cuerpo) && !/Bre-B/.test(cuerpo));
+// COBRO: cabecera "Por cobrar $7.000" (ámbar) + 🔑 Bre-B del anfitrión (cómo pagan los deudores) + el deudor (Beto).
+check('Cobro: cabecera "Por cobrar $7.000" + 🔑 Bre-B (teal) + deudor Beto',
+  /class="bal-cobro-head">Por cobrar <b class="pend">\$7\.000/.test(cuerpo)
+  && /class="bal-breb">🔑 Bre-B <span class="breb-val">ana@bre-b<\/span>/.test(cuerpo)
+  && new RegExp(beto.nombre).test(cuerpo));
 // UN solo divisor (.bal-sep) entre composición y cobro (resumen, no fragmentado).
 check('Balance: UN solo divisor .bal-sep (composición | cobro)', (cuerpo.match(/class="bal-sep"/g) || []).length === 1);
 // "Ganancia" NO se repite como línea (solo el héroe); sin la plomería del auto-abono ni el reparto repetido.
@@ -462,7 +465,7 @@ check('Balance: nadie debe → cabecera "✓ Todo cobrado", sin "Por cobrar"',
   /bal-cobro-ok/.test(tras) && /Todo cobrado/.test(tras) && !/Por cobrar/.test(tras));
 check('Balance: SIN deudor pendiente (Beto ya pagó, no .pend)',
   !new RegExp(beto.nombre + '</span><b class="pend"').test(tras));
-check('Balance: SIN línea Bre-B (resumen ejecutivo)', !/Bre-B/.test(tras));
+check('Balance: 🔑 Bre-B OCULTA cuando todo está cobrado (nadie debe → no hace falta)', !/Bre-B/.test(tras));
 // El saldado SE CONSERVA: Beto con .bal-row.saldada (check teal + nombre) y su monto pagado ($7.000, teal).
 check('Balance: Beto saldado presente (.bal-row.saldada con check + nombre)',
   /bal-row saldada/.test(tras) && new RegExp('bal-row saldada[^]*asis-check[^]*' + beto.nombre).test(tras));

@@ -465,9 +465,14 @@ la topbar del detalle → el panel **no repite cabecera**.
    Margen** (cómo se arma la ganancia) · **Reembolso de productos** (`.bal-row.dim`, atenuado: passthrough del
    costo, **NO ingreso**, puede ser > ganancia) · **Sobrante al fondo** (solo si > 0).
 4. **COBRO** (tras **UN** `.bal-sep`): cabecera `.bal-cobro-head` = **"Por cobrar $X"** (ámbar) mientras alguien
-   deba, o **"✓ Todo cobrado"** (`.bal-cobro-ok`, teal). Lista (`.bal-group`): **deudores** (`.bal-row` + `b.pend`
-   ámbar, mayor→menor) y **saldados** (`.bal-row.saldada` = check teal + nombre + `b.pagado` teal, mayor→menor).
-   **SIN llave Bre-B** (el cómo-pagar vive en la hoja Pagar, §2.12). Si la primada es incompleta → "Asigná un anfitrión".
+   deba, o **"✓ Todo cobrado"** (`.bal-cobro-ok`, teal). Debajo, la **llave 🔑 Bre-B del anfitrión** (`.bal-breb`,
+   valor teal `.breb-val`) **SOLO si hay saldo pendiente** (los deudores la miran para pagar; abierta o cerrada —
+   cubre pagos tardíos; se **oculta** cuando todo está cobrado). Lista (`.bal-group`): **deudores** (`.bal-row` +
+   `b.pend` ámbar, mayor→menor) y **saldados** (`.bal-row.saldada` = check teal + nombre + `b.pagado` teal, mayor→menor).
+   Si la primada es incompleta → "Asigná un anfitrión".
+   > **Bre-B: Balance SÍ, informe PNG NO.** El **Balance in-app es operativo** → muestra la llave para que el deudor
+   > pague. El **informe compartible** (§5, `informeTemplateHTML`) es el **resumen financiero del evento para todos**
+   > → SIN llave (no es un medio de cobro, es el documento de cierre).
 
 | Elemento | Canónico |
 |---|---|
@@ -476,6 +481,7 @@ la topbar del detalle → el panel **no repite cabecera**.
 | `.bal-stat` | KPI Parte igual c/u: `.bal-stat-k` (etiqueta + `.bal-stat-sub`) + `.bal-stat-v` (`20px/800`, teal). Borde-top tenue lo separa del héroe |
 | `.bal-group` / `.bal-row` | grupo de filas SIN línea por fila (espacio = agrupación). `.bal-row.dim` atenúa (reembolso); `b.pend` (ámbar) / `b.pagado` (teal); `.bal-row.saldada` = check + gris |
 | `.bal-cobro-head` | cabecera del bloque de cobro: "Por cobrar $X" (`.pend` ámbar) / "✓ Todo cobrado" (`.bal-cobro-ok` teal) |
+| `.bal-breb` | llave 🔑 Bre-B del anfitrión (etiqueta tenue + valor teal `.breb-val`). Se pinta **solo si `saldoPendiente > 0`** (hay quién pague); oculta al estar todo cobrado |
 | divisores | **UNO solo** (`.bal-sep`) entre composición y cobro. Se eliminaron los hairlines por fila (`.kv` border-top) del Balance |
 
 > **Cero números repetidos (§0):** "Ganancia" vive **solo** en el héroe (no como línea); `entregaTesorero` =

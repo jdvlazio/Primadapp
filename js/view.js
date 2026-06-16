@@ -683,7 +683,9 @@
        2) KPI Parte igual c/u — el segundo número clave (lo que recibe cada ahorrador).
        3) COMPOSICIÓN — Cover + Margen (cómo se arma), Reembolso de productos (passthrough, atenuado),
           Sobrante al fondo (solo si > 0). Filas agrupadas SIN líneas por fila (la jerarquía la da el espacio).
-       4) COBRO — quién debe (ámbar) / quién pagó (check teal), SIN Bre-B (el cómo-pagar vive en la hoja Pagar).
+       4) COBRO — la llave 🔑 Bre-B (cómo pagan los deudores) + quién debe (ámbar) / quién pagó (check teal).
+          La Bre-B aparece SOLO si hay saldo pendiente (alguien debe), abierta o cerrada (cubre pagos tardíos);
+          se oculta cuando todo está cobrado. A diferencia del informe PNG, aquí SÍ va: el Balance es operativo.
      UN solo divisor (composición | cobro). Cero números repetidos. Mismos selectores → cifras idénticas. */
   function balancePrimada(p, ui) {
     const sel = S();
@@ -695,6 +697,8 @@
     const completa = !inf.incompleta;
     const cerrada = p.estado === 'cerrada';
     const prinId = p.organizadorPrincipalId;
+    // Llave Bre-B del anfitrión (snapshot pago.breB con fallback a la persona vigente). Valor en teal (.breb-val).
+    const breB = ((p.pago && p.pago.breB) || (prinId ? (sel.persona(prinId) || {}).breB : null) || '').toString().trim();
     // Listas de cobro, AMBAS de MAYOR a MENOR monto: deudores (por saldo) y saldados (por lo que pagaron).
     const deud = (completa ? sel.deudores(p).filter(d => d.personaId !== prinId) : [])
       .slice().sort((a, b) => b.saldo - a.saldo);
@@ -736,7 +740,11 @@
       const head = inf.saldoPendiente > 0
         ? `Por cobrar <b class="pend">${$peso(inf.saldoPendiente)}</b>`
         : `<span class="bal-cobro-ok">${icon('check', 'sm')}Todo cobrado</span>`;
-      cobro = `<div class="bal-sep"></div><div class="bal-cobro-head">${head}</div><div class="bal-group">${pendRows}${saldRows}</div>`;
+      // 🔑 Bre-B para los deudores: solo si alguien debe (y hay llave). Si todo cobrado, no se muestra.
+      const breBLine = (inf.saldoPendiente > 0 && breB)
+        ? `<div class="bal-breb">🔑 Bre-B <span class="breb-val">${e(breB)}</span></div>`
+        : '';
+      cobro = `<div class="bal-sep"></div><div class="bal-cobro-head">${head}</div>${breBLine}<div class="bal-group">${pendRows}${saldRows}</div>`;
     } else {
       cobro = '';   // nadie consumió todavía: nada que cobrar
     }
