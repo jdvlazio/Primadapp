@@ -388,9 +388,15 @@
       // "Pagar" abre la hoja con la llave Bre-B del principal; "Ya pagué" marca pagado; "Deshacer" revierte.
       case 'open-pagar':    ui.overlay = 'pagar'; ui.pagarPid = pid; rerender(); return;
       case 'marcar-pagado': {
+        const antes = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
         A.setPagado(prm, pid, true); ui.overlay = null; ui.pagarPid = null;
         const nom = (Store.select.persona(pid) || {}).nombre || 'Pago';   // confirmación VISIBLE: saldó su cuenta
-        View.toast('✓ ' + nom + ' saldado', 'ok'); rerender(); return;
+        View.toast('✓ ' + nom + ' saldado', 'ok');
+        // Si este pago SALDÓ la última deuda (saldoPendiente >0 → 0): cierra la ficha del asistente
+        // (el que acaba de pagar) y DESPLIEGA el Balance —documento de cierre que estaba colapsado.
+        const despues = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
+        if (antes > 0 && despues === 0) { ui.activaPid = null; ui.balanceOpen = true; }
+        rerender(); return;
       }
       case 'set-no-pagado': A.setPagado(prm, pid, false); break;
       case 'copiar-llave': {

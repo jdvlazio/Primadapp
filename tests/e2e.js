@@ -388,6 +388,26 @@ check('Informe: sin deuda → cobro-tot "✓ Todo cobrado" (.ok), sin "Por cobra
 Store.actions.setPagado(prm().id, beto.id, false);   // restaurar (Beto debe) para el resto del flujo
 check('Orden es presentación: Ana volvió a total 0 tras restaurar', Store.select.totalAsistencia(prm(), anaAsis()) === 0);
 
+/* ---------- 7d. Pagar al ÚLTIMO deudor → colapsa la ficha + DESPLIEGA el Balance ---------- */
+section('Pagar al último deudor (saldo→0): se cierra la ficha del asistente y se ABRE el Balance');
+// Primada ABIERTA (Balance colapsado por defecto), Beto único deudor ($7.000). Al pagar él, saldo→0:
+// el controller cierra su ficha (ui.activaPid=null) y despliega el Balance —documento de cierre.
+cerrarBalance();
+check('Partida: primada abierta', prm().estado === 'abierta');
+eq('Partida: Beto único deudor', Store.select.informePrincipal(prm()).saldoPendiente, 7000);
+check('Partida: Balance colapsado (default abierta)', !balanceVisible());
+activar(beto.id);
+check('Ficha de Beto abierta (botón "Pagar" inline)', !!q(`[data-act="open-pagar"][data-pid="${beto.id}"]`));
+click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);
+click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`);   // paga el ÚLTIMO → saldo 0
+eq('Saldo pendiente = 0 tras pagar al último', Store.select.informePrincipal(prm()).saldoPendiente, 0);
+check('Auto: la ficha del asistente se COLAPSÓ (sin "Pagar" inline)', !q(`[data-act="open-pagar"][data-pid="${beto.id}"]`));
+check('Auto: el Balance se DESPLEGÓ solo (panel visible)', balanceVisible());
+// restaurar para el resto del flujo: Beto vuelve a deber, Balance colapsado
+Store.actions.setPagado(prm().id, beto.id, false);
+cerrarBalance();
+eq('Restaurado: Beto vuelve a deber 7.000', Store.select.informePrincipal(prm()).saldoPendiente, 7000);
+
 /* ---------- 8. Cerrar congela consumos pero la UI sigue viva ---------- */
 section('Cerrar cuenta (INVARIANTE #4): "Cerrar" salió de Config; congela consumos');
 // P5 lote visual: "Cerrar" YA NO vive en Configuración. Es un CTA contextual que aparece arriba de la
@@ -424,7 +444,10 @@ eq('Saldo de Beto = 0 tras pagar', Store.select.saldoDe(prm(), betoAsis()), 0);
 eq('Informe: recaudado real = 7.000', Store.select.informePrincipal(prm()).recaudadoReal, 7000);
 eq('Informe: saldo pendiente = 0', Store.select.informePrincipal(prm()).saldoPendiente, 0);
 check('La hoja Pagar se cerró al marcar', q('#overlay').hidden);
-// Deshacer (vuelve a deber) y re-marcar (queda pagado para la persistencia)
+check('Pagar al último también colapsa la ficha (incluso cerrada): "Deshacer" deja de estar inline',
+  !q(`[data-act="set-no-pagado"][data-pid="${beto.id}"]`));
+// Deshacer (vuelve a deber) y re-marcar (queda pagado para la persistencia) — re-abro la ficha colapsada
+activar(beto.id);
 click(`[data-act="set-no-pagado"][data-pid="${beto.id}"]`);
 eq('Deshacer: Beto vuelve a deber 7.000', Store.select.saldoDe(prm(), betoAsis()), 7000);
 click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);
