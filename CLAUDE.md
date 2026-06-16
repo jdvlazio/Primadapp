@@ -219,7 +219,9 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     **3) Composición** (Cover · Margen · Reembolso de productos atenuado · Sobrante si >0,
     SIN líneas por fila) · **4) Cobro** (cabecera "Por cobrar $X"/"✓ Todo cobrado" + **🔑 Bre-B del anfitrión SOLO si
     hay saldo pendiente** —los deudores la miran para pagar, abierta o cerrada; se oculta al estar todo cobrado— +
-    deudores ámbar / saldados check teal). **Bre-B: Balance SÍ (operativo), informe PNG NO (resumen financiero).**
+    lista = **registro TRANSPARENTE del consumo de cada quien**: deudores ámbar / saldados check teal, y el
+    **ANFITRIÓN aparece SIEMPRE como saldado** (consumo en mano, marcado "Anfitrión"): su total se ve igual que el de
+    todos —el cruce de cuentas ya está en Reembolso + Margen—). **Bre-B: Balance SÍ (operativo), informe PNG NO (resumen financiero).**
     **Un solo divisor** (composición | cobro). Se quitaron:
     "Ganancia" como línea (vive solo en el héroe), `Recaudo teórico`/`Recaudado · de terceros · del principal`/`Por cobrar`
     duplicado, y los hairlines por fila. El **auto-abono del principal sigue vivo en el modelo** (mantiene

@@ -349,8 +349,9 @@ check('Informe: REPARTO nombra a los ahorradores, Anfitrión (Ana) incluido; mon
 check('Informe: composición Cover · Margen · Reembolso atenuado (.informe-comp / .informe-kv.dim)',
   /informe-comp/.test(informe) && /<span>Cover<\/span>/.test(informe) && /<span>Margen<\/span>/.test(informe)
   && /informe-kv dim"><span>Reembolso de productos<\/span>/.test(informe));
-// COBRO (debe/pagó, SIN productos): Beto pendiente con su saldo ($7.000, .pend). Ana (principal) EXCLUIDA del cobro.
-check('Informe: bloque Cobro con Beto pendiente $7.000 (.pend), SIN Ana (principal)',
+// COBRO (registro de consumo de cada quien): Beto pendiente con su saldo ($7.000, .pend). Ana (principal) NO
+// aparece aquí porque consumió $0 (no por ser principal); el anfitrión SÍ sale cuando consume (ver test dedicado).
+check('Informe: bloque Cobro con Beto pendiente $7.000 (.pend); Ana sin consumo no aparece',
   informe.includes('informe-sub">Cobro') && /informe-total pend">\$7\.000<\/div>/.test(informe)
   && new RegExp('informe-nombre">' + beto.nombre).test(informe) && !new RegExp('informe-nombre">' + ana.nombre).test(informe));
 // Total de cobro: "Por cobrar $X" (= saldo pendiente) en ámbar.
@@ -370,6 +371,25 @@ check('Informe: aunque el snapshot tenga Bre-B, el informe NO la muestra',
 prm().pago.breB = prevBreB || null;   // restaurar el snapshot
 // View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
 check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');
+
+/* ---------- 7b·2. TRANSPARENCIA: el anfitrión aparece en el COBRO cuando consume (✓, auto-saldado) ---------- */
+section('Cobro transparente: el anfitrión (Ana) aparece como ✓ saldado, marcado "Anfitrión", cuando consume');
+Store.actions.changeItem(prm().id, ana.id, 'cerveza', +1);   // el anfitrión consume → su total > 0
+const totAna = Store.select.totalAsistencia(prm(), anaAsis());
+check('Ana (anfitrión) consumió → total > 0', totAna > 0);
+const infCons = window.View.informeTemplateHTML(prm());
+// El anfitrión va en el Cobro como ✓ saldado (consumo en mano), marcado "Anfitrión", con su total visible.
+check('Informe: el anfitrión (Ana) en el Cobro = ✓ + "Anfitrión" + su total',
+  new RegExp('informe-nombre"><span class="informe-check">✓</span> ' + ana.nombre + ' <span class="informe-rep-anf">Anfitrión').test(infCons)
+  && infCons.includes('informe-total ok">' + window.Util.peso(totAna)));
+abrirBalance();
+const balCons = q('.balance-panel').innerHTML;
+check('Balance: el anfitrión (Ana) en el cobro = .bal-row.saldada + "Anfitrión" + su total',
+  new RegExp('bal-row saldada[^]*' + ana.nombre + ' <span class="bal-rep-anf">Anfitrión').test(balCons)
+  && new RegExp('Anfitrión</span></span><b class="pagado">' + window.Util.peso(totAna).replace(/[$.]/g, '\\$&')).test(balCons));
+cerrarBalance();
+Store.actions.changeItem(prm().id, ana.id, 'cerveza', -1);   // restaurar: Ana vuelve a total 0 (para el resto del flujo)
+check('Restaurado: Ana (anfitrión) vuelve a total 0', Store.select.totalAsistencia(prm(), anaAsis()) === 0);
 
 /* ---------- 7c. Orden por consumo (mayor total arriba) en app e informe ---------- */
 section('Orden por consumo: el que más debe, primero (cara Consumos + informe)');

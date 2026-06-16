@@ -471,9 +471,12 @@ la topbar del detalle → el panel **no repite cabecera**.
 4. **COBRO** (tras **UN** `.bal-sep`): cabecera `.bal-cobro-head` = **"Por cobrar $X"** (ámbar) mientras alguien
    deba, o **"✓ Todo cobrado"** (`.bal-cobro-ok`, teal). Debajo, la **llave 🔑 Bre-B del anfitrión** (`.bal-breb`,
    valor teal `.breb-val`) **SOLO si hay saldo pendiente** (los deudores la miran para pagar; abierta o cerrada —
-   cubre pagos tardíos; se **oculta** cuando todo está cobrado). Lista (`.bal-group`): **deudores** (`.bal-row` +
-   `b.pend` ámbar, mayor→menor) y **saldados** (`.bal-row.saldada` = check teal + nombre + `b.pagado` teal, mayor→menor).
-   Si la primada es incompleta → "Asigná un anfitrión".
+   cubre pagos tardíos; se **oculta** cuando todo está cobrado). Lista (`.bal-group`) = **registro TRANSPARENTE del
+   consumo de cada quien** (no solo "quién debe"): **deudores** (`.bal-row` + `b.pend` ámbar, mayor→menor) y **saldados**
+   (`.bal-row.saldada` = check teal + nombre + `b.pagado` teal, mayor→menor). El **ANFITRIÓN aparece SIEMPRE como
+   saldado** (su consumo está en mano, auto-saldado), marcado `.bal-rep-anf` "Anfitrión" → **su total se ve, igual que
+   el de todos** (transparencia; el cruce de cuentas ya está en Reembolso + Margen, no se oculta nada). Si la primada es
+   incompleta → "Asigná un anfitrión".
    > **Bre-B: Balance SÍ, informe PNG NO.** El **Balance in-app es operativo** → muestra la llave para que el deudor
    > pague. El **informe compartible** (§5, `informeTemplateHTML`) es el **resumen financiero del evento para todos**
    > → SIN llave (no es un medio de cobro, es el documento de cierre).

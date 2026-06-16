@@ -96,19 +96,22 @@
         ${sob > 0 ? `<div class="informe-kv"><span>Sobrante al fondo</span><b>${$peso(sob)}</b></div>` : ''}
       </div>`;
 
-    // COBRO (debe/pagó, SIN detalle de productos): pendientes (ámbar) y saldados (✓ teal), de mayor a menor.
+    // COBRO = registro TRANSPARENTE del consumo de cada quien (no solo "quién debe"): pendientes (ámbar) y
+    // saldados (✓ teal), de mayor a menor. El ANFITRIÓN aparece SIEMPRE como saldado (su consumo está en mano,
+    // auto-saldado), marcado "Anfitrión" → su total se ve, igual que el de todos (el cruce de cuentas ya está en
+    // Reembolso de productos + Margen, no se oculta nada).
     const deud = (completa ? sel.deudores(p).filter(d => d.personaId !== principalId) : [])
       .slice().sort((a, b) => b.saldo - a.saldo);
     const saldadas = (completa ? (p.asistencias || []) : [])
-      .filter(a => a.personaId !== principalId && a.pagado && sel.totalAsistencia(p, a) > 0)
+      .filter(a => (sel.esPrincipal(p, a) || a.pagado) && sel.totalAsistencia(p, a) > 0)
       .map(a => ({ a, total: sel.totalAsistencia(p, a) }))
       .sort((x, y) => y.total - x.total);
-    const fila = (nombre, monto, cls, check) => `<div class="informe-asis">
-        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombre)}</div></div>
+    const fila = (nombre, monto, cls, check, anf) => `<div class="informe-asis">
+        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombre)}${anf ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div></div>
         <div class="informe-total ${cls}">${$peso(monto)}</div>
       </div>`;
-    const pendRows = deud.map(d => fila(nombrePersona(d.personaId), d.saldo, 'pend', false)).join('');
-    const saldRows = saldadas.map(({ a, total }) => fila(nombrePersona(a.personaId), total, 'ok', true)).join('');
+    const pendRows = deud.map(d => fila(nombrePersona(d.personaId), d.saldo, 'pend', false, false)).join('');
+    const saldRows = saldadas.map(({ a, total }) => fila(nombrePersona(a.personaId), total, 'ok', true, sel.esPrincipal(p, a))).join('');
     const cobroTot = inf.saldoPendiente > 0
       ? `<div class="informe-cobro-tot pend">Por cobrar ${$peso(inf.saldoPendiente)}</div>`
       : `<div class="informe-cobro-tot ok">✓ Todo cobrado</div>`;
@@ -702,11 +705,12 @@
     const prinId = p.organizadorPrincipalId;
     // Llave Bre-B del anfitrión (snapshot pago.breB con fallback a la persona vigente). Valor en teal (.breb-val).
     const breB = ((p.pago && p.pago.breB) || (prinId ? (sel.persona(prinId) || {}).breB : null) || '').toString().trim();
-    // Listas de cobro, AMBAS de MAYOR a MENOR monto: deudores (por saldo) y saldados (por lo que pagaron).
+    // Listas de cobro = registro TRANSPARENTE del consumo de cada quien. Deudores (por saldo) y saldados (✓),
+    // de MAYOR a MENOR. El ANFITRIÓN aparece SIEMPRE como saldado (consumo en mano, auto-saldado), marcado.
     const deud = (completa ? sel.deudores(p).filter(d => d.personaId !== prinId) : [])
       .slice().sort((a, b) => b.saldo - a.saldo);
     const saldadas = (completa ? (p.asistencias || []) : [])
-      .filter(a => a.personaId !== prinId && a.pagado && sel.totalAsistencia(p, a) > 0)
+      .filter(a => (sel.esPrincipal(p, a) || a.pagado) && sel.totalAsistencia(p, a) > 0)
       .map(a => ({ a, total: sel.totalAsistencia(p, a) }))
       .sort((x, y) => y.total - x.total);
 
@@ -749,7 +753,7 @@
       cobro = `<div class="bal-sep"></div><div class="bal-group"><div class="bal-row"><span class="muted small">Asigná un anfitrión para el cobro</span></div></div>`;
     } else if (deud.length || saldadas.length) {
       const pendRows = deud.map(d => `<div class="bal-row"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('');
-      const saldRows = saldadas.map(({ a, total }) => `<div class="bal-row saldada"><span><span class="asis-check">${icon('check', 'sm')}</span>${e(nombrePersona(a.personaId))}</span><b class="pagado">${$peso(total)}</b></div>`).join('');
+      const saldRows = saldadas.map(({ a, total }) => `<div class="bal-row saldada"><span><span class="asis-check">${icon('check', 'sm')}</span>${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</span><b class="pagado">${$peso(total)}</b></div>`).join('');
       const head = inf.saldoPendiente > 0
         ? `Por cobrar <b class="pend">${$peso(inf.saldoPendiente)}</b>`
         : `<span class="bal-cobro-ok">${icon('check', 'sm')}Todo cobrado</span>`;
