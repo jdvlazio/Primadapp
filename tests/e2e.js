@@ -405,7 +405,7 @@ click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);
 click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`);   // paga el ÚLTIMO → saldo 0
 eq('Saldo pendiente = 0 tras pagar al último', Store.select.informePrincipal(prm()).saldoPendiente, 0);
 check('Auto: Asistentes se COLAPSÓ (lista oculta, ficha sin "Pagar")', !asisVisible() && !q(`[data-act="open-pagar"][data-pid="${beto.id}"]`));
-check('Auto: encabezado de Asistentes con hint "Todos pagaron" (.asis-hint.ok)', !!q('.asis-hint.ok'));
+check('Auto: el toggle de Asistentes muestra solo el chulo ✓ teal (.asis-toggle-ok), sin el hint de texto viejo', !!q('.asis-toggle-ok') && !q('.asis-hint'));
 check('Auto: el Balance se DESPLEGÓ solo (panel visible)', balanceVisible());
 // restaurar para el resto del flujo: Beto vuelve a deber, ambos acordeones a estado de operación
 Store.actions.setPagado(prm().id, beto.id, false);

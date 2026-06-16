@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260616-164811-1af1f3f">
+<meta name="build" content="20260616-165704-b40fe56">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -164,15 +164,15 @@
   .h2 .muted{margin-left:var(--space-1)}
   /* cabecera de sección: título + acción de texto en la misma línea, con aire arriba */
   .sec-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
-  /* Asistentes = acordeón simétrico al Balance: el encabezado (h2 + chevron) es tocable */
-  .asis-toggle{display:inline-flex;align-items:center;gap:var(--space-2);background:transparent;border:none;cursor:pointer;padding:var(--space-2) 0;color:inherit;min-height:var(--tap-sec)}
+  /* Asistentes = acordeón SIMÉTRICO al Balance: toggle CENTRADO, mayúsculas, teal al abrir (.on).
+     MISMO patrón que .balance-toggle (sistema de diseño). Solo el chulo ✓ teal cuando todos pagaron. */
+  .asis-toggle{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;min-height:var(--tap-row);background:transparent;border:none;cursor:pointer;color:var(--ink-soft);font-family:inherit;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;padding:var(--space-3)}
   .asis-toggle:active{opacity:.7}
-  .asis-toggle .icon{width:18px;height:18px;color:var(--ink-soft)}
-  .asis-toggle.on .icon{color:var(--accent)}
-  .asis-hint{display:inline-flex;align-items:center;gap:var(--space-1);font-size:13px;font-weight:700}
-  .asis-hint.ok{color:var(--accent)}
-  .asis-hint.pend{color:var(--amber)}
-  .asis-hint .icon{width:15px;height:15px}
+  .asis-toggle.on{color:var(--accent)}
+  .asis-toggle .icon{width:18px;height:18px}
+  .asis-toggle-ok{display:inline-flex;align-items:center;color:var(--accent)}
+  .asis-toggle-ok .icon{width:16px;height:16px}
+  .asis-add{display:flex;justify-content:center;margin-bottom:var(--space-4)}
   /* enlace de acción en texto (sin caja): teal, con su ícono */
   .add-link{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-2)}
   .add-link:active{opacity:.6}
@@ -735,13 +735,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260616-164811-1af1f3f"></script>
-  <script src="js/util.js?v=20260616-164811-1af1f3f"></script>
-  <script src="js/api.js?v=20260616-164811-1af1f3f"></script>
-  <script src="js/auth.js?v=20260616-164811-1af1f3f"></script>
-  <script src="js/store.js?v=20260616-164811-1af1f3f"></script>
-  <script src="js/view.js?v=20260616-164811-1af1f3f"></script>
-  <script src="js/controller.js?v=20260616-164811-1af1f3f"></script>
+  <script src="js/config.js?v=20260616-165704-b40fe56"></script>
+  <script src="js/util.js?v=20260616-165704-b40fe56"></script>
+  <script src="js/api.js?v=20260616-165704-b40fe56"></script>
+  <script src="js/auth.js?v=20260616-165704-b40fe56"></script>
+  <script src="js/store.js?v=20260616-165704-b40fe56"></script>
+  <script src="js/view.js?v=20260616-165704-b40fe56"></script>
+  <script src="js/controller.js?v=20260616-165704-b40fe56"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

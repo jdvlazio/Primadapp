@@ -441,14 +441,6 @@
     if (ui && ui.asisOpen != null) return !!ui.asisOpen;
     return !(p && p.estado === 'cerrada');
   }
-  // Resumen tenue que reemplaza a "+ Agregar" cuando Asistentes está COLAPSADO: el estado de cobro
-  // (la señal accionable), no la lista. Nada si la primada está incompleta o aún sin plata.
-  function asisColapsadoHint(p, inf) {
-    if (inf.incompleta || inf.recaudadoTeorico <= 0) return '';
-    return inf.saldoPendiente === 0
-      ? `<span class="asis-hint ok">${icon('check', 'sm')}Todos pagaron</span>`
-      : `<span class="asis-hint pend">${$peso(inf.saldoPendiente)} por cobrar</span>`;
-  }
   function primadaDetalle(p, ui) {
     // CTA contextual para CERRAR (P5 lote visual): NO vive en Configuración. Aparece como banner arriba
     // de la operación SOLO cuando ya hubo plata y TODOS saldaron (saldoPendiente 0 = nadie debe; el
@@ -457,23 +449,23 @@
     const cerrarCTA = (p.estado === 'abierta' && !inf.incompleta && inf.recaudadoTeorico > 0 && inf.saldoPendiente === 0)
       ? `<button class="cerrar-cta" data-act="cerrar-primada" data-id="${p.id}">${icon('check')}Todos pagaron · Cerrar primada</button>`
       : '';
-    // ASISTENTES = acordeón (encabezado tocable). Abierto: "+ Agregar" + lista viva. Colapsado: solo el
-    // encabezado + hint de cobro. El chevron lo refleja (abajo=abierto, igual que Balance).
+    // ASISTENTES = acordeón SIMÉTRICO al Balance: toggle CENTRADO, teal al abrir (.on), mismo dock. Cuando
+    // hubo plata y TODOS saldaron → solo el chulo ✓ teal (minimalista, sin texto). El "+ Agregar" vive en el cuerpo.
     const abierto = asisAbierto(p, ui);
-    const head = `<div class="sec-head">
-        <button class="asis-toggle ${abierto ? 'on' : ''}" data-act="toggle-asis-panel" aria-expanded="${abierto ? 'true' : 'false'}">
-          <h2 class="h2">Asistentes <span class="muted">${p.asistencias.length}</span></h2>${icon(abierto ? 'chevron-down' : 'chevron-up')}
-        </button>
-        ${abierto ? pickerAsistentes(p, ui) : asisColapsadoHint(p, inf)}
-      </div>`;
-    const lista = abierto
+    const cobrado = !inf.incompleta && inf.recaudadoTeorico > 0 && inf.saldoPendiente === 0;
+    const ok = cobrado ? `<span class="asis-toggle-ok" title="Todos pagaron">${icon('check', 'sm')}</span>` : '';
+    const chip = `<button class="asis-toggle ${abierto ? 'on' : ''}" data-act="toggle-asis-panel" aria-expanded="${abierto ? 'true' : 'false'}">
+        <span>Asistentes ${p.asistencias.length}</span>${ok}${icon(abierto ? 'chevron-down' : 'chevron-up')}
+      </button>`;
+    const picker = pickerAsistentes(p, ui);
+    const body = abierto
       ? `<div class="asis-list">
-        ${p.asistencias.length
-          ? S().asistenciasPorConsumo(p).map(a => asistenteFilaViva(p, a, ui)).join('')
-          : '<div class="empty-soft">Sin asistentes</div>'}
-      </div>`
+          ${p.asistencias.length
+            ? S().asistenciasPorConsumo(p).map(a => asistenteFilaViva(p, a, ui)).join('')
+            : '<div class="empty-soft">Sin asistentes</div>'}
+        </div>${picker ? `<div class="asis-add">${picker}</div>` : ''}`
       : '';
-    return `${cerrarCTA}${presenciaLinea(ui)}${head}${lista}`;
+    return `${cerrarCTA}${presenciaLinea(ui)}<div class="asis-dock">${chip}${body}</div>`;
   }
 
   // PRESENCE (Fase C): línea DISCRETA con quién más está en la primada; si alguien apuntó hace poco
