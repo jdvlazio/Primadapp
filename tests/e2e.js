@@ -329,10 +329,14 @@ check('Informe ABIERTA: héroe "Ganancia" (gan) con la ganancia + nota Provision
   informe.includes('informe-hero gan') && informe.includes('informe-hero-lbl">Ganancia')
   && informe.includes('informe-hero-val">' + window.Util.peso(Store.select.ganancia(prm())))
   && informe.includes('informe-hero-note'));
-// RESUMEN financiero: "Parte igual c/u" + N ahorradores + el valor.
-check('Informe: resumen "Parte igual c/u" con valor + ahorradores',
-  informe.includes('Parte igual c/u') && informe.includes('informe-kv-sub') && /ahorrador/.test(informe)
-  && informe.includes('<b>' + window.Util.peso(Store.select.parteIgual(prm())) + '</b>'));
+// KPI "Parte igual c/u" + N ahorradores + el valor (espejo del Balance in-app, .informe-stat).
+check('Informe: KPI "Parte igual c/u" + ahorradores + valor (.informe-stat)',
+  informe.includes('informe-stat') && informe.includes('Parte igual c/u') && informe.includes('informe-stat-sub') && /ahorrador/.test(informe)
+  && informe.includes('informe-stat-v">' + window.Util.peso(Store.select.parteIgual(prm()))));
+// COMPOSICIÓN: Cover · Margen · Reembolso de productos (atenuado .informe-kv.dim) — como el Balance.
+check('Informe: composición Cover · Margen · Reembolso atenuado (.informe-comp / .informe-kv.dim)',
+  /informe-comp/.test(informe) && /<span>Cover<\/span>/.test(informe) && /<span>Margen<\/span>/.test(informe)
+  && /informe-kv dim"><span>Reembolso de productos<\/span>/.test(informe));
 // COBRO (debe/pagó, SIN productos): Beto pendiente con su saldo ($7.000, .pend). Ana (principal) EXCLUIDA del cobro.
 check('Informe: bloque Cobro con Beto pendiente $7.000 (.pend), SIN Ana (principal)',
   informe.includes('informe-sub">Cobro') && /informe-total pend">\$7\.000<\/div>/.test(informe)
@@ -342,25 +346,16 @@ check('Informe: cobro-tot "Por cobrar $X" (= saldo pendiente)',
   informe.includes('informe-cobro-tot pend">Por cobrar ' + window.Util.peso(Store.select.informePrincipal(prm()).saldoPendiente)));
 // SIN footer "Generado con Primadapp" (se quitó: la marca aparecía de más). El wordmark de arriba basta.
 check('Informe: SIN footer "Generado con Primadapp"', !/Generado con Primadapp/.test(informe) && !/informe-foot/.test(informe));
-// Bre-B del principal (snapshot p.pago.breB): línea destacada 🔑 tras el título. Sin breB → omitida.
-check('Informe: sin Bre-B → la línea 🔑 se omite', !/informe-llave/.test(informe));
+// SIN llave Bre-B: el informe es el documento ejecutivo del Tesorero; el cómo-pagar vive en la hoja Pagar.
+// NO aparece ni aunque el snapshot pago.breB la tenga.
+check('Informe: SIN llave Bre-B (ni 🔑 ni informe-llave ni "Bre-B")',
+  !/informe-llave/.test(informe) && !/🔑/.test(informe) && !/Bre-B/.test(informe));
 const prevBreB = prm().pago.breB;
 prm().pago.breB = 'ana@bre-b';
-const conLlave = window.View.informeTemplateHTML(prm());
-check('Informe: "🔑 Bre-B:" neutro + el VALOR en teal (regla global .breb-val)',
-  /informe-llave">🔑 Bre-B: <span class="breb-val">ana@bre-b<\/span>/.test(conLlave));
-check('Informe: la 🔑 va tras el título y antes de los asistentes',
-  conLlave.indexOf('informe-title') < conLlave.indexOf('informe-llave') &&
-  conLlave.indexOf('informe-llave') < conLlave.indexOf('informe-asis'));
+const conSnap = window.View.informeTemplateHTML(prm());
+check('Informe: aunque el snapshot tenga Bre-B, el informe NO la muestra',
+  !/Bre-B/.test(conSnap) && !/ana@bre-b/.test(conSnap));
 prm().pago.breB = prevBreB || null;   // restaurar el snapshot
-// FALLBACK (bug): si el snapshot pago.breB es null pero la PERSONA principal ya tiene Bre-B (se agregó
-// DESPUÉS de crear la primada), el 🔑 igual aparece tomando la llave vigente de la persona.
-prm().pago.breB = null;                                  // snapshot vacío (como una primada vieja)
-Store.actions.setBreBPersona(ana.id, 'ana-nueva@bre-b'); // llave agregada a la persona después
-check('Informe (PNG): Bre-B por FALLBACK a la persona principal cuando el snapshot es null',
-  /informe-llave">🔑 Bre-B: <span class="breb-val">ana-nueva@bre-b<\/span>/.test(window.View.informeTemplateHTML(prm())));
-// NOTA: el Balance in-app YA NO muestra Bre-B (resumen ejecutivo): el cómo-pagar vive en la hoja Pagar.
-Store.actions.setBreBPersona(ana.id, '');                // restaurar (persona sin llave)
 // View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
 check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');
 

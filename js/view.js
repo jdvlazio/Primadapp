@@ -44,11 +44,12 @@
   }
 
   /* ============================================================
-     INFORME COMPARTIBLE — template HTML (PURO) para capturar como PNG (html2canvas).
-     Superficie OSCURA fiel al sistema de diseño (paper/ink/accent/amber), NO una tarjeta blanca.
-     Jerarquía: wordmark (UNA sola marca) + período → título de la primada → 🔑 Bre-B → HÉROE grande
-     (Ganancia teal / Por cobrar ámbar, en una banda destacada) → detalle por persona (lo que paga
-     cada quien: productos + total; pendiente ámbar, saldado ✓ teal). SIN footer "Generado con…".
+     INFORME COMPARTIBLE — template HTML (PURO) para capturar como PNG (html2canvas). Es el DOCUMENTO
+     FINAL del Tesorero (sobre todo cerrada + todos pagaron): MISMO resumen ejecutivo que el Balance in-app.
+     Superficie OSCURA fiel al sistema (paper/ink/accent/amber), NO una tarjeta blanca. SIN llave Bre-B
+     (el cómo-pagar vive en la hoja Pagar) y SIN footer. Jerarquía:
+       wordmark + período → título → HÉROE Ganancia (teal, banda) → KPI Parte igual c/u → COMPOSICIÓN
+       (Cover · Margen · Reembolso atenuado · Sobrante si>0) → COBRO (debe/pagó: ✓ teal / ámbar + total).
      ============================================================ */
   function informeTemplateHTML(p) {
     const sel = S();
@@ -61,21 +62,26 @@
     const sob = sel.sobranteFondo(p);
     const gan = sel.ganancia(p);
 
-    // Llave Bre-B del principal (snapshot con fallback a la persona vigente). Valor en teal (regla .breb-val).
-    const breBRaw = (p.pago && p.pago.breB) || (principalId ? (sel.persona(principalId) || {}).breB : null) || '';
-    const breB = breBRaw ? String(breBRaw).trim() : '';
-    const llave = breB ? `<div class="informe-llave">🔑 Bre-B: <span class="breb-val">${e(breB)}</span></div>` : '';
-
-    // HÉROE = Ganancia (resultado financiero, lo que va al Tesorero). Provisional mientras esté abierta.
+    // HÉROE = Ganancia (lo que va al Tesorero), teal. Provisional mientras esté abierta.
     const hero = `<div class="informe-hero gan">
         <span class="informe-hero-lbl">Ganancia${cerrada ? ' · al Tesorero' : ''}</span>
         <span class="informe-hero-val">${$peso(gan)}</span>
         ${cerrada ? '' : '<span class="informe-hero-note">Provisional — se confirma al cerrar</span>'}
       </div>`;
 
-    // RESUMEN financiero: parte igual c/u (a N ahorradores) + sobrante al fondo (si > 0).
-    const resumen = `<div class="informe-resumen">
-        <div class="informe-kv"><span>Parte igual c/u <span class="informe-kv-sub">${ahorr.length} ahorrador${ahorr.length === 1 ? '' : 'es'}</span></span><b>${$peso(pi)}</b></div>
+    // KPI Parte igual c/u — el segundo número clave (lo que recibe cada ahorrador).
+    const stat = ahorr.length
+      ? `<div class="informe-stat">
+          <div class="informe-stat-k">Parte igual c/u<span class="informe-stat-sub">${ahorr.length} ahorrador${ahorr.length === 1 ? '' : 'es'}</span></div>
+          <div class="informe-stat-v">${$peso(pi)}</div>
+        </div>`
+      : '';
+
+    // COMPOSICIÓN — Cover · Margen (cómo se arma) · Reembolso de productos (atenuado, passthrough) · Sobrante (si > 0).
+    const comp = `<div class="informe-comp">
+        <div class="informe-kv"><span>Cover</span><b>${$peso(sel.coverCobrado(p))}</b></div>
+        <div class="informe-kv"><span>Margen</span><b>${$peso(sel.margenTotal(p))}</b></div>
+        ${completa ? `<div class="informe-kv dim"><span>Reembolso de productos</span><b>${$peso(inf.recuperaPrincipal)}</b></div>` : ''}
         ${sob > 0 ? `<div class="informe-kv"><span>Sobrante al fondo</span><b>${$peso(sob)}</b></div>` : ''}
       </div>`;
 
@@ -105,9 +111,9 @@
           <span class="informe-period">${e(Util.monthYear(p.mesContable))}</span>
         </div>
         <div class="informe-title">${e(nombreCorto(p.nombre))}</div>
-        ${llave}
         ${hero}
-        ${resumen}
+        ${stat}
+        ${comp}
         ${cobro}
       </div>`;
   }
