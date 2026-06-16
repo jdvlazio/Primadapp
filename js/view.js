@@ -671,12 +671,14 @@
   }
 
   /* ============================================================
-     BALANCE — UNA sola tarjeta consolidada (antes eran dos acordeones: Ganancia + Recaudo, que repetían
-     "Ganancia" y fragmentaban). Información-Engineer: un solo HÉROE = Ganancia (la cifra invariante del
-     Balance); el TEASER es la señal VIVA por DEUDA (no por estado): "Falta cobrar $X" mientras alguien deba,
-     si no "$Y a cada ahorrador · N". El desglose ordena por ACCIONABILIDAD: primero COBRO (Bre-B + Debe,
-     solo si hay algo que cobrar), un divisor, y luego las CUENTAS de referencia (parte igual, cover, margen,
-     reembolso atenuado, sobrante si>0). Cero números repetidos. Mismos selectores → cifras idénticas. */
+     BALANCE — RESUMEN EJECUTIVO para el Tesorero (§2.11.1.a). UNA card, SIN acordeón interno: al abrir el
+     panel se ve TODO el resumen de una. Orden por relevancia para el Tesorero:
+       1) HÉROE Ganancia (teal) — lo que entra al fondo / se entrega al Tesorero (= entregaTesorero).
+       2) KPI Parte igual c/u — el segundo número clave (lo que recibe cada ahorrador).
+       3) COMPOSICIÓN — Cover + Margen (cómo se arma), Reembolso de productos (passthrough, atenuado),
+          Sobrante al fondo (solo si > 0). Filas agrupadas SIN líneas por fila (la jerarquía la da el espacio).
+       4) COBRO — quién debe (ámbar) / quién pagó (check teal), SIN Bre-B (el cómo-pagar vive en la hoja Pagar).
+     UN solo divisor (composición | cobro). Cero números repetidos. Mismos selectores → cifras idénticas. */
   function balancePrimada(p, ui) {
     const sel = S();
     const gan = sel.ganancia(p);
@@ -686,7 +688,6 @@
     const inf = sel.informePrincipal(p);
     const completa = !inf.incompleta;
     const cerrada = p.estado === 'cerrada';
-    const abierto = ui && ui.balance && ui.balance.has('balance');
     const prinId = p.organizadorPrincipalId;
     // Listas de cobro, AMBAS de MAYOR a MENOR monto: deudores (por saldo) y saldados (por lo que pagaron).
     const deud = (completa ? sel.deudores(p).filter(d => d.personaId !== prinId) : [])
@@ -695,48 +696,46 @@
       .filter(a => a.personaId !== prinId && a.pagado && sel.totalAsistencia(p, a) > 0)
       .map(a => ({ a, total: sel.totalAsistencia(p, a) }))
       .sort((x, y) => y.total - x.total);
-    const pendiente = completa && inf.saldoPendiente > 0;
 
-    // HÉROE: Ganancia (la pregunta invariante del Balance). Provisional mientras la primada esté abierta.
+    // 1) HÉROE — Ganancia (teal, regla global). Cerrada: "al Tesorero". Abierta: provisional.
     const hero = `<div class="bal-hero">
-        <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Ganancia</div>
-        <div class="bal-amount">${$peso(gan)}</div>
+        <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Ganancia${cerrada ? ' · al Tesorero' : ''}</div>
+        <div class="bal-amount entregado">${$peso(gan)}</div>
         ${cerrada ? '' : `<div class="bal-note">Provisional — se confirma al cerrar</div>`}
       </div>`;
 
-    // TEASER state-aware POR DEUDA (lo VIVO manda): falta cobrar → reparto → sin ganancia → sin ahorradores.
-    let teaser;
-    if (!ahorr.length) teaser = 'Sin ahorradores';
-    else if (pendiente) teaser = `Falta cobrar ${$peso(inf.saldoPendiente)}`;
-    else if (pi > 0) teaser = `${$peso(pi)} a cada ahorrador · ${ahorr.length}`;
-    else teaser = 'Sin ganancia aún';
-    const toggle = `<button class="acc-head bal-toggle" data-act="toggle-balance" data-sec="balance" aria-expanded="${abierto ? 'true' : 'false'}">
-        <span class="acc-caret ${abierto ? 'open' : ''}">${icon('chevron-down')}</span>
-        <span class="acc-sub">${teaser}</span>
-      </button>`;
+    // 2) KPI Parte igual c/u — el reparto por ahorrador (el segundo número que el Tesorero necesita).
+    const stat = ahorr.length
+      ? `<div class="bal-stat">
+          <div class="bal-stat-k">Parte igual c/u<span class="bal-stat-sub">${ahorr.length} ahorrador${ahorr.length === 1 ? '' : 'es'}</span></div>
+          <div class="bal-stat-v">${$peso(pi)}</div>
+        </div>`
+      : `<div class="bal-stat"><div class="bal-stat-k">Sin ahorradores aún</div></div>`;
 
-    // COBRO (accionable) PRIMERO. PENDIENTES ("Debe", ámbar) con Bre-B (cómo pagan); luego los SALDADOS al
-    // final SIN rótulo — solo el check teal + nombre en gris + lo que pagaron. Quién pagó y cuánto NO se pierde.
-    const breB = (p.pago && p.pago.breB) || (prinId ? (sel.persona(prinId) || {}).breB : null) || '';
-    const pendRows = deud.map(d => `<div class="kv"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('');
-    const saldRows = saldadas.map(({ a, total }) => `<div class="kv saldada"><span><span class="asis-check">${icon('check', 'sm')}</span> ${e(nombrePersona(a.personaId))}</span><b class="pagado">${$peso(total)}</b></div>`).join('');
-    const cobro = !completa
-      ? `<div class="kv"><span class="muted small">Asigná un anfitrión para el cobro</span></div>`
-      : (deud.length
-          ? `<div class="kv"><span>Bre-B</span><b${breB ? ' class="breb-val"' : ''}>${breB ? e(breB) : '—'}</b></div><div class="sub">Debe</div>${pendRows}${saldRows}`
-          : saldRows);
+    // 3) COMPOSICIÓN — sin líneas por fila; el espacio agrupa. Reembolso atenuado (passthrough, NO ingreso).
+    const comp = `<div class="bal-group">
+        <div class="bal-row"><span>Cover</span><b>${$peso(sel.coverCobrado(p))}</b></div>
+        <div class="bal-row"><span>Margen</span><b>${$peso(sel.margenTotal(p))}</b></div>
+        ${completa ? `<div class="bal-row dim"><span>Reembolso de productos</span><b>${$peso(inf.recuperaPrincipal)}</b></div>` : ''}
+        ${sob > 0 ? `<div class="bal-row"><span>Sobrante al fondo</span><b>${$peso(sob)}</b></div>` : ''}
+      </div>`;
 
-    // CUENTAS (referencia) DESPUÉS: parte igual (lo que toca), cómo se compone (cover/margen), reembolso
-    // (costo, atenuado — puede ser > ganancia y NO es ingreso), y el sobrante indivisible solo si > 0.
-    const cuentas = `<div class="kv"><span>Parte igual c/u</span><b>${$peso(pi)}</b></div>
-        <div class="kv"><span>Cover</span><b>${$peso(sel.coverCobrado(p))}</b></div>
-        <div class="kv"><span>Margen</span><b>${$peso(sel.margenTotal(p))}</b></div>
-        ${completa ? `<div class="kv dim"><span>Reembolso de productos</span><b>${$peso(inf.recuperaPrincipal)}</b></div>` : ''}
-        ${sob > 0 ? `<div class="kv"><span>Sobrante al fondo</span><b>${$peso(sob)}</b></div>` : ''}`;
+    // 4) COBRO — cabecera "Por cobrar $X" (ámbar) / "✓ Todo cobrado" (teal) + lista (deudores ámbar, saldados check teal).
+    let cobro;
+    if (!completa) {
+      cobro = `<div class="bal-sep"></div><div class="bal-group"><div class="bal-row"><span class="muted small">Asigná un anfitrión para el cobro</span></div></div>`;
+    } else if (deud.length || saldadas.length) {
+      const pendRows = deud.map(d => `<div class="bal-row"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('');
+      const saldRows = saldadas.map(({ a, total }) => `<div class="bal-row saldada"><span><span class="asis-check">${icon('check', 'sm')}</span>${e(nombrePersona(a.personaId))}</span><b class="pagado">${$peso(total)}</b></div>`).join('');
+      const head = inf.saldoPendiente > 0
+        ? `Por cobrar <b class="pend">${$peso(inf.saldoPendiente)}</b>`
+        : `<span class="bal-cobro-ok">${icon('check', 'sm')}Todo cobrado</span>`;
+      cobro = `<div class="bal-sep"></div><div class="bal-cobro-head">${head}</div><div class="bal-group">${pendRows}${saldRows}</div>`;
+    } else {
+      cobro = '';   // nadie consumió todavía: nada que cobrar
+    }
 
-    const sep = cobro ? '<div class="bal-sep"></div>' : '';
-    const body = abierto ? `<div class="acc-body">${cobro}${sep}${cuentas}</div>` : '';
-    return `<div class="card dark acc-card ${abierto ? 'open' : ''}">${hero}${toggle}${body}</div>`;
+    return `<div class="card dark bal-card">${hero}${stat}${comp}${cobro}</div>`;
   }
 
   /* ============================================================

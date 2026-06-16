@@ -208,13 +208,17 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     (`open-config-primada` → hoja `configPrimadaSheet`: Asistentes | Productos).
   - **Cuerpo:** **Lista viva** (Consumos, Modelo 3) **+ panel de Balance** debajo (mismo scroll, subordinado). Un chip
     **"Balance ▲/▼"** lo despliega/colapsa (`toggle-balance-panel`, `ui.balanceOpen`). Default por estado: ABIERTA =
-    colapsado; CERRADA = desplegado (documento final). Reusa `balancePrimada()` (Ganancia + Recaudo, state-aware).
-  - **Balance PODADO (auditoría):** el motor (`informePrincipal` y todos los selectores) calcula TODO con las identidades
-    del dominio, pero el **body solo MUESTRA lo accionable** (no la plomería contable). **Ganancia:** Cover · Margen ·
-    Ganancia · Parte igual c/u · (Sobrante solo si > 0). **Recaudo:** 🔑 Bre-B · Recupera · Entrega al Tesorero · "Debe".
-    Se quitaron del display: "Ahorradores: N" y la lista "Por persona" (redundantes con el teaser), y `Recaudo teórico` /
-    `Recaudado · de terceros · del principal` / `Por cobrar` (auto-abono = plomería; el héroe ya da "Por cobrar"). El
-    **auto-abono del principal sigue vivo en el modelo** (mantiene `real+pendiente=teórico`), solo no se pinta.
+    colapsado; CERRADA = desplegado (documento final). Reusa `balancePrimada()` (resumen ejecutivo, state-aware).
+  - **Balance = RESUMEN EJECUTIVO para el Tesorero (DESIGN.md §2.11.1.a):** al abrir el panel se ve TODO de una
+    (SIN acordeón interno — el viejo `toggle-balance`/`ui.balance` se ELIMINÓ). El motor (`informePrincipal` + selectores)
+    calcula TODO con las identidades, pero el body **solo MUESTRA lo accionable**, en este orden: **1) HÉROE Ganancia**
+    (teal siempre — regla global; cerrada "· al Tesorero", abierta + nota "Provisional") · **2) KPI Parte igual c/u**
+    (`.bal-stat`, + N ahorradores) · **3) Composición** (Cover · Margen · Reembolso de productos atenuado · Sobrante si >0,
+    SIN líneas por fila) · **4) Cobro** (cabecera "Por cobrar $X"/"✓ Todo cobrado" + deudores ámbar / saldados check teal).
+    **SIN llave Bre-B** (el cómo-pagar vive en la hoja Pagar) y **un solo divisor** (composición | cobro). Se quitaron:
+    "Ganancia" como línea (vive solo en el héroe), `Recaudo teórico`/`Recaudado · de terceros · del principal`/`Por cobrar`
+    duplicado, y los hairlines por fila. El **auto-abono del principal sigue vivo en el modelo** (mantiene
+    `real+pendiente=teórico`), solo no se pinta.
   - **Presencia** ("X está apuntando") y el **indicador offline** viven DENTRO del detalle (se desuscriben en el home).
 - **Ajustes GLOBALES = pantalla PLANA (sin tabs)**, desde el ⚙ del home (`ajustesSheet`). Secciones como
   **ACORDEONES con (v)**, COLAPSADAS por defecto (la primera pantalla queda corta; "Agregar persona" a la mano):

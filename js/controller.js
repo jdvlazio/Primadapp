@@ -64,15 +64,13 @@
   // - asisOpen: sección Asistentes del detalle DESPLEGADA (acordeón SIMÉTRICO al Balance; null = default por
   //   estado: abierta→abierto para operar, cerrada→colapsado; bool = manual con el encabezado tocable). Al
   //   pagar al ÚLTIMO deudor (saldoPendiente >0→0) se colapsa Asistentes y se abre Balance. Se resetea con balanceOpen.
-  // - balance: Set de cards-acordeón del Balance abiertas ('reparto'|'informe'); el héroe (cifra grande) va
-  //   SIEMPRE visible fuera del acorde, el desglose (derivación) dentro.
   // - view: VISTA actual (IA list→detalle) — 'home' (lista de primadas) | 'detalle' (operación de la activa).
   //   Reemplaza al viejo ui.tab. Cold-start y "volver" → 'home'; entrar a una primada → 'detalle' (+ pushState).
   // - authEstado: estado de la cuenta para el ícono de la topbar del home ('in'|'out'|'placeholder').
   const ui = { view: 'home', balanceOpen: null, asisOpen: null, overlay: null, activaPid: null, wizard: null,
                authEstado: 'placeholder', editPersonaId: null, nuevaPersona: false,
                configTab: 'asistentes', configProd: new Set(), pagarPid: null,
-               balance: new Set(), auditPid: null, apuntadores: {}, presentes: [],
+               auditPid: null, apuntadores: {}, presentes: [],
                primadaMenuId: null, ajustesSec: new Set(), loginEstado: 'form', loginEmail: '' };
   let sesionActiva = false;   // hay sesión Supabase (gate INVERTIDO: lectura sin sesión, escritura requiere login)
   let miEmail = null;         // email de la sesión (para presence "quién está apuntando")
@@ -366,12 +364,6 @@
           ui._apuntadoresCargados = true;
           Promise.resolve(root.Api.fetchApuntadores()).then(m => { ui.apuntadores = m || {}; rerender(); }).catch(() => {});
         }
-        rerender(); return;
-      }
-      // ----- Balance: desglose (derivación) de cada card-acordeón, colapsado por defecto -----
-      case 'toggle-balance': {
-        const sec = b.dataset.sec;
-        if (ui.balance.has(sec)) ui.balance.delete(sec); else ui.balance.add(sec);
         rerender(); return;
       }
 

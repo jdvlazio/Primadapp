@@ -445,53 +445,46 @@ que importa); **cerrada → desplegado** (su documento final). Se resetea (`rese
 reabrir. El **cálculo no cambia**: es el mismo `reparto` + `informe` (state-aware). La identidad (nombre/fecha) la da
 la topbar del detalle → el panel **no repite cabecera**.
 
-#### 2.11.1.a · La cara BALANCE — cifra HÉROE + derivación + state-aware (✅ CANÓNICO)
+#### 2.11.1.a · El panel BALANCE — RESUMEN EJECUTIVO para el Tesorero (✅ CANÓNICO)
 
-El Balance son **dos cards** (`balancePrimada` → `reparto` + `informe`), cada una con un **número HÉROE
-SIEMPRE visible** (la cifra que importa, fuera del acorde) y un **acorde con la derivación** (cómo se
-calculó). El número clave nunca se esconde tras un acorde colapsado; el desglose sí.
+> *(Evolución: antes eran dos cards `reparto`+`informe`, luego una card consolidada con **acordeón interno**
+> (`toggle-balance`/`ui.balance`). Ese acordeón interno se **ELIMINÓ**: al abrir el panel se ve TODO el resumen
+> de una. También se quitaron la **llave Bre-B** del Balance (su lugar es la hoja Pagar) y los **divisores por
+> fila**. Aprobado por el Product Owner: "resumen ejecutivo, más sólido, mayor valor visual, menos divisores".)*
 
-**Dos conceptos distintos — GANANCIA (resultado) vs. RECAUDO (proceso):**
-- **Ganancia** (`reparto`) = el **resultado** colectivo del evento: cuánto se generó para el fondo y cómo se
-  reparte entre los ahorradores. Es una cifra que **puede cambiar mientras la primada está abierta** (los
-  consumos siguen entrando) → por eso lleva la nota **"Provisional"** en abierta. Es plata del **grupo**.
-- **Recaudo** (`informe`) = el **proceso de cobro** del evento (la pregunta del tesorero: *"¿cómo va el
-  recaudo?"*). **No** es una persona ni un rol: por eso la tarjeta se llama **"Recaudo"**, sin nombre. El
-  recaudo es el **estado REAL del cobro**, no una estimación → **nunca** lleva "provisional".
+`balancePrimada` es **UNA card** (`.bal-card`) que, al desplegar el panel (chip "Balance ▼"), muestra el
+**resumen ejecutivo completo** — sin segundo toque. Orden por relevancia para el Tesorero:
+
+1. **HÉROE — Ganancia** (`.bal-hero` → `.bal-label` + `.bal-amount.entregado`): lo que entra al fondo / se
+   entrega al Tesorero (`= entregaTesorero`). **SIEMPRE teal** (`.entregado`, regla global de la Ganancia),
+   abierta y cerrada. Cerrada: etiqueta **"Ganancia · al Tesorero"** + `.dot.closed`. Abierta: **"Ganancia"** +
+   nota `.bal-note` **"Provisional — se confirma al cerrar"** (la única condición que añade; no repite el héroe).
+2. **KPI Parte igual c/u** (`.bal-stat` → `.bal-stat-k` con `.bal-stat-sub` "N ahorradores" + `.bal-stat-v`
+   teal `20px/800`): el **segundo número clave** (lo que recibe cada ahorrador). Separado del héroe por una línea.
+3. **COMPOSICIÓN** (`.bal-group` con `.bal-row`, **SIN línea por fila** — el espacio agrupa, §0): **Cover ·
+   Margen** (cómo se arma la ganancia) · **Reembolso de productos** (`.bal-row.dim`, atenuado: passthrough del
+   costo, **NO ingreso**, puede ser > ganancia) · **Sobrante al fondo** (solo si > 0).
+4. **COBRO** (tras **UN** `.bal-sep`): cabecera `.bal-cobro-head` = **"Por cobrar $X"** (ámbar) mientras alguien
+   deba, o **"✓ Todo cobrado"** (`.bal-cobro-ok`, teal). Lista (`.bal-group`): **deudores** (`.bal-row` + `b.pend`
+   ámbar, mayor→menor) y **saldados** (`.bal-row.saldada` = check teal + nombre + `b.pagado` teal, mayor→menor).
+   **SIN llave Bre-B** (el cómo-pagar vive en la hoja Pagar, §2.12). Si la primada es incompleta → "Asigná un anfitrión".
 
 | Elemento | Canónico |
 |---|---|
-| `.bal-hero` | bloque superior de la card: `.bal-label` (etiqueta + `.dot` de estado) sobre `.bal-amount` (cifra grande, `font-weight:800; font-size:34px`, iguala al wordmark — sin tokens nuevos) y `.bal-note` opcional |
-| `.bal-amount.por-cobrar` / `.bal-amount.entregado` | tono **state-aware** del héroe del Recaudo: **ámbar** (`--amber`, proceso en curso — **NUNCA `--alert`**: el pendiente no es alarma ni deuda de nadie) vs **teal** (`--accent`, definitivo). Reusa tokens existentes |
-| `.bal-toggle` | la fila acorde (`.acc-head` + `data-act="toggle-balance"`, `data-sec="reparto"\|"informe"`), separada del héroe por `border-top`. El desglose (`.acc-body`) sigue **toggleable** (`ui.balance` = Set de secciones abiertas), **colapsado por defecto** |
+| `.bal-card` | la card (sin padding; cada bloque pone el suyo). Sin acordeón interno: el resumen se ve completo al abrir el panel |
+| `.bal-hero` / `.bal-amount.entregado` | héroe Ganancia, cifra `34px/800` (iguala al wordmark), **teal** (`--accent`) siempre. `.bal-amount.por-cobrar` (ámbar) quedó **sin uso** (no hay 2º héroe de cobro) |
+| `.bal-stat` | KPI Parte igual c/u: `.bal-stat-k` (etiqueta + `.bal-stat-sub`) + `.bal-stat-v` (`20px/800`, teal). Borde-top tenue lo separa del héroe |
+| `.bal-group` / `.bal-row` | grupo de filas SIN línea por fila (espacio = agrupación). `.bal-row.dim` atenúa (reembolso); `b.pend` (ámbar) / `b.pagado` (teal); `.bal-row.saldada` = check + gris |
+| `.bal-cobro-head` | cabecera del bloque de cobro: "Por cobrar $X" (`.pend` ámbar) / "✓ Todo cobrado" (`.bal-cobro-ok` teal) |
+| divisores | **UNO solo** (`.bal-sep`) entre composición y cobro. Se eliminaron los hairlines por fila (`.kv` border-top) del Balance |
 
-- **`reparto` — Ganancia (card oscura):** héroe = **Ganancia** (resultado del grupo). Teaser colapsado:
-  **"Entrega $X a N Ahorradores"** (verbo claro). Derivación PODADA: **Cover · Margen · Ganancia · Parte igual c/u ·
-  (Sobrante solo si > 0)**. Se quitaron "Ahorradores: N" (ya en el teaser) y la lista "Por persona" (N veces el mismo monto).
-- **`informe` — Recaudo (card clara):** héroe **state-aware POR ESTADO** (no por urgencia):
-  - **ABIERTA** → héroe = lo que **falta cobrar** (`saldoPendiente`), tono **ámbar** (`.por-cobrar`). El
-    concepto "por cobrar" lo da el **tono**. Teaser = **"Entrega $X al Tesorero"** — solo el **otro** número
-    (lo que se compromete al Tesorero); **no** repite el `saldoPendiente` que ya muestra el héroe. **Sin
-    microcopy** (`.bal-note` omitido): el conteo "de N personas" confundía (parecía que faltaba alguien) y
-    **quién** debe ya vive un nivel abajo, en la lista del acordeón → "menos es más" (§0).
-  - **CERRADA** → héroe = lo **entregado** al Tesorero (`entregaTesorero`), tono **teal** (`.entregado`).
-    Teaser en pasado: **"Entregó $X al Tesorero"**. Sin microcopy (el teaser ya lo dice todo).
-  - Derivación PODADA (acorde): **Bre-B · Recupera · Entrega al Tesorero · lista "Debe"** (el "quién debe" es
-    protagonista, **vive aquí, no arriba**). Se quitó la plomería del auto-abono ("Recaudo teórico", "Recaudado /
-    · de terceros / · del principal", "Por cobrar" que repetía el héroe). El auto-abono sigue en el modelo (identidades).
+> **Cero números repetidos (§0):** "Ganancia" vive **solo** en el héroe (no como línea); `entregaTesorero` =
+> Ganancia (no se duplica como fila); el auto-abono del principal sigue en el **modelo** (mantiene las identidades)
+> pero **no se pinta**. El panel **MUESTRA lo accionable**; el motor calcula todo.
 
-> **REGLA del microcopy (`.bal-note`) Y del teaser — no repetir el héroe** (caso particular de "menos es más",
-> §0). Ni el microcopy ni el teaser **repiten un dato ya visible en el héroe** (su concepto ni su número), ni
-> **resumen lo que ya está un nivel abajo** (la lista del acordeón). Su función es **añadir lo que el héroe no
-> muestra** (microcopy: una condición global — p. ej. "Provisional"; teaser: el **otro** número del bloque).
-> **Si no hay nada que añadir, se omite.** Ejemplos: el teaser de Recaudo abierta es "Entrega $X al Tesorero"
-> (el otro número), sin repetir el `saldoPendiente` que ya es el héroe; el héroe de Recaudo **no** lleva conteo
-> "de N personas" (quién debe vive en la lista). En Ganancia abierta la nota "Provisional — se confirma al
-> cerrar" sí cumple: añade una **condición** (la cifra puede cambiar), no repite "Ganancia".
-
-**State-aware por `p.estado`** (pura vista; `p.estado` ya llega a `reparto`/`informe`):
-- **ABIERTA** = en vivo → Ganancia lleva nota **"Provisional"** (puede cambiar); Recaudo en **ámbar "Por cobrar"**; `.dot` verde.
-- **CERRADA** = documento final → **sin** "provisional"; Recaudo en **teal "Entregado"** (pasado); `.dot.closed` (gris). Reutiliza el `.dot`/`.dot.closed` del selector, sin componentes nuevos.
+**State-aware por `p.estado`** (pura vista):
+- **ABIERTA** = en vivo → héroe Ganancia teal con nota **"Provisional"**; cobro **"Por cobrar $X"** (ámbar) si alguien debe; `.dot` verde.
+- **CERRADA** = documento final → **sin** "provisional"; etiqueta "Ganancia · al Tesorero"; `.dot.closed` (gris). El panel se despliega solo (default por estado).
 
 ### 2.12 · Pago BINARIO — "Pagar" + hoja con la llave Bre-B (✅ CANÓNICO)
 

@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260616-151334-0bb9374">
+<meta name="build" content="20260616-152840-128a94b">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -319,13 +319,7 @@
   .card.dark .kv span{color:var(--ink-soft)}
   .card.dark .sub{color:var(--ink-soft)}
   .card-title{font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:16px;margin-bottom:var(--space-2)}
-  /* Card-acordeón (Balance): cifra HÉROE siempre visible (.bal-hero) + derivación en el acc-body toggleable.
-     La cabecera/cuerpo ponen su propio padding → la card va sin padding. */
-  .card.acc-card{padding:0;overflow:hidden}
-  .card.acc-card .acc-head{padding:var(--space-3) var(--space-4)}
-  .card.acc-card .acc-body{padding:0 var(--space-4) var(--space-4)}
-  .card.acc-card .acc-id b{font-size:16px}
-  /* Balance — bloque HÉROE: el número protagonista SIEMPRE visible (fuera del acorde). Reusa tokens
+  /* Balance — bloque HÉROE: el número protagonista (Ganancia) arriba de la card. Reusa tokens
      existentes (sin tokens nuevos); la escala grande iguala a la del wordmark (34px/800). */
   .bal-hero{padding:var(--space-4) var(--space-4) var(--space-3)}
   .bal-label{font-size:12px;color:var(--ink-soft);display:flex;align-items:center}
@@ -335,8 +329,27 @@
   .bal-amount.por-cobrar{color:var(--amber)}
   .bal-amount.entregado{color:var(--accent)}
   .bal-note{margin-top:var(--space-1);font-size:12px;color:var(--ink-soft)}
-  .bal-toggle{border-top:1px solid var(--line-soft)}      /* separa "ver desglose" del héroe */
-  .card.dark .bal-toggle{border-top-color:rgba(255,255,255,.12)}
+  /* Balance = RESUMEN EJECUTIVO (§2.11.1.a): una card sin acordeón interno. Héroe + KPI parte igual +
+     composición (sin líneas por fila) + cobro. Mínimos divisores; la jerarquía la da el espacio, no las cajas. */
+  .bal-card{padding:0;overflow:hidden}
+  /* KPI parte igual c/u — el segundo número clave (lo que recibe cada ahorrador), separado del héroe por una línea */
+  .bal-stat{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid rgba(255,255,255,.06)}
+  .bal-stat-k{display:flex;flex-direction:column;gap:1px;font-size:13px;color:var(--ink-soft)}
+  .bal-stat-sub{font-size:11px;color:var(--ink-soft);opacity:.75}
+  .bal-stat-v{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.01em;color:var(--accent)}
+  /* Grupo de filas SIN línea por fila: el espacio agrupa (DESIGN.md §0 "el espacio organiza, no las cajas") */
+  .bal-group{padding:var(--space-3) var(--space-4) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2)}
+  .bal-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);font-size:13px}
+  .bal-row span{color:var(--ink-soft)}
+  .bal-row b{font-weight:700;color:var(--ink)}
+  .bal-row.dim span,.bal-row.dim b{color:var(--ink-soft);font-weight:400}
+  .bal-row b.pend{color:var(--amber)}                        /* lo que falta cobrar — ámbar */
+  .bal-row b.pagado{color:var(--accent)}                     /* lo que ya pagó (saldado) — teal */
+  .bal-row.saldada span{display:flex;align-items:center;gap:var(--space-1)}
+  /* Cabecera del bloque de cobro: "Por cobrar $X" (ámbar) / "✓ Todo cobrado" (teal) */
+  .bal-cobro-head{padding:var(--space-3) var(--space-4) 0;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);display:flex;align-items:center;gap:var(--space-1)}
+  .bal-cobro-head .pend{color:var(--amber);font-weight:700;text-transform:none;letter-spacing:0}
+  .bal-cobro-ok{display:inline-flex;align-items:center;gap:var(--space-1);color:var(--accent);font-weight:700}
 
   /* ---------- INFORME COMPARTIBLE (PNG vía html2canvas) ----------
      Superficie OSCURA fiel al sistema (paper/ink/accent/amber), CAPTURA-ONLY: vive fuera de pantalla
@@ -705,13 +718,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260616-151334-0bb9374"></script>
-  <script src="js/util.js?v=20260616-151334-0bb9374"></script>
-  <script src="js/api.js?v=20260616-151334-0bb9374"></script>
-  <script src="js/auth.js?v=20260616-151334-0bb9374"></script>
-  <script src="js/store.js?v=20260616-151334-0bb9374"></script>
-  <script src="js/view.js?v=20260616-151334-0bb9374"></script>
-  <script src="js/controller.js?v=20260616-151334-0bb9374"></script>
+  <script src="js/config.js?v=20260616-152840-128a94b"></script>
+  <script src="js/util.js?v=20260616-152840-128a94b"></script>
+  <script src="js/api.js?v=20260616-152840-128a94b"></script>
+  <script src="js/auth.js?v=20260616-152840-128a94b"></script>
+  <script src="js/store.js?v=20260616-152840-128a94b"></script>
+  <script src="js/view.js?v=20260616-152840-128a94b"></script>
+  <script src="js/controller.js?v=20260616-152840-128a94b"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
