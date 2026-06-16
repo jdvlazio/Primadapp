@@ -468,6 +468,9 @@
       // Precios de producto de la primada → commitQuiet en el Store (sin re-render, no pierde foco).
       case 'costo-producto':  A.setPreciosProducto(prm, id, { costoNeto: v }); break;
       case 'venta-producto':  A.setPreciosProducto(prm, id, { precioVenta: v }); break;
+      // Renombrar / cambiar emoji del producto SIN borrarlo (commitQuiet; los consumos van por id, no se rompen).
+      case 'nombre-producto': A.setIdProducto(prm, id, { nombre: v }); break;
+      case 'emoji-producto':  A.setIdProducto(prm, id, { emoji: v }); break;
       default: break;
     }
   }

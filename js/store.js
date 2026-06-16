@@ -700,6 +700,16 @@
       if (precioVenta != null) prod.precioVenta = Number(precioVenta) || 0;
       commitQuiet({ kind: 'primada', id: primadaId });   // edición de texto en vivo (precio): no re-render
     },
+    // Renombrar / cambiar emoji de un producto SIN borrarlo. Solo toca el snapshot de ESA primada (no los
+    // defaults ni otras primadas). Los consumos referencian el `id`, NO el nombre → no se rompen. Nombre vacío
+    // = se conserva el anterior. commitQuiet (edición de texto en vivo: no re-render, no pierde foco).
+    setIdProducto(primadaId, prodId, { nombre, emoji } = {}) {
+      const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
+      const prod = p.productos.find(x => x.id === prodId); if (!prod) return;
+      if (nombre != null) { const n = String(nombre).slice(0, 40).trim(); if (n) prod.nombre = n; }
+      if (emoji != null) { prod.emoji = String(emoji).slice(0, 4); prod.emojiManual = true; }
+      commitQuiet({ kind: 'primada', id: primadaId });
+    },
     setAportadoPor(primadaId, prodId, personaId) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const prod = p.productos.find(x => x.id === prodId); if (!prod) return;

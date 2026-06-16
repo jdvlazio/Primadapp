@@ -442,6 +442,19 @@ check('Config-primada: 2 sub-tabs (Asistentes | Productos)',
   !q('#overlay').hidden && !!q('[data-act="config-tab"][data-ctab="asistentes"]') && !!q('[data-act="config-tab"][data-ctab="productos"]'));
 check('La config NO ofrece "Cerrar" (CTA contextual de la operación) ni "Eliminar"',
   !/data-act="cerrar-primada"/.test(q('#overlay').innerHTML) && !/data-act="borrar-primada"/.test(q('#overlay').innerHTML));
+// EDITAR el NOMBRE de un producto SIN borrarlo (data-ch="nombre-producto", commitQuiet; consumos van por id).
+click('[data-act="config-tab"][data-ctab="productos"]');
+click('[data-act="toggle-cfg-prod"][data-id="cerveza"]');     // expandir la fila del producto
+const czProd = () => prm().productos.find(x => x.id === 'cerveza');
+const inpProd = q('[data-ch="nombre-producto"][data-id="cerveza"]');
+check('Configurar › Productos: input de NOMBRE editable en la fila (sin borrar)', !!inpProd && inpProd.value === czProd().nombre);
+const czCount = cervezas();
+setVal(inpProd, 'Pilsen artesanal');
+eq('Producto renombrado sin borrarlo', czProd().nombre, 'Pilsen artesanal');
+eq('Mismo id tras renombrar (no se recrea el producto)', czProd().id, 'cerveza');
+eq('Consumos del producto intactos (referencian el id)', cervezas(), czCount);
+setVal(q('[data-ch="nombre-producto"][data-id="cerveza"]'), 'Costeñita');   // restaurar para el resto del flujo
+eq('Nombre restaurado a "Costeñita"', czProd().nombre, 'Costeñita');
 click('[data-act="close-overlay"]');
 // El modelo permite cerrar con deuda (la UI lo gatea tras el CTA); aquí cerramos por acción para
 // probar el congelado con un deudor pendiente (escenario de pago-tras-cerrar en 8b).

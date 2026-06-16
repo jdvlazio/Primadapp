@@ -633,6 +633,34 @@ section('Sync en vivo: applyRemoteConsumo (idempotente) + replaceConsumos (snaps
   eq('total recalculado desde snapshot (3×1000)', select.consumoDe(prm(), prm().asistencias[0]), 3000);
 }
 
+/* ============================================================ 12b. Renombrar producto sin borrarlo */
+section('setIdProducto: renombrar/cambiar emoji sin borrar; consumos (por id) intactos; snapshot local');
+{
+  Store.actions.replaceState(null);
+  const ana = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+  const beto = Store.actions.addPersona({ nombre: 'Beto', estado: 'invitado' });
+  const p1 = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2026-06' });
+  Store.actions.addAsistencia(p1, beto);
+  Store.actions.changeItem(p1, beto, 'cerveza', 2);   // 2 cervezas (productoId 'cerveza')
+  const prm = () => Store.select.state().primadas.find(p => p.id === p1);
+  const cz = () => prm().productos.find(x => x.id === 'cerveza');
+  const betoAsis = () => prm().asistencias.find(a => a.personaId === beto);
+  const totalAntes = Store.select.consumoDe(prm(), betoAsis());
+  Store.actions.setIdProducto(p1, 'cerveza', { nombre: 'Pilsen', emoji: '🍻' });
+  eq('Producto renombrado a "Pilsen"', cz().nombre, 'Pilsen');
+  eq('Emoji cambiado a 🍻', cz().emoji, '🍻');
+  eq('Mismo id (no se recrea el producto)', cz().id, 'cerveza');
+  eq('Consumos intactos (referencian el id): 2 filas', prm().consumos.filter(c => c.productoId === 'cerveza').length, 2);
+  eq('Total del consumidor NO cambia (precio igual)', Store.select.consumoDe(prm(), betoAsis()), totalAntes);
+  Store.actions.setIdProducto(p1, 'cerveza', { nombre: '   ' });   // vacío → conserva
+  eq('Nombre vacío → conserva "Pilsen"', cz().nombre, 'Pilsen');
+  const defCz = Store.select.state().settings.defaultProducts.find(x => x.id === 'cerveza');
+  eq('Default global "Costeñita" intacto (es snapshot LOCAL de la primada)', defCz.nombre, 'Costeñita');
+  Store.actions.cerrarPrimada(p1);
+  Store.actions.setIdProducto(p1, 'cerveza', { nombre: 'Aguila' });
+  eq('Cerrada: setIdProducto es no-op (sigue "Pilsen")', cz().nombre, 'Pilsen');
+}
+
 /* ============================================================ 13. Estadísticas (agregado, solo cerradas) */
 section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estrella');
 {

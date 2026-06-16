@@ -181,7 +181,7 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
 - Flujo único e inviolable: **evento → acción → commit (guarda) → notifica → render**.
 - La Vista se suscribe a Store y **re-renderiza la sección completa** en cada cambio (deliberado).
 - **Excepción `commitQuiet` (fluidez de inputs):** las ediciones de **texto en vivo** (`renombrarPrimada`, `setFecha`,
-  `setMesContable`, `renombrarPersona`, `setBreBPersona`, `setPreciosProducto`) persisten **sin notificar** (`commitQuiet`),
+  `setMesContable`, `renombrarPersona`, `setBreBPersona`, `setPreciosProducto`, `setIdProducto`) persisten **sin notificar** (`commitQuiet`),
   por lo que **no** disparan re-render. Motivo: el re-render completo reconstruiría el `<input>` en plena escritura y
   rompería foco y cursor; el campo ya muestra lo tecleado y el próximo render estructural reflejará lo derivado.
   (**`setCover` es la excepción a la excepción:** usa `commit` normal porque debe re-renderizar para reflejar el cover
@@ -291,7 +291,7 @@ Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   //
 - **`actions` (mutan + invariantes):** personas (`addPersona`, `setEstadoPersona`, `renombrarPersona`, `setBreBPersona`);
   settings (`setCover`, `upsertDefaultProducto`, `removeDefaultProducto`); ciclo de primada (`createPrimada`,
   `seleccionarPrimada`, `renombrarPrimada`, `setFecha`, `setMesContable`, `cerrarPrimada`, `reabrirPrimada`, `borrarPrimada`);
-  productos de la primada (`addProducto`, `setPreciosProducto`, `setAportadoPor`, `removeProducto`);
+  productos de la primada (`addProducto`, `setPreciosProducto`, `setIdProducto` (renombrar/emoji sin borrar — snapshot local, consumos van por id), `setAportadoPor`, `removeProducto`);
   asistencias (`addAsistencia`, `removeAsistencia`, `setRol`, `toggleCoverExonerado`, `changeItem`);
   pago binario (`setPagado`); infra (`replaceState`).
 

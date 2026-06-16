@@ -534,6 +534,7 @@
     return `<div class="prow open">
       ${cabecera}
       <div class="acc-body">
+        ${cerrada ? '' : prodIdInput(prod.emoji, prod.nombre, `data-ch="emoji-producto" data-id="${prod.id}"`, `data-ch="nombre-producto" data-id="${prod.id}"`, true)}
         <div class="grid2">
           <label class="fld"><span>Costo</span>
             <input class="ti" type="number" min="0" step="500" inputmode="numeric" value="${prod.costoNeto}" data-ch="costo-producto" data-id="${prod.id}" ${ro}></label>
