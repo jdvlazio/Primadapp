@@ -580,17 +580,18 @@
      Tap en cualquier fila/hero = entrar a su detalle (data-act="entrar-primada"). Secciones relativas a la
      activa (Próximas/Pasadas) para no meter una primada futura en "Pasadas" (determinista, no por reloj).
      ============================================================ */
-  // ESTADÍSTICAS (home) = tarjeta COLAPSABLE AL PIE del home (mismo lugar y dock que el Balance en el detalle).
-  // Toggle CENTRADO/teal (mismo patrón del Balance). Solo aparece si hay primadas CERRADAS. Minimalista: fondo +
-  // promedio, repartido, asistencia promedio, PRODUCTO estrella (vendido/rentable) y CONSUMIDOR estrella.
+  // ESTADÍSTICAS ANUALES (home) = tarjeta COLAPSABLE AL PIE del home (mismo lugar y dock que el Balance).
+  // Toggle CENTRADO/teal + selector de AÑO (‹ 2026 ›). Solo aparece si hay primadas CERRADAS. Jerarquía (reusa
+  // los componentes del Balance): HÉROE Ganancia del año → Recaudado · Asistencia promedio → Producto estrella
+  // (vendido/rentable) → Consumidor estrella. (Sin "repartido": confunde por el peso indivisible.)
   function estadisticasBody(st) {
     const heroe = `<div class="bal-hero">
-        <div class="bal-label">Fondo acumulado</div>
-        <div class="bal-amount entregado">${$peso(st.fondoAcumulado)}</div>
+        <div class="bal-label">Ganancia</div>
+        <div class="bal-amount entregado">${$peso(st.ganancia)}</div>
         <div class="bal-note">${st.nPrimadas} primada${st.nPrimadas === 1 ? '' : 's'} · ${$peso(st.gananciaPromedio)} promedio</div>
       </div>`;
     const kpis = `<div class="bal-group">
-        <div class="bal-row"><span>Repartido a la familia</span><b>${$peso(st.repartidoTotal)}</b></div>
+        <div class="bal-row"><span>Recaudado</span><b>${$peso(st.recaudado)}</b></div>
         <div class="bal-row"><span>Asistencia promedio</span><b>${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'}</b></div>
       </div>`;
     const prodRow = (lbl, prod, valStr) => prod
@@ -605,12 +606,30 @@
         <div class="bal-group"><div class="bal-row"><span>${e(st.consumidor.nombre)}</span><b class="pagado">${$peso(st.consumidor.total)}</b></div></div>` : '';
     return `<div class="card dark bal-card">${heroe}${kpis}${producto}${consumidor}</div>`;
   }
+  // Selector de año ‹ 2026 ›: navega entre los años con primadas cerradas. Flechas deshabilitadas en los extremos.
+  function statsAnioNav(anios, anio) {
+    const i = anios.indexOf(anio);
+    const flecha = (dir, destino, icono) =>
+      `<button class="stats-anio-nav" data-act="stats-anio" data-anio="${destino || ''}" ${destino ? '' : 'disabled'} aria-label="Año ${dir}">${icon(icono)}</button>`;
+    return `<div class="stats-anio">
+        ${flecha('anterior', anios[i - 1], 'chevron-left')}
+        <span class="stats-anio-lbl">${e(anio)}</span>
+        ${flecha('siguiente', anios[i + 1], 'chevron-right')}
+      </div>`;
+  }
   function estadisticasCard(state, ui) {
-    const st = S().estadisticas();
-    if (!st.nPrimadas) return '';   // sin primadas cerradas → nada firme que mostrar
+    const sel = S();
+    const anios = sel.aniosEstadisticas();
+    if (!anios.length) return '';   // sin primadas cerradas → nada firme que mostrar
+    // Año seleccionado: ui.statsAnio si sigue siendo válido; si no, el MÁS RECIENTE con datos.
+    let anio = ui && ui.statsAnio != null ? String(ui.statsAnio) : '';
+    if (anios.indexOf(anio) < 0) anio = anios[anios.length - 1];
     const open = !!(ui && ui.statsOpen);
     const toggle = `<button class="balance-toggle ${open ? 'on' : ''}" data-act="toggle-stats" aria-expanded="${open ? 'true' : 'false'}"><span>Estadísticas</span>${icon(open ? 'chevron-down' : 'chevron-up')}</button>`;
-    return `<div class="stats-dock">${toggle}${open ? `<div class="stats-panel">${estadisticasBody(st)}</div>` : ''}</div>`;
+    const panel = open
+      ? `<div class="stats-panel">${anios.length > 1 ? statsAnioNav(anios, anio) : `<div class="stats-anio"><span class="stats-anio-lbl">${e(anio)}</span></div>`}${estadisticasBody(sel.estadisticas(anio))}</div>`
+      : '';
+    return `<div class="stats-dock">${toggle}${panel}</div>`;
   }
   function homeBody(state, ui) {
     const sel = S();

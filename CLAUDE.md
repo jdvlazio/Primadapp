@@ -286,8 +286,9 @@ Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   //
   `margenProducto`, `ventaProductos`, `costoNetoTotal`, `coverCobrado`, `margenTotal`, `ganancia`,
   `asistenciasAhorradoras`, `parteIgual`, `sobranteFondo`, `repartoPorPersona`, `recuperaDe`, `informePrincipal`,
   `deudores`, `recaudado`, `primadaIncompleta`, `nombreSugerido`, `anioContable`, `primadasPorAnio`,
-  `estadisticas` (agregado del HOME: fondo acumulado + promedio, repartido, asistencia promedio, producto estrella
-  vendido/rentable, consumidor estrella — **solo primadas CERRADAS**), + directorio (`persona`, `ahorradores`, …).
+  `aniosEstadisticas`, `estadisticas(anio)` (agregado ANUAL del HOME: Ganancia + promedio, **Recaudado** (Σ, sin
+  división → sin peso indivisible que confunda), asistencia promedio, producto estrella vendido/rentable, consumidor
+  estrella — **solo primadas CERRADAS del año**; `anio` opcional = todas), + directorio (`persona`, `ahorradores`, …).
 - **`actions` (mutan + invariantes):** personas (`addPersona`, `setEstadoPersona`, `renombrarPersona`, `setBreBPersona`);
   settings (`setCover`, `upsertDefaultProducto`, `removeDefaultProducto`); ciclo de primada (`createPrimada`,
   `seleccionarPrimada`, `renombrarPrimada`, `setFecha`, `setMesContable`, `cerrarPrimada`, `reabrirPrimada`, `borrarPrimada`);

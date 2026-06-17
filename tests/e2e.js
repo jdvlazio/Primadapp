@@ -828,19 +828,33 @@ Store.actions.changeItem(ep1, eBeto, 'cerveza', 2);
 Store.actions.cerrarPrimada(ep1);
 const ep2 = Store.actions.createPrimada({ principalId: eAna, organizadores: [eAna], mesContable: '2026-04' });
 Store.actions.addAsistencia(ep2, eCris);
-Store.actions.changeItem(ep2, eCris, 'brownie', 3);   // Cris = consumidor estrella (27.000)
+Store.actions.changeItem(ep2, eCris, 'brownie', 3);   // Cris = consumidor estrella 2026
 Store.actions.cerrarPrimada(ep2);
+// + una primada CERRADA de OTRO AÑO (2025): activa el SELECTOR de año.
+const ep0 = Store.actions.createPrimada({ principalId: eAna, organizadores: [eAna], mesContable: '2025-12' });
+Store.actions.addAsistencia(ep0, eBeto);
+Store.actions.changeItem(ep0, eBeto, 'cerveza', 5);   // Beto = consumidor estrella 2025
+Store.actions.cerrarPrimada(ep0);
 Store.actions.seleccionarPrimada(ep2);
 irHome();
 check('Con cerradas: aparece el toggle "Estadísticas" en el home', !!q('[data-act="toggle-stats"]') && /Estadísticas/.test(q('#screen').innerHTML));
 check('Estadísticas colapsada por defecto (sin .stats-panel)', !q('.stats-panel'));
 click('[data-act="toggle-stats"]');
-const stHTML = q('.stats-panel') ? q('.stats-panel').innerHTML : '';
-check('Al desplegar: "Fondo acumulado" + nº primadas (2)', /Fondo acumulado/.test(stHTML) && /2 primadas/.test(stHTML));
-check('Estadísticas: "Producto estrella" (Más vendido / Más rentable)',
-  /Producto estrella/.test(stHTML) && /Más vendido/.test(stHTML) && /Más rentable/.test(stHTML));
-check('Estadísticas: "Consumidor estrella" = Cris (el que más consumió)',
-  /Consumidor estrella/.test(stHTML) && /Cris/.test(stHTML));
+let stHTML = q('.stats-panel').innerHTML;
+// Año por defecto = el MÁS RECIENTE (2026). Héroe "Ganancia" + "Recaudado" (NO repartido/familia/fondo acumulado).
+check('Año por defecto = 2026 (más reciente) en el selector', /stats-anio-lbl">2026/.test(stHTML));
+check('Héroe "Ganancia" + "Recaudado"; SIN "Repartido"/"familia"/"Fondo acumulado"',
+  /bal-label">Ganancia/.test(stHTML) && /Recaudado/.test(stHTML)
+  && !/Repartido/.test(stHTML) && !/familia/.test(stHTML) && !/Fondo acumulado/.test(stHTML));
+check('2026: 2 primadas + Producto estrella + Consumidor estrella = Cris',
+  /2 primadas/.test(stHTML) && /Producto estrella/.test(stHTML) && /Consumidor estrella/.test(stHTML) && /Cris/.test(stHTML));
+// SELECTOR de año: voy al anterior (2025) → cambian los datos (Beto, 1 primada).
+check('Selector de año: flecha al 2025 presente', !!q('[data-act="stats-anio"][data-anio="2025"]'));
+click('[data-act="stats-anio"][data-anio="2025"]');
+stHTML = q('.stats-panel').innerHTML;
+check('Al cambiar de año: el selector muestra 2025', /stats-anio-lbl">2025/.test(stHTML));
+check('2025: 1 primada + Consumidor estrella = Beto (datos del año 2025, no Cris)',
+  /1 primada/.test(stHTML) && /Beto/.test(stHTML) && !/Cris/.test(stHTML));
 click('[data-act="toggle-stats"]');
 check('Estadísticas se colapsa de nuevo', !q('.stats-panel'));
 

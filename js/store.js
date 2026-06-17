@@ -536,16 +536,24 @@
       }));
     },
 
-    // ESTADÍSTICAS (derivado puro, sin estado nuevo). Agrega SOLO sobre primadas CERRADAS (firmes; las
-    // abiertas son provisionales). Devuelve un bundle minimalista de los datos más dicientes del evento:
-    // fondo acumulado + promedio, repartido a la familia, asistencia promedio, producto estrella
-    // (más vendido / más rentable) y consumidor estrella (quién más consumió). Producto se agrega por NOMBRE
-    // (el mismo "Cerveza" suma parejo entre primadas). Vacío seguro si no hay cerradas.
-    estadisticas() {
-      const cerradas = (state ? state.primadas : []).filter(p => p.estado === 'cerrada');
+    // Años (mesContable) que tienen al menos una primada CERRADA, ascendente. Para el selector de año de las
+    // estadísticas (navegación ‹ año ›). Vacío si no hay cerradas.
+    aniosEstadisticas() {
+      const set = {};
+      (state ? state.primadas : []).forEach(p => { if (p.estado === 'cerrada') { const a = select.anioContable(p); if (a) set[a] = true; } });
+      return Object.keys(set).sort();
+    },
+    // ESTADÍSTICAS ANUALES (derivado puro, sin estado nuevo). Agrega SOLO primadas CERRADAS (firmes; las
+    // abiertas son provisionales) de un AÑO (mesContable); sin `anio` = todas. Datos más dicientes del evento:
+    // GANANCIA del año (héroe) + promedio, RECAUDADO (Σ de lo que entró; sin división → sin peso indivisible que
+    // confunda), asistencia promedio, producto estrella (más vendido / más rentable) y consumidor estrella.
+    // Producto se agrega por NOMBRE (el mismo suma parejo). Vacío seguro si no hay cerradas en el año.
+    estadisticas(anio) {
+      let cerradas = (state ? state.primadas : []).filter(p => p.estado === 'cerrada');
+      if (anio != null && anio !== '') cerradas = cerradas.filter(p => select.anioContable(p) === String(anio));
       const n = cerradas.length;
-      const fondoAcumulado = cerradas.reduce((s, p) => s + select.ganancia(p), 0);
-      const repartidoTotal = cerradas.reduce((s, p) => s + select.parteIgual(p) * select.asistenciasAhorradoras(p).length, 0);
+      const ganancia = cerradas.reduce((s, p) => s + select.ganancia(p), 0);
+      const recaudado = cerradas.reduce((s, p) => s + select.recaudado(p), 0);
       const totalAsis = cerradas.reduce((s, p) => s + (p.asistencias || []).length, 0);
       // Producto estrella: acumula unidades y margen por NOMBRE de producto a lo largo de las cerradas.
       const porProd = {};
@@ -574,10 +582,11 @@
         }
       });
       return {
+        anio: (anio != null && anio !== '') ? String(anio) : null,
         nPrimadas: n,
-        fondoAcumulado,
-        gananciaPromedio: n ? Math.round(fondoAcumulado / n) : 0,
-        repartidoTotal,
+        ganancia,
+        gananciaPromedio: n ? Math.round(ganancia / n) : 0,
+        recaudado,
         asistentesPromedio: n ? Math.round(totalAsis / n) : 0,
         masVendido, masRentable, consumidor,
       };

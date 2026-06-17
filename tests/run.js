@@ -694,28 +694,43 @@ section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estre
   // P3 (ABIERTA): debe quedar EXCLUIDA de las estadísticas (números provisionales).
   const p3 = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2026-05' });
   Store.actions.changeItem(p3, ana, 'cerveza', 9);   // consumo enorme: NO debe contar
-  const cer = Store.select.state().primadas.filter(p => p.estado === 'cerrada');
-  const st = select.estadisticas();
-  // Agregados: comparo contra la suma manual con los MISMOS selectores (verifica la AGREGACIÓN, no el cover config).
-  eq('nPrimadas = solo cerradas (2, no la abierta)', st.nPrimadas, 2);
-  eq('Fondo acumulado = Σ ganancia de cerradas', st.fondoAcumulado, cer.reduce((s, p) => s + select.ganancia(p), 0));
-  eq('Repartido = Σ parteIgual × nAhorradoras', st.repartidoTotal, cer.reduce((s, p) => s + select.parteIgual(p) * select.asistenciasAhorradoras(p).length, 0));
-  eq('Ganancia promedio = fondo / n', st.gananciaPromedio, Math.round(st.fondoAcumulado / 2));
-  eq('Asistencia promedio = round((2+3)/2)', st.asistentesPromedio, 3);
-  // Producto estrella: cerveza más VENDIDA (3+2=5 und); brownie más RENTABLE (3×3000=9000 > cerveza 5×1000=5000).
-  eq('Más vendido = Costeñita (cerveza), 5 unidades', st.masVendido.nombre, 'Costeñita');
-  eq('Más vendido: 5 unidades', st.masVendido.unidades, 5);
-  eq('Más rentable = Brownie (margen 9.000)', st.masRentable.nombre, 'Brownie');
-  eq('Más rentable: margen 9.000', st.masRentable.margen, 9000);
-  check('Más vendido ≠ más rentable (el contraste diciente)', st.masVendido.nombre !== st.masRentable.nombre);
-  // Consumidor estrella: Cris (3 brownies = 27.000) > Beto (10.500) > Ana (7.000).
-  eq('Consumidor estrella = Cris', st.consumidor.nombre, 'Cris');
-  eq('Consumidor estrella: total 27.000', st.consumidor.total, 27000);
+  // P0 (cerrada, OTRO AÑO 2025): para probar el filtro por año. Dario consume 10 rollos.
+  const dario = Store.actions.addPersona({ nombre: 'Dario', estado: 'invitado' });
+  const p0 = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2025-12' });
+  Store.actions.addAsistencia(p0, dario);
+  Store.actions.changeItem(p0, dario, 'rollo', 10);
+  Store.actions.cerrarPrimada(p0);
+  // Años con cerradas (para el selector): 2025 y 2026, ascendente.
+  eq('aniosEstadisticas = ["2025","2026"]', JSON.stringify(select.aniosEstadisticas()), JSON.stringify(['2025', '2026']));
+  // Estadísticas del AÑO 2026 (p1+p2; excluye la abierta p3 y la 2025 p0). Comparo contra suma manual de ESE año.
+  const cer26 = Store.select.state().primadas.filter(p => p.estado === 'cerrada' && p.mesContable.slice(0, 4) === '2026');
+  const st = select.estadisticas('2026');
+  eq('2026: anio en el bundle', st.anio, '2026');
+  eq('2026: nPrimadas = 2 (solo cerradas del año)', st.nPrimadas, 2);
+  eq('2026: Ganancia = Σ ganancia de cerradas 2026', st.ganancia, cer26.reduce((s, p) => s + select.ganancia(p), 0));
+  eq('2026: Recaudado = Σ recaudado de cerradas 2026 (sin división, sin sobrante)', st.recaudado, cer26.reduce((s, p) => s + select.recaudado(p), 0));
+  eq('2026: Ganancia promedio = ganancia / n', st.gananciaPromedio, Math.round(st.ganancia / 2));
+  eq('2026: Asistencia promedio = round((2+3)/2)', st.asistentesPromedio, 3);
+  // Producto estrella 2026: cerveza más VENDIDA (3+2=5 und); brownie más RENTABLE (3×3000=9000 > cerveza 5×1000=5000).
+  eq('2026: Más vendido = Costeñita (5 und)', st.masVendido.nombre, 'Costeñita');
+  eq('2026: Más vendido: 5 unidades', st.masVendido.unidades, 5);
+  eq('2026: Más rentable = Brownie (margen 9.000)', st.masRentable.nombre, 'Brownie');
+  check('2026: más vendido ≠ más rentable (contraste)', st.masVendido.nombre !== st.masRentable.nombre);
+  eq('2026: Consumidor estrella = Cris', st.consumidor.nombre, 'Cris');
+  eq('2026: Consumidor estrella total 27.000', st.consumidor.total, 27000);
+  // El filtro por año SEPARA: 2025 trae SOLO p0 (Dario / rollo), no la data de 2026.
+  const st25 = select.estadisticas('2025');
+  eq('2025: nPrimadas = 1 (solo p0)', st25.nPrimadas, 1);
+  eq('2025: Consumidor estrella = Dario (no Cris)', st25.consumidor.nombre, 'Dario');
+  eq('2025: Más vendido = Rollo de Canela', st25.masVendido.nombre, 'Rollo de Canela');
+  // Sin año = TODAS las cerradas (p0+p1+p2 = 3).
+  eq('Sin año: nPrimadas = todas las cerradas (3)', select.estadisticas().nPrimadas, 3);
   // Sin cerradas → vacío seguro.
   Store.actions.replaceState(null);
   const vacio = select.estadisticas();
-  eq('Sin cerradas: fondo 0', vacio.fondoAcumulado, 0);
+  eq('Sin cerradas: ganancia 0 · recaudado 0', vacio.ganancia + vacio.recaudado, 0);
   eq('Sin cerradas: nPrimadas 0', vacio.nPrimadas, 0);
+  eq('Sin cerradas: aniosEstadisticas vacío', select.aniosEstadisticas().length, 0);
   check('Sin cerradas: producto/consumidor null', vacio.masVendido === null && vacio.consumidor === null);
 }
 
