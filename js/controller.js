@@ -204,6 +204,15 @@
     }
 
     const b = ev.target.closest('[data-act]'); if (!b) return;
+    // Android/móvil: si hay un input data-ch ENFOCADO con edición pendiente y el usuario toca una acción
+    // que re-renderiza, el re-render DESTRUYE el input antes de que su evento 'change' (que en number/
+    // type=number dispara al perder foco) alcance a correr → la edición se PIERDE. Caso real: el cover de
+    // "Cómo fue en su momento" se editaba y, al tocar la X o el toggle de estado sin desenfocar, no se
+    // commiteaba → el total seguía con el cover vigente. Lo desenfocamos primero: blur() dispara 'change'
+    // SÍNCRONO → onChange commitea (setCoverPrimada → re-render) ANTES de procesar el click. (jsdom no lo
+    // reproduce porque el e2e despacha 'change' a mano; en el dispositivo el blur natural no ocurría.)
+    const ae = document.activeElement;
+    if (ae && ae !== b && ae.matches && ae.matches('[data-ch]') && !b.contains(ae)) ae.blur();
     const act = b.dataset.act;
     const pid = b.dataset.pid;          // personaId
     const id  = b.dataset.id;           // primadaId
