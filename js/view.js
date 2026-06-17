@@ -614,23 +614,27 @@
      ============================================================ */
   // ESTADÍSTICAS ANUALES (home) = tarjeta COLAPSABLE AL PIE del home (mismo lugar y dock que el Balance).
   // Toggle CENTRADO/teal + selector de AÑO (‹ 2026 ›). Solo aparece si hay primadas CERRADAS. Jerarquía (reusa
-  // los componentes del Balance): HÉROE Ganancia del año → lista PLANA: Asistencia promedio · Más vendido ·
-  // Más rentable · Mayor consumo. (Revisión UX: sin encabezados "estrella" —singular con 2 productos confundía— ni
-  // "consumidor" —transaccional—. Sin "repartido"/"recaudado": confunden; la cifra que cuenta es Ganancia.)
+  // los componentes del Balance): HÉROE Ganancia del año → lista PLANA de PROMEDIOS (decisión de producto: datos
+  // estadísticos, NO competencia → no se nombra a nadie). El marcador de promedio es la palabra "en prom." (no hay
+  // símbolo universal de promedio); "por primada" NO se repite (redundante). Las filas de TOTAL del año (Ganancia,
+  // Más rentable) van SIN "en prom." para distinguirlas del promedio. "Cada ahorrador recibe" = el número clave en
+  // una natillera. "Mayor consumo" (que nombraba a una persona) → "Consumo por persona" (promedio, sin nombrar).
   function estadisticasBody(st) {
     const heroe = `<div class="bal-hero">
         <div class="bal-label">Ganancia</div>
         <div class="bal-amount entregado">${$peso(st.ganancia)}</div>
-        <div class="bal-note">${st.nPrimadas} primada${st.nPrimadas === 1 ? '' : 's'} · ${$peso(st.gananciaPromedio)} promedio</div>
+        <div class="bal-note">${st.nPrimadas} primada${st.nPrimadas === 1 ? '' : 's'} · ${$peso(st.gananciaPromedio)} prom.</div>
       </div>`;
-    // Lista PLANA de datos, sin encabezados "estrella" (revisión UX): cada fila se explica sola, minimalista.
+    const row = (lbl, valStr) => `<div class="bal-row"><span>${lbl}</span><b>${valStr}</b></div>`;
+    // "en prom." marca lo que es PROMEDIO por primada; las filas de TOTAL del año (Más rentable) no lo llevan.
     const prodRow = (lbl, prod, valStr) => prod
-      ? `<div class="bal-row"><span>${lbl}</span><b>${e(prod.emoji)} ${e(prod.nombre)} · ${valStr}</b></div>` : '';
+      ? row(lbl, `${e(prod.emoji)} ${e(prod.nombre)} · ${valStr}`) : '';
     const stats = `<div class="bal-group">
-        <div class="bal-row"><span>Asistencia promedio</span><b>${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'}</b></div>
-        ${prodRow('Más vendido', st.masVendido, st.masVendido ? '~' + st.masVendido.promedioPorPrimada + '/primada' : '')}
+        ${row('Asistencia', `${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'} en prom.`)}
+        ${prodRow('Más vendido', st.masVendido, st.masVendido ? st.masVendido.promedioPorPrimada + ' en prom.' : '')}
         ${prodRow('Más rentable', st.masRentable, st.masRentable ? $peso(st.masRentable.margen) : '')}
-        ${st.consumidor ? `<div class="bal-row"><span>Mayor consumo</span><b>${e(st.consumidor.nombre)} · ${$peso(st.consumidor.total)}</b></div>` : ''}
+        ${st.nPrimadas ? row('Cada ahorrador recibe', `${$peso(st.repartoPorAhorrador)} en prom.`) : ''}
+        ${st.nPrimadas ? row('Consumo por persona', `${$peso(st.consumoPorPersona)} en prom.`) : ''}
       </div>`;
     return `<div class="card dark bal-card">${heroe}${stats}</div>`;
   }

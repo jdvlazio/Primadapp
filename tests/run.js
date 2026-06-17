@@ -751,7 +751,7 @@ section('Emoji único: no se permite repetir el emoji de un producto en la misma
 }
 
 /* ============================================================ 13. Estadísticas (agregado, solo cerradas) */
-section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estrella');
+section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a nadie)');
 {
   Store.actions.replaceState(null);
   const ana = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });   // será principal
@@ -799,12 +799,14 @@ section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estre
   eq('2026: Más vendido promedio/primada = round(5/2) = 3', st.masVendido.promedioPorPrimada, 3);
   eq('2026: Más rentable = Brownie (margen 9.000)', st.masRentable.nombre, 'Brownie');
   check('2026: más vendido ≠ más rentable (contraste)', st.masVendido.nombre !== st.masRentable.nombre);
-  eq('2026: Consumidor estrella = Cris', st.consumidor.nombre, 'Cris');
-  eq('2026: Consumidor estrella total 27.000', st.consumidor.total, 27000);
-  // El filtro por año SEPARA: 2025 trae SOLO p0 (Dario / rollo), no la data de 2026.
+  // PROMEDIOS (no competencia, no se nombra a nadie). Calculo el esperado desde la MISMA data vía selectores.
+  let sc26 = 0, na26 = 0; cer26.forEach(p => p.asistencias.forEach(a => { sc26 += select.consumoDe(p, a); na26 += 1; }));
+  eq('2026: Consumo por persona = round(Σ consumo / nº asistencias)', st.consumoPorPersona, na26 ? Math.round(sc26 / na26) : 0);
+  eq('2026: Cada ahorrador recibe = round(Σ parteIgual / n)', st.repartoPorAhorrador, Math.round(cer26.reduce((s, p) => s + select.parteIgual(p), 0) / cer26.length));
+  check('2026: ya NO nombra a nadie (sin "consumidor")', !('consumidor' in st));
+  // El filtro por año SEPARA: 2025 trae SOLO p0 (rollo), no la data de 2026.
   const st25 = select.estadisticas('2025');
   eq('2025: nPrimadas = 1 (solo p0)', st25.nPrimadas, 1);
-  eq('2025: Consumidor estrella = Dario (no Cris)', st25.consumidor.nombre, 'Dario');
   eq('2025: Más vendido = Rollo de Canela', st25.masVendido.nombre, 'Rollo de Canela');
   // Sin año = TODAS las cerradas (p0+p1+p2 = 3).
   eq('Sin año: nPrimadas = todas las cerradas (3)', select.estadisticas().nPrimadas, 3);
@@ -814,7 +816,7 @@ section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estre
   eq('Sin cerradas: ganancia 0', vacio.ganancia, 0);
   eq('Sin cerradas: nPrimadas 0', vacio.nPrimadas, 0);
   eq('Sin cerradas: aniosEstadisticas vacío', select.aniosEstadisticas().length, 0);
-  check('Sin cerradas: producto/consumidor null', vacio.masVendido === null && vacio.consumidor === null);
+  check('Sin cerradas: producto null; promedios 0', vacio.masVendido === null && vacio.consumoPorPersona === 0 && vacio.repartoPorAhorrador === 0);
 }
 
 /* ---------- Resumen ---------- */

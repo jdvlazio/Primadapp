@@ -832,7 +832,7 @@ check('Pendientes (Debe) van ANTES que los saldados', iYago < iVera);
 cerrarBalance();
 
 /* ---------- 18. Estadísticas en el HOME (tarjeta colapsable, solo cerradas) ---------- */
-section('Estadísticas (home): tarjeta colapsable; fondo + producto + consumidor estrella');
+section('Estadísticas (home): tarjeta colapsable de PROMEDIOS (sin nombrar a nadie)');
 irHome();                                   // salir del detalle de la sección anterior
 Store.actions.replaceState(null);           // estado limpio
 check('Sin primadas cerradas: NO hay tarjeta de Estadísticas', !q('[data-act="toggle-stats"]'));
@@ -845,12 +845,12 @@ Store.actions.changeItem(ep1, eBeto, 'cerveza', 2);
 Store.actions.cerrarPrimada(ep1);
 const ep2 = Store.actions.createPrimada({ principalId: eAna, organizadores: [eAna], mesContable: '2026-04' });
 Store.actions.addAsistencia(ep2, eCris);
-Store.actions.changeItem(ep2, eCris, 'brownie', 3);   // Cris = consumidor estrella 2026
+Store.actions.changeItem(ep2, eCris, 'brownie', 3);   // Cris consume (alimenta los promedios 2026)
 Store.actions.cerrarPrimada(ep2);
 // + una primada CERRADA de OTRO AÑO (2025): activa el SELECTOR de año.
 const ep0 = Store.actions.createPrimada({ principalId: eAna, organizadores: [eAna], mesContable: '2025-12' });
 Store.actions.addAsistencia(ep0, eBeto);
-Store.actions.changeItem(ep0, eBeto, 'cerveza', 5);   // Beto = consumidor estrella 2025
+Store.actions.changeItem(ep0, eBeto, 'cerveza', 5);   // Beto consume (alimenta los promedios 2025)
 Store.actions.cerrarPrimada(ep0);
 Store.actions.seleccionarPrimada(ep2);
 irHome();
@@ -863,17 +863,22 @@ check('Año por defecto = 2026 (más reciente) en el selector', /stats-anio-lbl"
 check('Héroe "Ganancia"; SIN "Recaudado"/"Repartido"/"familia"/"Fondo acumulado" (la cifra que cuenta es Ganancia)',
   /bal-label">Ganancia/.test(stHTML) && !/Recaudado/.test(stHTML)
   && !/Repartido/.test(stHTML) && !/familia/.test(stHTML) && !/Fondo acumulado/.test(stHTML));
-// Lista PLANA (revisión UX): "Más vendido" / "Más rentable" / "Mayor consumo"; SIN "estrella" ni "consumidor".
-check('2026: 2 primadas + Más vendido + Más rentable + Mayor consumo = Cris; SIN "estrella"/"consumidor"',
+// Lista PLANA de PROMEDIOS (decisión de producto: datos estadísticos, NO competencia → NO se nombra a nadie).
+// "Más vendido" / "Más rentable" / "Cada ahorrador recibe" / "Consumo por persona", marcador "en prom.".
+check('2026: 2 primadas + Más vendido + Más rentable + "Cada ahorrador recibe" + "Consumo por persona" + "en prom."',
   /2 primadas/.test(stHTML) && /Más vendido/.test(stHTML) && /Más rentable/.test(stHTML)
-  && /Mayor consumo/.test(stHTML) && /Cris/.test(stHTML) && !/estrella/i.test(stHTML) && !/[Cc]onsumidor/.test(stHTML));
+  && /Cada ahorrador recibe/.test(stHTML) && /Consumo por persona/.test(stHTML) && /en prom\./.test(stHTML));
+check('2026: NO compite — sin "Mayor consumo", sin "estrella"/"consumidor", sin nombrar a nadie (no Cris/Beto)',
+  !/Mayor consumo/.test(stHTML) && !/estrella/i.test(stHTML) && !/[Cc]onsumidor/.test(stHTML)
+  && !/Cris/.test(stHTML) && !/Beto/.test(stHTML));
 // SELECTOR de año: voy al anterior (2025) → cambian los datos (Beto, 1 primada).
 check('Selector de año: flecha al 2025 presente', !!q('[data-act="stats-anio"][data-anio="2025"]'));
 click('[data-act="stats-anio"][data-anio="2025"]');
 stHTML = q('.stats-panel').innerHTML;
 check('Al cambiar de año: el selector muestra 2025', /stats-anio-lbl">2025/.test(stHTML));
-check('2025: 1 primada + Mayor consumo = Beto (datos del año 2025, no Cris)',
-  /1 primada/.test(stHTML) && /Mayor consumo/.test(stHTML) && /Beto/.test(stHTML) && !/Cris/.test(stHTML));
+check('2025: 1 primada, card de PROMEDIOS (sin nombrar a nadie: ni Beto ni Cris en la tarjeta)',
+  /1 primada/.test(stHTML) && /Cada ahorrador recibe/.test(stHTML) && /Consumo por persona/.test(stHTML)
+  && !/Mayor consumo/.test(stHTML) && !/Beto/.test(stHTML) && !/Cris/.test(stHTML));
 click('[data-act="toggle-stats"]');
 check('Estadísticas se colapsa de nuevo', !q('.stats-panel'));
 

@@ -587,25 +587,21 @@
       });
       const masVendido = prods.slice().sort((a, b) => b.unidades - a.unidades)[0] || null;
       const masRentable = prods.slice().sort((a, b) => b.margen - a.margen)[0] || null;
-      // Consumidor estrella: Σ consumoDe por persona a lo largo de las cerradas (mayor total).
-      const porPersona = {};
-      cerradas.forEach(p => (p.asistencias || []).forEach(a => {
-        porPersona[a.personaId] = (porPersona[a.personaId] || 0) + select.consumoDe(p, a);
-      }));
-      let consumidor = null;
-      Object.keys(porPersona).forEach(pid => {
-        if (porPersona[pid] > 0 && (!consumidor || porPersona[pid] > consumidor.total)) {
-          const per = select.persona(pid);
-          consumidor = { personaId: pid, nombre: per ? per.nombre : '—', total: porPersona[pid] };
-        }
-      });
+      // Consumo PROMEDIO por persona (promedios, NO competencia: no se nombra a nadie). Σ consumoDe de TODAS
+      // las asistencias / nº de asistencias = lo que consume en productos una persona típica.
+      let sumaConsumo = 0;
+      cerradas.forEach(p => (p.asistencias || []).forEach(a => { sumaConsumo += select.consumoDe(p, a); }));
+      const consumoPorPersona = totalAsis ? Math.round(sumaConsumo / totalAsis) : 0;
+      // Reparto: lo que recibe en promedio CADA AHORRADOR por primada (parteIgual promediado sobre las cerradas).
+      // Es el número que más le importa a un ahorrador en una natillera.
+      const repartoPorAhorrador = n ? Math.round(cerradas.reduce((s, p) => s + select.parteIgual(p), 0) / n) : 0;
       return {
         anio: (anio != null && anio !== '') ? String(anio) : null,
         nPrimadas: n,
         ganancia,
         gananciaPromedio: n ? Math.round(ganancia / n) : 0,
         asistentesPromedio: n ? Math.round(totalAsis / n) : 0,
-        masVendido, masRentable, consumidor,
+        masVendido, masRentable, consumoPorPersona, repartoPorAhorrador,
       };
     },
   };
