@@ -587,21 +587,34 @@
       });
       const masVendido = prods.slice().sort((a, b) => b.unidades - a.unidades)[0] || null;
       const masRentable = prods.slice().sort((a, b) => b.margen - a.margen)[0] || null;
-      // Consumo PROMEDIO por persona (promedios, NO competencia: no se nombra a nadie). Σ consumoDe de TODAS
-      // las asistencias / nº de asistencias = lo que consume en productos una persona típica.
+      // Por persona, a lo largo de las cerradas: consumo total + nº de asistencias. De aquí salen el PROMEDIO de
+      // consumo por persona y el RECONOCIMIENTO (celebrar a los más activos de la familia): quién consumió más y
+      // quién asistió a más primadas. (Antes se quitó el nombrar; se recupera a pedido del PM para reconocer.)
+      const porPersona = {};
       let sumaConsumo = 0;
-      cerradas.forEach(p => (p.asistencias || []).forEach(a => { sumaConsumo += select.consumoDe(p, a); }));
+      cerradas.forEach(p => (p.asistencias || []).forEach(a => {
+        const c = select.consumoDe(p, a);
+        sumaConsumo += c;
+        const r = porPersona[a.personaId] || (porPersona[a.personaId] = { consumo: 0, asistencias: 0 });
+        r.consumo += c; r.asistencias += 1;
+      }));
       const consumoPorPersona = totalAsis ? Math.round(sumaConsumo / totalAsis) : 0;
       // Reparto: lo que recibe en promedio CADA AHORRADOR por primada (parteIgual promediado sobre las cerradas).
       // Es el número que más le importa a un ahorrador en una natillera.
       const repartoPorAhorrador = n ? Math.round(cerradas.reduce((s, p) => s + select.parteIgual(p), 0) / n) : 0;
+      let masConsumio = null, masAsistio = null;
+      Object.keys(porPersona).forEach(pid => {
+        const r = porPersona[pid], per = select.persona(pid), nom = per ? per.nombre : '—';
+        if (r.consumo > 0 && (!masConsumio || r.consumo > masConsumio.total)) masConsumio = { personaId: pid, nombre: nom, total: r.consumo };
+        if (r.asistencias > 0 && (!masAsistio || r.asistencias > masAsistio.veces)) masAsistio = { personaId: pid, nombre: nom, veces: r.asistencias };
+      });
       return {
         anio: (anio != null && anio !== '') ? String(anio) : null,
         nPrimadas: n,
         ganancia,
         gananciaPromedio: n ? Math.round(ganancia / n) : 0,
         asistentesPromedio: n ? Math.round(totalAsis / n) : 0,
-        masVendido, masRentable, consumoPorPersona, repartoPorAhorrador,
+        masVendido, masRentable, consumoPorPersona, repartoPorAhorrador, masConsumio, masAsistio,
       };
     },
   };

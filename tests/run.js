@@ -803,7 +803,19 @@ section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a 
   let sc26 = 0, na26 = 0; cer26.forEach(p => p.asistencias.forEach(a => { sc26 += select.consumoDe(p, a); na26 += 1; }));
   eq('2026: Consumo por persona = round(Σ consumo / nº asistencias)', st.consumoPorPersona, na26 ? Math.round(sc26 / na26) : 0);
   eq('2026: Cada ahorrador recibe = round(Σ parteIgual / n)', st.repartoPorAhorrador, Math.round(cer26.reduce((s, p) => s + select.parteIgual(p), 0) / cer26.length));
-  check('2026: ya NO nombra a nadie (sin "consumidor")', !('consumidor' in st));
+  check('2026: los PROMEDIOS no nombran (sin "consumidor")', !('consumidor' in st));
+  // RECONOCIMIENTO (a pedido del PM): quién consumió más y quién asistió a más. Esperado desde la MISMA data.
+  const acc26 = {};
+  cer26.forEach(p => p.asistencias.forEach(a => { const r = acc26[a.personaId] || (acc26[a.personaId] = { c: 0, n: 0 }); r.c += select.consumoDe(p, a); r.n += 1; }));
+  let topC = null, topA = null;
+  Object.keys(acc26).forEach(pid => { const r = acc26[pid];
+    if (r.c > 0 && (!topC || r.c > topC.c)) topC = { pid, c: r.c };
+    if (r.n > 0 && (!topA || r.n > topA.n)) topA = { pid, n: r.n };
+  });
+  eq('2026: Quien más consumió = persona con mayor Σ consumo', st.masConsumio.personaId, topC.pid);
+  eq('2026: Quien más consumió · total coincide', st.masConsumio.total, topC.c);
+  eq('2026: Quien más asistió = persona con más asistencias', st.masAsistio.personaId, topA.pid);
+  eq('2026: Quien más asistió · veces coincide', st.masAsistio.veces, topA.n);
   // El filtro por año SEPARA: 2025 trae SOLO p0 (rollo), no la data de 2026.
   const st25 = select.estadisticas('2025');
   eq('2025: nPrimadas = 1 (solo p0)', st25.nPrimadas, 1);
@@ -816,7 +828,7 @@ section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a 
   eq('Sin cerradas: ganancia 0', vacio.ganancia, 0);
   eq('Sin cerradas: nPrimadas 0', vacio.nPrimadas, 0);
   eq('Sin cerradas: aniosEstadisticas vacío', select.aniosEstadisticas().length, 0);
-  check('Sin cerradas: producto null; promedios 0', vacio.masVendido === null && vacio.consumoPorPersona === 0 && vacio.repartoPorAhorrador === 0);
+  check('Sin cerradas: producto/reconocimiento null; promedios 0', vacio.masVendido === null && vacio.masConsumio === null && vacio.masAsistio === null && vacio.consumoPorPersona === 0 && vacio.repartoPorAhorrador === 0);
 }
 
 /* ---------- Resumen ---------- */

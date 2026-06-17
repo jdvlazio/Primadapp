@@ -863,22 +863,23 @@ check('Año por defecto = 2026 (más reciente) en el selector', /stats-anio-lbl"
 check('Héroe "Ganancia"; SIN "Recaudado"/"Repartido"/"familia"/"Fondo acumulado" (la cifra que cuenta es Ganancia)',
   /bal-label">Ganancia/.test(stHTML) && !/Recaudado/.test(stHTML)
   && !/Repartido/.test(stHTML) && !/familia/.test(stHTML) && !/Fondo acumulado/.test(stHTML));
-// Lista PLANA de PROMEDIOS (decisión de producto: datos estadísticos, NO competencia → NO se nombra a nadie).
-// "Más vendido" / "Más rentable" / "Cada ahorrador recibe" / "Consumo por persona", marcador "en prom.".
-check('2026: 2 primadas + Más vendido + Más rentable + "Cada ahorrador recibe" + "Consumo por persona" + "en prom."',
+// Lista PLANA: PROMEDIOS (no nombran) "Más vendido"/"Más rentable"/"Cada ahorrador recibe"/"Consumo por persona"
+// con marcador "en prom."; + RECONOCIMIENTO (a pedido del PM, esas SÍ nombran): "Quien más consumió"/"Quien más asistió".
+check('2026: promedios — Más vendido + Más rentable + "Cada ahorrador recibe" + "Consumo por persona" + "en prom."',
   /2 primadas/.test(stHTML) && /Más vendido/.test(stHTML) && /Más rentable/.test(stHTML)
   && /Cada ahorrador recibe/.test(stHTML) && /Consumo por persona/.test(stHTML) && /en prom\./.test(stHTML));
-check('2026: NO compite — sin "Mayor consumo", sin "estrella"/"consumidor", sin nombrar a nadie (no Cris/Beto)',
-  !/Mayor consumo/.test(stHTML) && !/estrella/i.test(stHTML) && !/[Cc]onsumidor/.test(stHTML)
-  && !/Cris/.test(stHTML) && !/Beto/.test(stHTML));
+check('2026: reconocimiento — "Quien más consumió" (Cris) + "Quien más asistió" (Ana); sin "Mayor consumo"/"estrella"',
+  /Quien más consumió/.test(stHTML) && /Cris/.test(stHTML)
+  && /Quien más asistió/.test(stHTML) && /Ana/.test(stHTML)
+  && !/Mayor consumo/.test(stHTML) && !/estrella/i.test(stHTML));
 // SELECTOR de año: voy al anterior (2025) → cambian los datos (Beto, 1 primada).
 check('Selector de año: flecha al 2025 presente', !!q('[data-act="stats-anio"][data-anio="2025"]'));
 click('[data-act="stats-anio"][data-anio="2025"]');
 stHTML = q('.stats-panel').innerHTML;
 check('Al cambiar de año: el selector muestra 2025', /stats-anio-lbl">2025/.test(stHTML));
-check('2025: 1 primada, card de PROMEDIOS (sin nombrar a nadie: ni Beto ni Cris en la tarjeta)',
+check('2025: 1 primada + reconocimiento "Quien más consumió" (Beto), datos del año (no Cris)',
   /1 primada/.test(stHTML) && /Cada ahorrador recibe/.test(stHTML) && /Consumo por persona/.test(stHTML)
-  && !/Mayor consumo/.test(stHTML) && !/Beto/.test(stHTML) && !/Cris/.test(stHTML));
+  && /Quien más consumió/.test(stHTML) && /Beto/.test(stHTML) && !/Cris/.test(stHTML));
 click('[data-act="toggle-stats"]');
 check('Estadísticas se colapsa de nuevo', !q('.stats-panel'));
 

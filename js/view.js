@@ -614,11 +614,12 @@
      ============================================================ */
   // ESTADÍSTICAS ANUALES (home) = tarjeta COLAPSABLE AL PIE del home (mismo lugar y dock que el Balance).
   // Toggle CENTRADO/teal + selector de AÑO (‹ 2026 ›). Solo aparece si hay primadas CERRADAS. Jerarquía (reusa
-  // los componentes del Balance): HÉROE Ganancia del año → lista PLANA de PROMEDIOS (decisión de producto: datos
-  // estadísticos, NO competencia → no se nombra a nadie). El marcador de promedio es la palabra "en prom." (no hay
-  // símbolo universal de promedio); "por primada" NO se repite (redundante). Las filas de TOTAL del año (Ganancia,
-  // Más rentable) van SIN "en prom." para distinguirlas del promedio. "Cada ahorrador recibe" = el número clave en
-  // una natillera. "Mayor consumo" (que nombraba a una persona) → "Consumo por persona" (promedio, sin nombrar).
+  // los componentes del Balance): HÉROE Ganancia del año → lista PLANA. Los PROMEDIOS no nombran a nadie; el
+  // marcador es la palabra "en prom." (no hay símbolo universal de promedio); "por primada" NO se repite
+  // (redundante). Las filas de TOTAL del año (Ganancia, Más rentable) van SIN "en prom." para distinguirlas del
+  // promedio. "Cada ahorrador recibe" = el número clave en una natillera. Al final, dos filas de RECONOCIMIENTO
+  // (a pedido del PM, para celebrar a los más activos): "Quien más consumió" y "Quien más asistió" — esas SÍ
+  // nombran a la persona (Nombre · valor).
   function estadisticasBody(st) {
     const heroe = `<div class="bal-hero">
         <div class="bal-label">Ganancia</div>
@@ -635,6 +636,8 @@
         ${prodRow('Más rentable', st.masRentable, st.masRentable ? $peso(st.masRentable.margen) : '')}
         ${st.nPrimadas ? row('Cada ahorrador recibe', `${$peso(st.repartoPorAhorrador)} en prom.`) : ''}
         ${st.nPrimadas ? row('Consumo por persona', `${$peso(st.consumoPorPersona)} en prom.`) : ''}
+        ${st.masConsumio ? row('Quien más consumió', `${e(st.masConsumio.nombre)} · ${$peso(st.masConsumio.total)}`) : ''}
+        ${st.masAsistio ? row('Quien más asistió', `${e(st.masAsistio.nombre)} · ${st.masAsistio.veces} primada${st.masAsistio.veces === 1 ? '' : 's'}`) : ''}
       </div>`;
     return `<div class="card dark bal-card">${heroe}${stats}</div>`;
   }
