@@ -56,8 +56,14 @@ Valores resueltos, extraídos de `:root` en `index.html`. **Son la única fuente
 ### Color — líneas
 | Token | Valor | Uso |
 |---|---|---|
-| `--line` | `#25403d` | Borde de **controles** (input, chip, botón borde). **No** para separar secciones |
-| `rgba(255,255,255,.06)` | línea tenue | **Separador de filas** dentro de una lista (canónico, ver §2). Pendiente de tokenizar (§5) |
+| `--line` | `#25403d` | Borde de **controles** (input `.ti`, select `.sel`, chip, botón borde) **y** la línea de arriba de los dos docks (`.balance-dock`, `.stats-dock`). **No** para separar filas/secciones |
+| `--line-soft` | línea tenue | **LEGADO.** Antes separaba filas; **ya no se usa como divisor** (ver regla de abajo) |
+
+> **REGLA — CERO líneas divisorias (decisión del PO).** La app **no** lleva separadores de filas ni de secciones:
+> la separación es por **AIRE** (espacio/padding), nunca por hairline. **Únicas líneas que quedan:** el `border-top`
+> de **`.balance-dock`** (arriba del Balance, en el detalle) y de **`.stats-dock`** (arriba de Estadísticas, en el
+> home). Los bordes de **controles** (inputs/selects) no son divisores. (Las menciones a "separación por línea tenue"
+> en §2 son históricas — el canónico es **sin línea**.)
 
 ### Color — acento y semántica de estado
 | Token | Valor | Rol |
