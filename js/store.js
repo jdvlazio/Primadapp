@@ -572,12 +572,19 @@
         const u = unidadesVendidas(p, prod);
         if (u <= 0) return;
         const key = prod.nombre || prod.id;
-        const r = porProd[key] || (porProd[key] = { nombre: prod.nombre || prod.id, emoji: prod.emoji || '', unidades: 0, margen: 0 });
+        const r = porProd[key] || (porProd[key] = { nombre: prod.nombre || prod.id, emoji: prod.emoji || '', unidades: 0, margen: 0, primadas: 0 });
         r.unidades += u;
         r.margen += select.margenProducto(prod) * u;
+        r.primadas += 1;   // nº de primadas donde se CONSUMIÓ → denominador del promedio por primada (planear la compra)
         if (!r.emoji && prod.emoji) r.emoji = prod.emoji;
       }));
-      const prods = Object.keys(porProd).map(k => porProd[k]);
+      // promedioPorPrimada = cuántas unidades se consumen en una primada típica (las que lo tuvieron). Sirve para
+      // saber CUÁNTO COMPRAR: "≈50 cervezas por primada". Redondeado (piso de claridad, sin decimales).
+      const prods = Object.keys(porProd).map(k => {
+        const r = porProd[k];
+        r.promedioPorPrimada = r.primadas ? Math.round(r.unidades / r.primadas) : 0;
+        return r;
+      });
       const masVendido = prods.slice().sort((a, b) => b.unidades - a.unidades)[0] || null;
       const masRentable = prods.slice().sort((a, b) => b.margen - a.margen)[0] || null;
       // Consumidor estrella: Σ consumoDe por persona a lo largo de las cerradas (mayor total).

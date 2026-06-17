@@ -628,7 +628,7 @@
       ? `<div class="bal-row"><span>${lbl}</span><b>${e(prod.emoji)} ${e(prod.nombre)} · ${valStr}</b></div>` : '';
     const stats = `<div class="bal-group">
         <div class="bal-row"><span>Asistencia promedio</span><b>${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'}</b></div>
-        ${prodRow('Más vendido', st.masVendido, st.masVendido ? st.masVendido.unidades + ' und' : '')}
+        ${prodRow('Más vendido', st.masVendido, st.masVendido ? '~' + st.masVendido.promedioPorPrimada + '/primada' : '')}
         ${prodRow('Más rentable', st.masRentable, st.masRentable ? $peso(st.masRentable.margen) : '')}
         ${st.consumidor ? `<div class="bal-row"><span>Mayor consumo</span><b>${e(st.consumidor.nombre)} · ${$peso(st.consumidor.total)}</b></div>` : ''}
       </div>`;

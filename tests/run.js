@@ -794,6 +794,9 @@ section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estre
   // Producto estrella 2026: cerveza más VENDIDA (3+2=5 und); brownie más RENTABLE (3×3000=9000 > cerveza 5×1000=5000).
   eq('2026: Más vendido = Costeñita (5 und)', st.masVendido.nombre, 'Costeñita');
   eq('2026: Más vendido: 5 unidades', st.masVendido.unidades, 5);
+  // PROMEDIO POR PRIMADA (idea del primo: saber cuánto comprar). Costeñita: 5 und en 2 primadas → round(5/2)=3.
+  eq('2026: Más vendido consumido en 2 primadas (denominador)', st.masVendido.primadas, 2);
+  eq('2026: Más vendido promedio/primada = round(5/2) = 3', st.masVendido.promedioPorPrimada, 3);
   eq('2026: Más rentable = Brownie (margen 9.000)', st.masRentable.nombre, 'Brownie');
   check('2026: más vendido ≠ más rentable (contraste)', st.masVendido.nombre !== st.masRentable.nombre);
   eq('2026: Consumidor estrella = Cris', st.consumidor.nombre, 'Cris');
