@@ -550,15 +550,14 @@
     },
     // ESTADÍSTICAS ANUALES (derivado puro, sin estado nuevo). Agrega SOLO primadas CERRADAS (firmes; las
     // abiertas son provisionales) de un AÑO (mesContable); sin `anio` = todas. Datos más dicientes del evento:
-    // GANANCIA del año (héroe) + promedio, RECAUDADO (Σ de lo que entró; sin división → sin peso indivisible que
-    // confunda), asistencia promedio, producto estrella (más vendido / más rentable) y consumidor estrella.
-    // Producto se agrega por NOMBRE (el mismo suma parejo). Vacío seguro si no hay cerradas en el año.
+    // GANANCIA del año (héroe) + promedio, asistencia promedio, producto estrella (más vendido / más rentable) y
+    // consumidor estrella. (Sin "Recaudado": Σ cover+consumos incluye el reembolso de productos → engaña; la cifra
+    // que cuenta es la Ganancia.) Producto se agrega por NOMBRE (el mismo suma parejo). Vacío seguro si no hay cerradas.
     estadisticas(anio) {
       let cerradas = (state ? state.primadas : []).filter(p => p.estado === 'cerrada');
       if (anio != null && anio !== '') cerradas = cerradas.filter(p => select.anioContable(p) === String(anio));
       const n = cerradas.length;
       const ganancia = cerradas.reduce((s, p) => s + select.ganancia(p), 0);
-      const recaudado = cerradas.reduce((s, p) => s + select.recaudado(p), 0);
       const totalAsis = cerradas.reduce((s, p) => s + (p.asistencias || []).length, 0);
       // Producto estrella: acumula unidades y margen por NOMBRE de producto a lo largo de las cerradas.
       const porProd = {};
@@ -591,7 +590,6 @@
         nPrimadas: n,
         ganancia,
         gananciaPromedio: n ? Math.round(ganancia / n) : 0,
-        recaudado,
         asistentesPromedio: n ? Math.round(totalAsis / n) : 0,
         masVendido, masRentable, consumidor,
       };

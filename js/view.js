@@ -614,8 +614,8 @@
      ============================================================ */
   // ESTADÍSTICAS ANUALES (home) = tarjeta COLAPSABLE AL PIE del home (mismo lugar y dock que el Balance).
   // Toggle CENTRADO/teal + selector de AÑO (‹ 2026 ›). Solo aparece si hay primadas CERRADAS. Jerarquía (reusa
-  // los componentes del Balance): HÉROE Ganancia del año → Recaudado · Asistencia promedio → Producto estrella
-  // (vendido/rentable) → Consumidor estrella. (Sin "repartido": confunde por el peso indivisible.)
+  // los componentes del Balance): HÉROE Ganancia del año → Asistencia promedio → Producto estrella
+  // (vendido/rentable) → Consumidor estrella. (Sin "repartido" ni "recaudado": confunden; la cifra que cuenta es Ganancia.)
   function estadisticasBody(st) {
     const heroe = `<div class="bal-hero">
         <div class="bal-label">Ganancia</div>
@@ -623,7 +623,6 @@
         <div class="bal-note">${st.nPrimadas} primada${st.nPrimadas === 1 ? '' : 's'} · ${$peso(st.gananciaPromedio)} promedio</div>
       </div>`;
     const kpis = `<div class="bal-group">
-        <div class="bal-row"><span>Recaudado</span><b>${$peso(st.recaudado)}</b></div>
         <div class="bal-row"><span>Asistencia promedio</span><b>${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'}</b></div>
       </div>`;
     const prodRow = (lbl, prod, valStr) => prod

@@ -756,7 +756,7 @@ section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estre
   eq('2026: anio en el bundle', st.anio, '2026');
   eq('2026: nPrimadas = 2 (solo cerradas del año)', st.nPrimadas, 2);
   eq('2026: Ganancia = Σ ganancia de cerradas 2026', st.ganancia, cer26.reduce((s, p) => s + select.ganancia(p), 0));
-  eq('2026: Recaudado = Σ recaudado de cerradas 2026 (sin división, sin sobrante)', st.recaudado, cer26.reduce((s, p) => s + select.recaudado(p), 0));
+  eq('Estadísticas SIN "recaudado" (engaña: incluye el reembolso)', 'recaudado' in st, false);
   eq('2026: Ganancia promedio = ganancia / n', st.gananciaPromedio, Math.round(st.ganancia / 2));
   eq('2026: Asistencia promedio = round((2+3)/2)', st.asistentesPromedio, 3);
   // Producto estrella 2026: cerveza más VENDIDA (3+2=5 und); brownie más RENTABLE (3×3000=9000 > cerveza 5×1000=5000).
@@ -776,7 +776,7 @@ section('Estadísticas: agrega SOLO primadas cerradas; producto/consumidor estre
   // Sin cerradas → vacío seguro.
   Store.actions.replaceState(null);
   const vacio = select.estadisticas();
-  eq('Sin cerradas: ganancia 0 · recaudado 0', vacio.ganancia + vacio.recaudado, 0);
+  eq('Sin cerradas: ganancia 0', vacio.ganancia, 0);
   eq('Sin cerradas: nPrimadas 0', vacio.nPrimadas, 0);
   eq('Sin cerradas: aniosEstadisticas vacío', select.aniosEstadisticas().length, 0);
   check('Sin cerradas: producto/consumidor null', vacio.masVendido === null && vacio.consumidor === null);

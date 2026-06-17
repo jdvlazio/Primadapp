@@ -841,10 +841,10 @@ check('Con cerradas: aparece el toggle "Estadísticas" en el home', !!q('[data-a
 check('Estadísticas colapsada por defecto (sin .stats-panel)', !q('.stats-panel'));
 click('[data-act="toggle-stats"]');
 let stHTML = q('.stats-panel').innerHTML;
-// Año por defecto = el MÁS RECIENTE (2026). Héroe "Ganancia" + "Recaudado" (NO repartido/familia/fondo acumulado).
+// Año por defecto = el MÁS RECIENTE (2026). Héroe "Ganancia"; SIN "Recaudado"/"Repartido"/"familia"/"Fondo acumulado".
 check('Año por defecto = 2026 (más reciente) en el selector', /stats-anio-lbl">2026/.test(stHTML));
-check('Héroe "Ganancia" + "Recaudado"; SIN "Repartido"/"familia"/"Fondo acumulado"',
-  /bal-label">Ganancia/.test(stHTML) && /Recaudado/.test(stHTML)
+check('Héroe "Ganancia"; SIN "Recaudado"/"Repartido"/"familia"/"Fondo acumulado" (la cifra que cuenta es Ganancia)',
+  /bal-label">Ganancia/.test(stHTML) && !/Recaudado/.test(stHTML)
   && !/Repartido/.test(stHTML) && !/familia/.test(stHTML) && !/Fondo acumulado/.test(stHTML));
 check('2026: 2 primadas + Producto estrella + Consumidor estrella = Cris',
   /2 primadas/.test(stHTML) && /Producto estrella/.test(stHTML) && /Consumidor estrella/.test(stHTML) && /Cris/.test(stHTML));
