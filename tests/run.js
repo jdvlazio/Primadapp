@@ -812,10 +812,10 @@ section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a 
     if (r.c > 0 && (!topC || r.c > topC.c)) topC = { pid, c: r.c };
     if (r.n > 0 && (!topA || r.n > topA.n)) topA = { pid, n: r.n };
   });
-  eq('2026: Quien más consumió = persona con mayor Σ consumo', st.masConsumio.personaId, topC.pid);
-  eq('2026: Quien más consumió · total coincide', st.masConsumio.total, topC.c);
-  eq('2026: Quien más asistió = persona con más asistencias', st.masAsistio.personaId, topA.pid);
-  eq('2026: Quien más asistió · veces coincide', st.masAsistio.veces, topA.n);
+  eq('2026: Quien más consumió · valor = mayor Σ consumo', st.masConsumio.valor, topC.c);
+  check('2026: Quien más consumió · incluye al de mayor consumo', st.masConsumio.nombres.includes(Store.select.persona(topC.pid).nombre));
+  eq('2026: Quien más asistió · valor = más asistencias', st.masAsistio.valor, topA.n);
+  check('2026: Quien más asistió · incluye al de más asistencias', st.masAsistio.nombres.includes(Store.select.persona(topA.pid).nombre));
   // El filtro por año SEPARA: 2025 trae SOLO p0 (rollo), no la data de 2026.
   const st25 = select.estadisticas('2025');
   eq('2025: nPrimadas = 1 (solo p0)', st25.nPrimadas, 1);
@@ -829,6 +829,15 @@ section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a 
   eq('Sin cerradas: nPrimadas 0', vacio.nPrimadas, 0);
   eq('Sin cerradas: aniosEstadisticas vacío', select.aniosEstadisticas().length, 0);
   check('Sin cerradas: producto/reconocimiento null; promedios 0', vacio.masVendido === null && vacio.masConsumio === null && vacio.masAsistio === null && vacio.consumoPorPersona === 0 && vacio.repartoPorAhorrador === 0);
+  // EMPATE = se comparte: dos personas con la MISMA asistencia → AMBAS en .nombres, alfabético (no una arbitraria).
+  const tZoe = Store.actions.addPersona({ nombre: 'Zoe', estado: 'ahorrador' });
+  const tAbe = Store.actions.addPersona({ nombre: 'Abe', estado: 'ahorrador' });
+  [1, 2].forEach(m => { const tp = Store.actions.createPrimada({ principalId: tZoe, organizadores: [tZoe], mesContable: '2026-0' + m }); Store.actions.addAsistencia(tp, tAbe); Store.actions.cerrarPrimada(tp); });
+  const stEmp = select.estadisticas('2026');
+  eq('Empate: ambos asistieron a 2 primadas', stEmp.masAsistio.valor, 2);
+  eq('Empate: .nombres trae a AMBOS (no uno solo arbitrario)', stEmp.masAsistio.nombres.length, 2);
+  eq('Empate: orden ALFABÉTICO → Abe primero', stEmp.masAsistio.nombres[0], 'Abe');
+  check('Empate: incluye a Zoe también', stEmp.masAsistio.nombres.includes('Zoe'));
 }
 
 /* ---------- Resumen ---------- */

@@ -602,12 +602,20 @@
       // Reparto: lo que recibe en promedio CADA AHORRADOR por primada (parteIgual promediado sobre las cerradas).
       // Es el número que más le importa a un ahorrador en una natillera.
       const repartoPorAhorrador = n ? Math.round(cerradas.reduce((s, p) => s + select.parteIgual(p), 0) / n) : 0;
-      let masConsumio = null, masAsistio = null;
-      Object.keys(porPersona).forEach(pid => {
-        const r = porPersona[pid], per = select.persona(pid), nom = per ? per.nombre : '—';
-        if (r.consumo > 0 && (!masConsumio || r.consumo > masConsumio.total)) masConsumio = { personaId: pid, nombre: nom, total: r.consumo };
-        if (r.asistencias > 0 && (!masAsistio || r.asistencias > masAsistio.veces)) masAsistio = { personaId: pid, nombre: nom, veces: r.asistencias };
-      });
+      // Empate = SE COMPARTE: junta a TODOS los que están en el máximo (no solo al primero, que dependía del
+      // orden de los datos = arbitrario), ordenados ALFABÉTICAMENTE (sin favoritismo). La VISTA decide cuántos
+      // nombres muestra (hasta 3; de 4+ → "y N más") para no listar a media familia.
+      const campeon = (metric) => {
+        const pares = Object.keys(porPersona).map(pid => ({ pid, v: porPersona[pid][metric] })).filter(x => x.v > 0);
+        if (!pares.length) return null;
+        const max = pares.reduce((m, x) => (x.v > m ? x.v : m), 0);
+        const nombres = pares.filter(x => x.v === max)
+          .map(x => { const per = select.persona(x.pid); return per ? per.nombre : '—'; })
+          .sort((a, b) => a.localeCompare(b));
+        return { nombres, valor: max };
+      };
+      const masConsumio = campeon('consumo');      // { nombres:[…], valor: total $ consumido }
+      const masAsistio = campeon('asistencias');   // { nombres:[…], valor: nº de primadas asistidas }
       return {
         anio: (anio != null && anio !== '') ? String(anio) : null,
         nPrimadas: n,

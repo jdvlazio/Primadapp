@@ -620,6 +620,15 @@
   // promedio. "Cada ahorrador recibe" = el número clave en una natillera. Al final, dos filas de RECONOCIMIENTO
   // (a pedido del PM, para celebrar a los más activos): "Quien más consumió" y "Quien más asistió" — esas SÍ
   // nombran a la persona (Nombre · valor).
+  // Empates en el reconocimiento: lista hasta 3 nombres ("Ana, Beto y Caro"); de 4+ → "Ana, Beto y N más"
+  // (no listar a media familia). Nombres ya vienen ordenados alfabético del selector.
+  function nombresLista(nombres) {
+    const ns = (nombres || []).map(x => e(x));
+    if (ns.length <= 1) return ns[0] || '';
+    if (ns.length === 2) return `${ns[0]} y ${ns[1]}`;
+    if (ns.length === 3) return `${ns[0]}, ${ns[1]} y ${ns[2]}`;
+    return `${ns[0]}, ${ns[1]} y ${ns.length - 2} más`;
+  }
   function estadisticasBody(st) {
     const heroe = `<div class="bal-hero">
         <div class="bal-label">Ganancia</div>
@@ -636,8 +645,8 @@
         ${prodRow('Más rentable', st.masRentable, st.masRentable ? $peso(st.masRentable.margen) : '')}
         ${st.nPrimadas ? row('Cada ahorrador recibe', `${$peso(st.repartoPorAhorrador)} en prom.`) : ''}
         ${st.nPrimadas ? row('Consumo por persona', `${$peso(st.consumoPorPersona)} en prom.`) : ''}
-        ${st.masConsumio ? row('Quien más consumió', `${e(st.masConsumio.nombre)} · ${$peso(st.masConsumio.total)}`) : ''}
-        ${st.masAsistio ? row('Quien más asistió', `${e(st.masAsistio.nombre)} · ${st.masAsistio.veces} primada${st.masAsistio.veces === 1 ? '' : 's'}`) : ''}
+        ${st.masConsumio ? row('Quien más consumió', `${nombresLista(st.masConsumio.nombres)} · ${$peso(st.masConsumio.valor)}`) : ''}
+        ${st.masAsistio ? row('Quien más asistió', `${nombresLista(st.masAsistio.nombres)} · ${st.masAsistio.valor} primada${st.masAsistio.valor === 1 ? '' : 's'}`) : ''}
       </div>`;
     return `<div class="card dark bal-card">${heroe}${stats}</div>`;
   }
