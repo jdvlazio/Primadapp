@@ -602,27 +602,32 @@
       // Reparto: lo que recibe en promedio CADA AHORRADOR por primada (parteIgual promediado sobre las cerradas).
       // Es el número que más le importa a un ahorrador en una natillera.
       const repartoPorAhorrador = n ? Math.round(cerradas.reduce((s, p) => s + select.parteIgual(p), 0) / n) : 0;
-      // Empate = SE COMPARTE: junta a TODOS los que están en el máximo (no solo al primero, que dependía del
-      // orden de los datos = arbitrario), ordenados ALFABÉTICAMENTE (sin favoritismo). La VISTA decide cuántos
-      // nombres muestra (hasta 3; de 4+ → "y N más") para no listar a media familia.
-      const campeon = (metric) => {
-        const pares = Object.keys(porPersona).map(pid => ({ pid, v: porPersona[pid][metric] })).filter(x => x.v > 0);
+      const nombreDe = pid => { const per = select.persona(pid); return per ? per.nombre : '—'; };
+      const ordenAlfa = (a, b) => a.localeCompare(b);
+      // "Quien más consumió": el consumo es CONTINUO ($) → casi siempre hay un ganador claro; los empates exactos
+      // (rarísimos) se COMPARTEN, alfabético. La vista decide cuántos nombres muestra.
+      const masConsumio = (() => {
+        const pares = Object.keys(porPersona).map(pid => ({ pid, v: porPersona[pid].consumo })).filter(x => x.v > 0);
         if (!pares.length) return null;
         const max = pares.reduce((m, x) => (x.v > m ? x.v : m), 0);
-        const nombres = pares.filter(x => x.v === max)
-          .map(x => { const per = select.persona(x.pid); return per ? per.nombre : '—'; })
-          .sort((a, b) => a.localeCompare(b));
-        return { nombres, valor: max };
-      };
-      const masConsumio = campeon('consumo');      // { nombres:[…], valor: total $ consumido }
-      const masAsistio = campeon('asistencias');   // { nombres:[…], valor: nº de primadas asistidas }
+        return { nombres: pares.filter(x => x.v === max).map(x => nombreDe(x.pid)).sort(ordenAlfa), valor: max };
+      })();
+      // NÚCLEO FIEL: quiénes fueron a TODAS las cerradas (asistencias === n). Reemplaza a "quien más asistió":
+      // la asistencia está ACOTADA por arriba (techo = n) y CONCENTRADA → el máximo lo compartían casi todos y no
+      // informaba. El núcleo fiel es un CONJUNTO con sentido (los 100% leales). Solo con ≥2 primadas ("fiel" = no
+      // faltar a VARIAS). La vista nombra si son pocos (≤3); si son muchos, muestra "N personas".
+      let nucleoFiel = null;
+      if (n >= 2) {
+        const fieles = Object.keys(porPersona).filter(pid => porPersona[pid].asistencias === n).map(nombreDe).sort(ordenAlfa);
+        if (fieles.length) nucleoFiel = { nombres: fieles, total: fieles.length };
+      }
       return {
         anio: (anio != null && anio !== '') ? String(anio) : null,
         nPrimadas: n,
         ganancia,
         gananciaPromedio: n ? Math.round(ganancia / n) : 0,
         asistentesPromedio: n ? Math.round(totalAsis / n) : 0,
-        masVendido, masRentable, consumoPorPersona, repartoPorAhorrador, masConsumio, masAsistio,
+        masVendido, masRentable, consumoPorPersona, repartoPorAhorrador, masConsumio, nucleoFiel,
       };
     },
   };

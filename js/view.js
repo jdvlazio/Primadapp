@@ -618,8 +618,9 @@
   // marcador es la palabra "en prom." (no hay símbolo universal de promedio); "por primada" NO se repite
   // (redundante). Las filas de TOTAL del año (Ganancia, Más rentable) van SIN "en prom." para distinguirlas del
   // promedio. "Cada ahorrador recibe" = el número clave en una natillera. Al final, dos filas de RECONOCIMIENTO
-  // (a pedido del PM, para celebrar a los más activos): "Quien más consumió" y "Quien más asistió" — esas SÍ
-  // nombran a la persona (Nombre · valor).
+  // (celebrar a los activos): "Quien más consumió" (ganador claro, variable continua $) y "Núcleo fiel" = quiénes
+  // fueron a TODAS las primadas (reemplaza a "quien más asistió", que era un máximo poco informativo en datos
+  // acotados/concentrados: lo compartían casi todos). El núcleo nombra si son pocos (≤3); si son muchos, "N personas".
   // Empates en el reconocimiento: lista hasta 3 nombres ("Ana, Beto y Caro"); de 4+ → "Ana, Beto y N más"
   // (no listar a media familia). Nombres ya vienen ordenados alfabético del selector.
   function nombresLista(nombres) {
@@ -646,7 +647,7 @@
         ${st.nPrimadas ? row('Cada ahorrador recibe', `${$peso(st.repartoPorAhorrador)} en prom.`) : ''}
         ${st.nPrimadas ? row('Consumo por persona', `${$peso(st.consumoPorPersona)} en prom.`) : ''}
         ${st.masConsumio ? row('Quien más consumió', `${nombresLista(st.masConsumio.nombres)} · ${$peso(st.masConsumio.valor)}`) : ''}
-        ${st.masAsistio ? row('Quien más asistió', `${nombresLista(st.masAsistio.nombres)} · ${st.masAsistio.valor} primada${st.masAsistio.valor === 1 ? '' : 's'}`) : ''}
+        ${st.nucleoFiel ? row('Núcleo fiel', st.nucleoFiel.total <= 3 ? nombresLista(st.nucleoFiel.nombres) : `${st.nucleoFiel.total} personas`) : ''}
       </div>`;
     return `<div class="card dark bal-card">${heroe}${stats}</div>`;
   }

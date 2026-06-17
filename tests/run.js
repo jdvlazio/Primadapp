@@ -804,18 +804,17 @@ section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a 
   eq('2026: Consumo por persona = round(Σ consumo / nº asistencias)', st.consumoPorPersona, na26 ? Math.round(sc26 / na26) : 0);
   eq('2026: Cada ahorrador recibe = round(Σ parteIgual / n)', st.repartoPorAhorrador, Math.round(cer26.reduce((s, p) => s + select.parteIgual(p), 0) / cer26.length));
   check('2026: los PROMEDIOS no nombran (sin "consumidor")', !('consumidor' in st));
-  // RECONOCIMIENTO (a pedido del PM): quién consumió más y quién asistió a más. Esperado desde la MISMA data.
+  // RECONOCIMIENTO: "Quien más consumió" (ganador claro) y "Núcleo fiel" (fueron a TODAS). Esperado desde la data.
   const acc26 = {};
   cer26.forEach(p => p.asistencias.forEach(a => { const r = acc26[a.personaId] || (acc26[a.personaId] = { c: 0, n: 0 }); r.c += select.consumoDe(p, a); r.n += 1; }));
-  let topC = null, topA = null;
-  Object.keys(acc26).forEach(pid => { const r = acc26[pid];
-    if (r.c > 0 && (!topC || r.c > topC.c)) topC = { pid, c: r.c };
-    if (r.n > 0 && (!topA || r.n > topA.n)) topA = { pid, n: r.n };
-  });
+  let topC = null;
+  Object.keys(acc26).forEach(pid => { const r = acc26[pid]; if (r.c > 0 && (!topC || r.c > topC.c)) topC = { pid, c: r.c }; });
   eq('2026: Quien más consumió · valor = mayor Σ consumo', st.masConsumio.valor, topC.c);
   check('2026: Quien más consumió · incluye al de mayor consumo', st.masConsumio.nombres.includes(Store.select.persona(topC.pid).nombre));
-  eq('2026: Quien más asistió · valor = más asistencias', st.masAsistio.valor, topA.n);
-  check('2026: Quien más asistió · incluye al de más asistencias', st.masAsistio.nombres.includes(Store.select.persona(topA.pid).nombre));
+  // Núcleo fiel = quienes asistieron a las 2 cerradas (asistencias === nPrimadas). Esperado desde la data.
+  const fieles26 = Object.keys(acc26).filter(pid => acc26[pid].n === cer26.length).map(pid => Store.select.persona(pid).nombre).sort((a, b) => a.localeCompare(b));
+  eq('2026: Núcleo fiel · total = nº que fue a TODAS', st.nucleoFiel.total, fieles26.length);
+  check('2026: Núcleo fiel · nombres coinciden (alfabético)', JSON.stringify(st.nucleoFiel.nombres) === JSON.stringify(fieles26));
   // El filtro por año SEPARA: 2025 trae SOLO p0 (rollo), no la data de 2026.
   const st25 = select.estadisticas('2025');
   eq('2025: nPrimadas = 1 (solo p0)', st25.nPrimadas, 1);
@@ -828,16 +827,25 @@ section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a 
   eq('Sin cerradas: ganancia 0', vacio.ganancia, 0);
   eq('Sin cerradas: nPrimadas 0', vacio.nPrimadas, 0);
   eq('Sin cerradas: aniosEstadisticas vacío', select.aniosEstadisticas().length, 0);
-  check('Sin cerradas: producto/reconocimiento null; promedios 0', vacio.masVendido === null && vacio.masConsumio === null && vacio.masAsistio === null && vacio.consumoPorPersona === 0 && vacio.repartoPorAhorrador === 0);
-  // EMPATE = se comparte: dos personas con la MISMA asistencia → AMBAS en .nombres, alfabético (no una arbitraria).
+  check('Sin cerradas: producto/reconocimiento null; promedios 0', vacio.masVendido === null && vacio.masConsumio === null && vacio.nucleoFiel === null && vacio.consumoPorPersona === 0 && vacio.repartoPorAhorrador === 0);
+  // NÚCLEO FIEL: dos personas que fueron a las 2 cerradas → ambas en .nombres, alfabético. Con 1 sola primada NO
+  // aparece ("fiel" = no faltar a VARIAS). Quien fue solo a una NO entra al núcleo.
   const tZoe = Store.actions.addPersona({ nombre: 'Zoe', estado: 'ahorrador' });
   const tAbe = Store.actions.addPersona({ nombre: 'Abe', estado: 'ahorrador' });
-  [1, 2].forEach(m => { const tp = Store.actions.createPrimada({ principalId: tZoe, organizadores: [tZoe], mesContable: '2026-0' + m }); Store.actions.addAsistencia(tp, tAbe); Store.actions.cerrarPrimada(tp); });
-  const stEmp = select.estadisticas('2026');
-  eq('Empate: ambos asistieron a 2 primadas', stEmp.masAsistio.valor, 2);
-  eq('Empate: .nombres trae a AMBOS (no uno solo arbitrario)', stEmp.masAsistio.nombres.length, 2);
-  eq('Empate: orden ALFABÉTICO → Abe primero', stEmp.masAsistio.nombres[0], 'Abe');
-  check('Empate: incluye a Zoe también', stEmp.masAsistio.nombres.includes('Zoe'));
+  const tEva = Store.actions.addPersona({ nombre: 'Eva', estado: 'invitado' });
+  const tps = [1, 2].map(m => { const tp = Store.actions.createPrimada({ principalId: tZoe, organizadores: [tZoe], mesContable: '2026-0' + m }); Store.actions.addAsistencia(tp, tAbe); return tp; });
+  Store.actions.addAsistencia(tps[0], tEva);   // Eva SOLO va a la primera → NO es del núcleo
+  tps.forEach(tp => Store.actions.cerrarPrimada(tp));
+  const stNuc = select.estadisticas('2026');
+  eq('Núcleo fiel: 2 fueron a TODAS (Zoe principal + Abe)', stNuc.nucleoFiel.total, 2);
+  eq('Núcleo fiel: orden ALFABÉTICO → Abe primero', stNuc.nucleoFiel.nombres[0], 'Abe');
+  check('Núcleo fiel: incluye a Zoe; EXCLUYE a Eva (faltó a una)', stNuc.nucleoFiel.nombres.includes('Zoe') && !stNuc.nucleoFiel.nombres.includes('Eva'));
+  // Con UNA sola primada cerrada, el núcleo fiel NO aparece (no significa "fiel").
+  Store.actions.replaceState(null);
+  const u1 = Store.actions.addPersona({ nombre: 'Uno', estado: 'ahorrador' });
+  const up = Store.actions.createPrimada({ principalId: u1, organizadores: [u1], mesContable: '2026-05' });
+  Store.actions.cerrarPrimada(up);
+  check('Una sola primada: núcleo fiel = null (≥2 requerido)', select.estadisticas('2026').nucleoFiel === null);
 }
 
 /* ---------- Resumen ---------- */
