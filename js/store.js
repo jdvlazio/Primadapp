@@ -793,16 +793,19 @@
     },
     // REGISTRO HISTÓRICO (v7) — cover PROPIO de la primada (lo que se cobraba EN SU MOMENTO, distinto del vigente).
     // Al ajustarlo, `coverPropio=true` → coverDe usa este snapshot aunque esté abierta; cerrarPrimada NO lo pisa.
-    setCoverPrimada(primadaId, { ahorrador, invitado } = {}) {
+    // opts.quiet: edición EN VIVO (evento `input`) → muta el modelo + upsert DEBOUNCED, SIN re-render (el header
+    // de arriba se refresca quirúrgico desde la Vista, sin reconstruir el overlay → no pierde foco ni suelta teclas
+    // en Android). Sin quiet (evento `change`/blur): commit normal → re-render estructural completo. En AMBOS casos
+    // `coverPropio=true` deja el modelo correcto AUNQUE el `change` nunca llegue a dispararse en el dispositivo.
+    setCoverPrimada(primadaId, { ahorrador, invitado } = {}, opts = {}) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const c = normCover(p.cover);
       if (ahorrador != null) c.ahorrador = Number(ahorrador) || 0;
       if (invitado != null) c.invitado = Number(invitado) || 0;
       p.cover = c;
       p.coverPropio = true;   // ajustar el cover histórico LO FIJA (vale aunque sea 0; el usuario lo está registrando)
-      // commit NORMAL (NO commitQuiet): el cover entra a TODOS los totales → hay que re-renderizar para que se
-      // reflejen. El input es type=number (dispara `change` en blur), así que el re-render no rompe foco (= setCover).
-      commit({ kind: 'primada', id: primadaId });
+      if (opts.quiet) commitQuiet({ kind: 'primada', id: primadaId });   // input en vivo: modelo + upsert debounced, sin re-render
+      else commit({ kind: 'primada', id: primadaId });                    // change/blur: re-render estructural completo
     },
     // REGISTRO HISTÓRICO (v7) — corrige el estadoEnEseMomento de UNA asistencia (cómo fue ESA persona en ESA
     // primada: p.ej. era invitada y hoy es ahorradora). Es una corrección DELIBERADA del snapshot histórico, NO

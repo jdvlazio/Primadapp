@@ -899,6 +899,17 @@ eq('coverDe de Marta usa el cover PROPIO (7.000), no el vigente (10.000)', Store
 // (con commitQuiet quedaba stale en $10.000 y el total salía "aumentado").
 check('El cover ajustado se REFLEJA en pantalla (grupo Invitados = "Cover $7.000")', /Cover \$7\.000/.test(q('#overlay').innerHTML));
 check('Ya NO muestra el cover vigente viejo ($10.000) en el grupo Invitados', !/Invitados[^]*Cover \$10\.000/.test(q('#overlay').innerHTML));
+// EN VIVO (evento `input`, el fix de Android): el modelo se commitea POR TECLA —no espera al `change`/blur que
+// en el dispositivo se PERDÍA— y el header "Cover $X" de arriba se refresca QUIRÚRGICO (sin reconstruir el
+// overlay → no pierde foco ni suelta teclas). El mismo nodo input sobrevive (no hubo re-render).
+const inpInvVivo = q(`[data-ch="cover-primada-invitado"][data-id="${past}"]`);
+inpInvVivo.value = '6000';
+inpInvVivo.dispatchEvent(new window.Event('input', { bubbles: true }));
+eq('input (vivo): el modelo se actualiza SIN esperar al change (cover propio invitado = 6.000)', prmPast().cover.invitado, 6000);
+eq('input (vivo): coverPropio queda fijado aunque el change nunca dispare', prmPast().coverPropio, true);
+const grpInvVivo = q('.grp-cover[data-cover-grp="invitado"]');
+check('input (vivo): el header "Cover" de arriba se refresca quirúrgico a $6.000', !!grpInvVivo && /\$6\.000/.test(grpInvVivo.textContent));
+check('input (vivo): NO se reconstruyó el overlay (el mismo nodo input sobrevive → conserva foco)', q(`[data-ch="cover-primada-invitado"][data-id="${past}"]`) === inpInvVivo);
 click('[data-act="close-overlay"]');
 // Una primada FUTURA no muestra la sección histórica.
 const fut = Store.actions.createPrimada({ principalId: hAna, organizadores: [hAna], mesContable: '2099-01' });

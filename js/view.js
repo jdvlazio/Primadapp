@@ -251,7 +251,7 @@
       // cover del grupo: una asistencia sintética no-exonerada de ese estado → coverDe (settings si
       // abierta, snapshot si cerrada). Una sola cifra para todo el grupo.
       const coverGrupo = S().coverDe(p, { estadoEnEseMomento: estado, rol: 'asistente', coverExonerado: false });
-      const head = `<div class="grp-head"><span class="grp-titulo">${titulo}</span>${coverGrupo > 0 ? `<span class="grp-cover">Cover ${$peso(coverGrupo)}</span>` : ''}</div>`;
+      const head = `<div class="grp-head"><span class="grp-titulo">${titulo}</span>${coverGrupo > 0 ? `<span class="grp-cover" data-cover-grp="${estado}">Cover ${$peso(coverGrupo)}</span>` : ''}</div>`;
       const items = filas.map(a => asistenteFilaCompacta(p, a, coverGrupo, cerrada, incompleta)).join('');
       return `${head}<div class="asis-compact-list">${items}</div>`;
     };
@@ -1250,6 +1250,18 @@
     if (hayError) toast(s.error);
   }
 
-  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML };
+  // Actualización QUIRÚRGICA del header de cover de un grupo (Ahorradores/Invitados) en Configurar.
+  // Para el ajuste EN VIVO del cover de "Cómo fue en su momento": el "Cover $X" de ARRIBA cambia mientras
+  // se teclea ABAJO, SIN reconstruir el overlay (no pierde foco ni suelta teclas en Android). El re-render
+  // estructural completo (filas "sin cover", sobrante, etc.) llega en el blur/change. Devuelve si lo encontró
+  // (si el cover venía en 0 no hay header que tocar → cae al re-render de blur).
+  function actualizarCoverGrupo(estado, monto) {
+    const el = els.overlay && els.overlay.querySelector(`.grp-cover[data-cover-grp="${estado}"]`);
+    if (!el) return false;
+    el.textContent = 'Cover ' + $peso(monto);
+    return true;
+  }
+
+  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML, actualizarCoverGrupo };
   if (typeof module !== 'undefined' && module.exports) module.exports = { View: root.View };
 })(typeof window !== 'undefined' ? window : globalThis);

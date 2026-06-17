@@ -516,6 +516,18 @@
   // igual de seguro que commitQuiet. wzSync/add-producto leen ese value del DOM al confirmar.
   function onInput(ev) {
     const t = ev.target; if (!t || !t.dataset) return;
+    // Cover PROPIO en vivo (Configurar › "Cómo fue en su momento"): commitea el modelo EN CADA TECLA (evento
+    // `input`, no espera al `change`/blur que en Android se PERDÍA) y refresca el header "Cover $X" de arriba
+    // de forma QUIRÚRGICA (sin re-render → no pierde foco ni suelta teclas). El re-render estructural completo
+    // llega en el blur (onChange). Gate de escritura igual que onChange.
+    const chLive = t.dataset.ch;
+    if (chLive === 'cover-primada-ahorrador' || chLive === 'cover-primada-invitado') {
+      if (backendOn() && !sesionActiva) return;   // sin sesión: onChange/onClick abre el login; acá no escribimos
+      const estado = chLive === 'cover-primada-ahorrador' ? 'ahorrador' : 'invitado';
+      Store.actions.setCoverPrimada(t.dataset.id, { [estado]: t.value }, { quiet: true });
+      View.actualizarCoverGrupo(estado, Number(t.value) || 0);
+      return;
+    }
     const esNombre = t.id === 'pn-nombre' || t.dataset.wz === 'nombre';
     if (esNombre) {
       const emojiEl = (t.id === 'pn-nombre')
