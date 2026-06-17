@@ -478,11 +478,16 @@
       case 'mes-primada':    A.setMesContable(id, v); break;     // mes (ancla) editable; mueve el día si lo hay
       case 'dia-primada':    A.setDiaPrimada(id, v); break;      // día opcional (vacío = sin día)
       case 'breb-persona':   A.setBreBPersona(pid, v); break;
-      case 'cover-ahorrador': A.setCover({ ahorrador: v }); break;
-      case 'cover-invitado':  A.setCover({ invitado: v }); break;
-      // Cover PROPIO de una primada pasada (Configurar › "Cómo fue en su momento"): no toca el cover vigente.
-      case 'cover-primada-ahorrador': A.setCoverPrimada(id, { ahorrador: v }); break;
-      case 'cover-primada-invitado':  A.setCoverPrimada(id, { invitado: v }); break;
+      // Covers en el `change` (blur): MISMO camino que onInput → quiet + actualización quirúrgica del header,
+      // SIN re-render completo. Motivo (Android): si el cover está enfocado y el usuario toca OTRO control (p.ej.
+      // el toggle Ahorrador/Invitado de "Cómo fue en su momento"), el blur del cover dispara este onChange; un
+      // re-render aquí DESTRUIRÍA ese control antes de que su tap registre → el tap se PIERDE. Quiet = el header
+      // ya se refrescó en vivo (onInput) y el modelo está correcto; el re-render estructural llega en la próxima
+      // interacción (el propio toggle, o cerrar Configurar). onInput ya cubre el vivo; esto es la red del blur.
+      case 'cover-ahorrador': A.setCover({ ahorrador: v }, { quiet: true }); break;
+      case 'cover-invitado':  A.setCover({ invitado: v }, { quiet: true }); break;
+      case 'cover-primada-ahorrador': A.setCoverPrimada(id, { ahorrador: v }, { quiet: true }); View.actualizarCoverGrupo('ahorrador', Number(v) || 0); break;
+      case 'cover-primada-invitado':  A.setCoverPrimada(id, { invitado: v }, { quiet: true }); View.actualizarCoverGrupo('invitado', Number(v) || 0); break;
       // Precios de producto de la primada → commitQuiet en el Store (sin re-render, no pierde foco).
       case 'costo-producto':  A.setPreciosProducto(prm, id, { costoNeto: v }); break;
       case 'venta-producto':  A.setPreciosProducto(prm, id, { precioVenta: v }); break;

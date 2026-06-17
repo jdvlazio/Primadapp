@@ -899,13 +899,25 @@ click(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="invita
 eq('Estado histórico de Marta → invitado', martaAsis().estadoEnEseMomento, 'invitado');
 eq('El DIRECTORIO no cambia: Marta sigue ahorradora hoy (INV#1)', Store.select.persona(hMarta).estado, 'ahorrador');
 check('Marta sale del reparto (era invitada)', !Store.select.asistenciasAhorradoras(prmPast()).some(a => a.personaId === hMarta));
+// REGRESIÓN (bug Android del toggle): editar el cover por `change` (blur) NO debe RECONSTRUIR el overlay.
+// Si lo hiciera, al tocar el toggle Ahorrador/Invitado con el cover enfocado, el blur del cover re-renderiza y
+// DESTRUYE el toggle antes de que su tap registre → el tap se pierde. Capturo un nodo toggle ANTES del change.
+const toggleAntes = q(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="ahorrador"]`);
 setVal(`[data-ch="cover-primada-invitado"][data-id="${past}"]`, '7000');   // cover propio (distinto del vigente 10.000)
 eq('Cover propio activado', prmPast().coverPropio, true);
 eq('coverDe de Marta usa el cover PROPIO (7.000), no el vigente (10.000)', Store.select.coverDe(prmPast(), martaAsis()), 7000);
-// REGRESIÓN (bug del cover propio): ajustar el cover debe RE-RENDERIZAR → el grupo Invitados muestra "Cover $7.000"
-// (con commitQuiet quedaba stale en $10.000 y el total salía "aumentado").
+// El cover se REFLEJA (header de grupo Invitados = "Cover $7.000") vía actualización QUIRÚRGICA, no re-render.
 check('El cover ajustado se REFLEJA en pantalla (grupo Invitados = "Cover $7.000")', /Cover \$7\.000/.test(q('#overlay').innerHTML));
 check('Ya NO muestra el cover vigente viejo ($10.000) en el grupo Invitados', !/Invitados[^]*Cover \$10\.000/.test(q('#overlay').innerHTML));
+check('change del cover NO reconstruye el overlay (el nodo del toggle SOBREVIVE → su tap no se pierde)',
+  q(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="ahorrador"]`) === toggleAntes);
+// Y el toggle SIGUE funcionando tras editar el cover: tap → refleja inmediato (modelo + DOM `on`).
+click(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="ahorrador"]`);
+eq('Toggle tras editar cover: Marta → ahorrador (modelo)', martaAsis().estadoEnEseMomento, 'ahorrador');
+check('Toggle tras editar cover: el botón "ahorrador" queda activo (DOM `on`)',
+  q(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="ahorrador"]`).classList.contains('on'));
+// dejar a Marta como invitada otra vez (el resto de la sección lo asume)
+click(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="invitado"]`);
 // EN VIVO (evento `input`, el fix de Android): el modelo se commitea POR TECLA —no espera al `change`/blur que
 // en el dispositivo se PERDÍA— y el header "Cover $X" de arriba se refresca QUIRÚRGICO (sin reconstruir el
 // overlay → no pierde foco ni suelta teclas). El mismo nodo input sobrevive (no hubo re-render).
