@@ -627,6 +627,13 @@ const coverViejo = JSON.stringify(Store.select.activePrimada().cover);   // snap
 // Cambiar el cover GLOBAL en Ajustes (no debe reescribir la vieja)
 abrirGear('ajustes');
 abrirAjustesSec('cover');   // acordeón Cover colapsado por defecto → expandir para editar
+// BLINDAJE Android: el cover GLOBAL también se commitea EN VIVO (evento 'input', no espera al change/blur que
+// en el dispositivo se perdía) y SIN re-render (mismo nodo input sobrevive → conserva foco).
+const inpCovGlobalVivo = q('[data-ch="cover-ahorrador"]');
+inpCovGlobalVivo.value = '17500';
+inpCovGlobalVivo.dispatchEvent(new window.Event('input', { bubbles: true }));
+eq('Cover global EN VIVO: el modelo se guarda SIN esperar al change (ahorrador = 17.500)', Store.select.state().settings.cover.ahorrador, 17500);
+check('Cover global EN VIVO: NO se reconstruyó el overlay (mismo nodo input sobrevive → conserva foco)', q('[data-ch="cover-ahorrador"]') === inpCovGlobalVivo);
 setVal('[data-ch="cover-ahorrador"]', '20000');
 setVal('[data-ch="cover-invitado"]', '12000');
 click('[data-act="close-overlay"]');

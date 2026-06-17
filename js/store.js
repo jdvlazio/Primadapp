@@ -620,10 +620,15 @@
     // del cover vigente en vivo (ver coverDe) → sus totales se actualizan al instante y SIN depender de
     // re-sellar/persistir cada primada. Las CERRADAS ya tienen su snapshot congelado. commit (no
     // commitQuiet) para que la Vista re-renderice los totales.
-    setCover({ ahorrador, invitado } = {}) {
+    // opts.quiet: edición EN VIVO (evento `input`) → guarda el modelo + upsert DEBOUNCED, SIN re-render. En
+    // Ajustes no hay total in-place que dependa del cover, así que no hace falta re-renderizar por tecla (los
+    // totales del detalle se refrescan al cerrar Ajustes). Esto BLINDA contra el `change` perdido en Android:
+    // el valor queda guardado aunque el blur nunca dispare. Sin quiet (change/blur): commit normal (re-render).
+    setCover({ ahorrador, invitado } = {}, opts = {}) {
       if (ahorrador != null) state.settings.cover.ahorrador = Number(ahorrador) || 0;
       if (invitado != null) state.settings.cover.invitado = Number(invitado) || 0;
-      commit({ kind: 'settings' });
+      if (opts.quiet) commitQuiet({ kind: 'settings' });   // input en vivo: modelo + upsert debounced, sin re-render
+      else commit({ kind: 'settings' });
     },
     upsertDefaultProducto(prod) {
       const np = normProducts([prod])[0];

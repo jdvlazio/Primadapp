@@ -184,11 +184,23 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
   `setMesContable`, `renombrarPersona`, `setBreBPersona`, `setPreciosProducto`, `setIdProducto`) persisten **sin notificar** (`commitQuiet`),
   por lo que **no** disparan re-render. Motivo: el re-render completo reconstruiría el `<input>` en plena escritura y
   rompería foco y cursor; el campo ya muestra lo tecleado y el próximo render estructural reflejará lo derivado.
-  (**`setCover` es la excepción a la excepción:** usa `commit` normal porque debe re-renderizar para reflejar el cover
-  vigente en los totales de las primadas abiertas; su input es `type=number` y dispara `change` en blur, así que el
-  re-render no rompe foco.)
   Todo lo demás (consumos ±, roles, abonos, alta/baja, navegación) usa `commit` normal (persiste **y** re-renderiza).
   Regla: una acción nueva de **edición de texto en un input** usa `commitQuiet`; cualquier cambio **estructural** usa `commit`.
+- **TERCER MODO — commit EN VIVO por evento `input` (inputs `type=number` que mueven un total derivado):**
+  `setCoverPrimada` (cover histórico) y `setCover` (cover global) **NO** pueden depender del evento `change` (que en
+  `type=number` dispara **al blur**), porque **en Android ese `change` se PIERDE** si un re-render destruye el `<input>`
+  antes (o si el blur no llega). Patrón robusto: el controller (`onInput`) commitea el modelo **por tecla** con
+  `setX(..., { quiet:true })` (= muta + upsert **debounced**, **sin** re-render, no rompe foco). Si hay un total
+  **in-place** que refrescar (el header `Cover $X` del grupo en Configurar), la **Vista** lo actualiza **quirúrgico**
+  vía `View.actualizarCoverGrupo(estado, monto)` (la Vista dibuja → MVC intacto; el header lleva `data-cover-grp`). El
+  `change` (blur) sigue haciendo el **re-render estructural** completo. Clave: con `{quiet:true}` el modelo queda
+  correcto **aunque el `change` nunca dispare** en el dispositivo. *(El viejo "`setCover` es la excepción a la excepción
+  con `commit`" quedó OBSOLETO: ahora ambos covers usan este tercer modo.)*
+- **Blur-guard en `onClick` (red de seguridad del `change` perdido):** antes de procesar un click en una acción
+  (`data-act`), si hay un input `data-ch` **enfocado** el controller lo **desenfoca** (`blur()` dispara su `change`
+  **síncrono**) → la edición pendiente se **commitea ANTES** del re-render que destruiría el input. Cubre TODOS los
+  inputs `change`-based (mes, día, precios…), no solo el cover, y evita la pérdida de datos al cerrar con la **X**.
+  Es **load-bearing**: cualquier input nuevo basado en `change` depende de él.
 
 ## Navegación (DECIDIDA) — LISTA→DETALLE (estilo Tricount), SIN tab bar
 > **Refactor estructural (IA list→detalle).** Se ELIMINÓ el tab bar inferior y el selector-overlay. La app es ahora

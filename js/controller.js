@@ -528,6 +528,15 @@
       View.actualizarCoverGrupo(estado, Number(t.value) || 0);
       return;
     }
+    // Cover GLOBAL en vivo (Ajustes): guarda el modelo POR TECLA (no espera al change/blur que en Android se
+    // perdía). No hay total in-place en Ajustes que refrescar → solo commit quiet; los totales del detalle se
+    // refrescan al cerrar Ajustes. Mismo gate de escritura.
+    if (chLive === 'cover-ahorrador' || chLive === 'cover-invitado') {
+      if (backendOn() && !sesionActiva) return;
+      const campo = chLive === 'cover-ahorrador' ? 'ahorrador' : 'invitado';
+      Store.actions.setCover({ [campo]: t.value }, { quiet: true });
+      return;
+    }
     const esNombre = t.id === 'pn-nombre' || t.dataset.wz === 'nombre';
     if (esNombre) {
       const emojiEl = (t.id === 'pn-nombre')
