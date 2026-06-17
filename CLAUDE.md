@@ -4,7 +4,10 @@
 construimos el **núcleo de eventos**: las reuniones mensuales (las **primadas**) generan
 ganancias para un **fondo**, que se reparte entre los **ahorradores que asistieron** a cada evento.
 El módulo de ahorro/tesorería se aplaza, pero el modelo ya lo acomoda sin reformas traumáticas.
-Hospedada en GitHub Pages: https://jdvlazio.github.io/la-primada/
+Hospedada en GitHub Pages: **https://jdvlazio.github.io/Primadapp/** (el repo se llama `Primadapp`; antes era
+`la-primada`). ⚠️ La URL vieja `https://jdvlazio.github.io/la-primada/` quedó como **Pages FANTASMA congelado**
+(bundle muy viejo, `version.json` 404 → NO auto-actualiza). Verificar el deploy SIEMPRE contra `/Primadapp/`;
+si una PWA quedó instalada desde `/la-primada/`, reinstalarla desde `/Primadapp/`.
 
 > No hay "natilleras" ni un año-contenedor. La raíz es la app: un directorio de personas y la
 > lista de primadas. El año es solo una **etiqueta** derivada del **mes contable** de cada primada.
