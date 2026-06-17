@@ -44,7 +44,10 @@
       estado: p.estado,
       // snapshots congelados van al jsonb tal cual (forma del modelo, sin tocar). `fecha` va aquí también
       // como FUENTE DE VERDAD (preserva '' de las programadas; la columna lleva el placeholder):
-      data: { pago: p.pago, cover: p.cover, productos: p.productos, asistencias: p.asistencias, fecha: p.fecha },
+      // `coverPropio` (v7) DEBE ir al jsonb: marca el cover como HISTÓRICO propio (registro de primadas pasadas).
+      // Si no se persiste, al recargar vuelve a false → coverDe usa el cover VIGENTE y el ajuste "Cómo fue en su
+      // momento" se PIERDE (se veía en memoria pero no sobrevivía al reload).
+      data: { pago: p.pago, cover: p.cover, coverPropio: p.coverPropio, productos: p.productos, asistencias: p.asistencias, fecha: p.fecha },
     };
   }
   function rowToPrimada(r) {
@@ -60,6 +63,7 @@
       estado: r.estado,
       pago: d.pago,
       cover: d.cover,
+      coverPropio: d.coverPropio,   // v7: lo lee de vuelta para que el normalizador conserve el cover histórico
       productos: d.productos,
       asistencias: d.asistencias,
     };

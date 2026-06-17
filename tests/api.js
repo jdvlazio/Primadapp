@@ -110,7 +110,7 @@ function sampleState() {
     ],
     primadas: [{
       id: 'prm_1', nombre: 'Primada Ana', fecha: '2026-05-31', mesContable: '2026-06',
-      organizadorPrincipalId: 'per_a', pago: { breB: 'ana@bre-b' }, cover: { ahorrador: 15000, invitado: 10000 },
+      organizadorPrincipalId: 'per_a', pago: { breB: 'ana@bre-b' }, cover: { ahorrador: 15000, invitado: 10000 }, coverPropio: true,
       productos: [{ id: 'cz', nombre: 'Costeñita', emoji: '🍺', costoNeto: 2500, precioVenta: 3500, aportadoPor: 'per_a' }],
       asistencias: [
         { personaId: 'per_a', estadoEnEseMomento: 'ahorrador', rol: 'principal', coverExonerado: false, pagado: true },
@@ -173,6 +173,9 @@ section('Round-trip jsonb: primada → fila → primada idéntica');
   check('primada→fila: consumos NO van en el jsonb', !('consumos' in row.data) && !('consumos' in row));
   const sinConsumos = JSON.parse(JSON.stringify(original)); delete sinConsumos.consumos;
   check('primada round-trip idéntica (sin consumos, que son tabla aparte)', deepEqual(back, sinConsumos));
+  // REGRESIÓN (v7): coverPropio DEBE sobrevivir el round-trip jsonb. Sin esto, el ajuste "Cómo fue en su
+  // momento" se veía en memoria pero al recargar volvía al cover vigente (no se persistía a Supabase).
+  check('coverPropio (cover histórico) va al jsonb y vuelve intacto', row.data.coverPropio === true && back.coverPropio === true);
   eq('pagado dentro del jsonb preservado', back.asistencias[1].pagado, true);
   check('asistencia v6 sin items', !('items' in back.asistencias[0]));
   // consumo: round-trip camel <-> snake
