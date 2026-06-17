@@ -380,8 +380,10 @@
         const costoNeto = Number((document.getElementById('pn-costo') || {}).value) || 0;
         const precioVenta = Number((document.getElementById('pn-venta') || {}).value) || 0;
         if (!nombre) { View.toast('Falta el nombre'); return; }
-        A.addProducto(prm, { nombre, emoji: emoji || '•', costoNeto, precioVenta });
-        View.toast('Producto agregado');
+        try {
+          A.addProducto(prm, { nombre, emoji: emoji || '•', costoNeto, precioVenta });
+          View.toast('Producto agregado');
+        } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo agregar'); }
         break;
       }
 
@@ -484,7 +486,17 @@
         if (prod) t.value = prod.nombre;
         break;
       }
-      case 'emoji-producto':  A.setIdProducto(prm, id, { emoji: v }); break;
+      case 'emoji-producto': {
+        // Emoji ÚNICO por primada: si choca, setIdProducto lanza → aviso + revierto el input al emoji actual.
+        try { A.setIdProducto(prm, id, { emoji: v }); }
+        catch (err) {
+          View.toast(err && err.message ? err.message : 'Ese emoji ya está usado');
+          const ap = Store.select.activePrimada();
+          const prod = ap && (ap.productos || []).find(x => x.id === id);
+          if (prod) t.value = prod.emoji;
+        }
+        break;
+      }
       default: break;
     }
   }
@@ -501,7 +513,12 @@
         ? document.getElementById('pn-emoji')
         : (t.closest('.prod-id') && t.closest('.prod-id').querySelector('[data-wz="emoji"]'));
       if (emojiEl && emojiEl.dataset.auto !== '0' && Util.emojiSugerido) {
-        const sug = Util.emojiSugerido(t.value, '');
+        // Emojis YA usados (para no sugerir un duplicado): en Configurar = los productos de la primada activa;
+        // en el wizard = los OTROS productos del set (distinto índice).
+        let usados = [];
+        if (t.id === 'pn-nombre') { const ap = Store.select.activePrimada(); usados = ap ? (ap.productos || []).map(x => x.emoji) : []; }
+        else if (t.dataset.wz === 'nombre') { const i = Number(t.dataset.i); usados = ((ui.wizard && ui.wizard.productos) || []).filter((_, idx) => idx !== i).map(x => x.emoji); }
+        const sug = Util.emojiSugerido(t.value, '', usados);
         if (sug) emojiEl.value = sug;
       }
       return;

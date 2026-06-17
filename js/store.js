@@ -52,6 +52,13 @@
   // migrate() también a los datos de Supabase, esto auto-convierte las filas viejas en cada lectura.)
   function normEstadoPrimada(t) { return t === 'cerrada' ? 'cerrada' : 'abierta'; }
   function normRol(r)    { return (r === 'principal' || r === 'organizador') ? r : 'asistente'; }
+  // Emoji "real" (no vacío ni el placeholder '•'): los que sí distinguen un producto en el chip de consumo.
+  function emojiReal(em) { const e = String(em || '').trim(); return (e && e !== '•') ? e : ''; }
+  // Producto de la primada que YA usa este emoji (excluyendo `exceptId`). null si el emoji es "no real" o libre.
+  function productoConEmoji(primada, emoji, exceptId) {
+    const em = emojiReal(emoji); if (!em) return null;
+    return (primada.productos || []).find(x => x.id !== exceptId && emojiReal(x.emoji) === em) || null;
+  }
   function normCover(c)  { return { ahorrador: Number((c || {}).ahorrador) || 0, invitado: Number((c || {}).invitado) || 0 }; }
   function normFecha(f) {
     const s = String(f || '');
@@ -642,6 +649,9 @@
       // si no, se copia el catálogo por defecto. En ambos casos aportadoPor por defecto = principal.
       const baseProductos = (Array.isArray(productos) && productos.length) ? productos : state.settings.defaultProducts;
       const productos_ = normProducts(baseProductos).map(x => ({ ...x, aportadoPor: x.aportadoPor || principalId || null }));
+      // Emoji ÚNICO por primada (wizard): ningún par de productos puede compartir un emoji real.
+      const vistos = {};
+      productos_.forEach(pr => { const em = emojiReal(pr.emoji); if (em) { if (vistos[em]) throw new Error('Dos productos tienen el emoji ' + em + ' — usá uno distinto'); vistos[em] = true; } });
       const asistencias = organizadores.map(pid => {
         const per = select.persona(pid);
         return {
@@ -703,6 +713,9 @@
     addProducto(primadaId, prod) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const np = normProducts([prod])[0]; if (!np.aportadoPor) np.aportadoPor = p.organizadorPrincipalId || null;
+      // Emoji ÚNICO por primada: el chip de consumo se distingue por el emoji → no se permite repetir.
+      const dup = productoConEmoji(p, np.emoji, np.id);
+      if (dup) throw new Error('El emoji ' + np.emoji + ' ya lo usa "' + dup.nombre + '" — elegí otro');
       p.productos.push(np);   // v6: sin items que inicializar; las cantidades viven en consumos[]
       commit({ kind: 'primada', id: primadaId });
     },
@@ -720,7 +733,12 @@
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const prod = p.productos.find(x => x.id === prodId); if (!prod) return;
       if (nombre != null) { const n = Util.titleCase(String(nombre).slice(0, 40)); if (n) prod.nombre = n; }   // regla Title Case
-      if (emoji != null) { prod.emoji = String(emoji).slice(0, 4); prod.emojiManual = true; }
+      if (emoji != null) {
+        const em = String(emoji).slice(0, 4);
+        const dup = productoConEmoji(p, em, prodId);   // emoji ÚNICO por primada (excluye este producto)
+        if (dup) throw new Error('El emoji ' + em + ' ya lo usa "' + dup.nombre + '" — elegí otro');
+        prod.emoji = em; prod.emojiManual = true;
+      }
       commitQuiet({ kind: 'primada', id: primadaId });
     },
     setAportadoPor(primadaId, prodId, personaId) {

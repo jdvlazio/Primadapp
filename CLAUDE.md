@@ -335,6 +335,11 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - **Nombres de PRODUCTO en Title Case (regla enforced en datos):** `Util.titleCase` normaliza al guardar
   ("club colombia" → "Club Colombia"); se aplica en `normProducts` (alta/wizard/carga, idempotente) y `setIdProducto`
   (renombrar). Conectores en minúscula salvo si abren el nombre. Los defaults del `CONFIG` ya cumplen la regla. Ver `DESIGN.md` §4.
+- **Emoji ÚNICO por primada (regla enforced en datos):** dos productos de la misma primada NO pueden compartir un
+  emoji REAL (el placeholder `•`/vacío sí se repite — "sin emoji"). Motivo: el **chip de consumo** muestra **solo el
+  emoji** (`🍺 ×2`, sin nombre, `view.js`), así que repetirlo confunde. `addProducto`/`setIdProducto`(emoji)/`createPrimada`
+  **LANZAN** si choca (helper `productoConEmoji`) → controller las envuelve con `tryAction`/try-catch + toast ("🍺 ya lo
+  usa Costeñita — elegí otro"). La autosugerencia (`Util.emojiSugerido(nombre, fb, usados)`) **evita** los ya usados.
 - Acciones nuevas van en `Store.actions`; selectores/derivados en `Store.select`. Nada de lógica en la Vista.
 - **Un solo término en toda la app para quien recibe la ganancia: "Tesorero".**
 - **El organizador principal se LLAMA "Anfitrión" en la UI** (etiquetas, badges, tooltips, wizard, toasts). El término

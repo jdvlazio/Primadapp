@@ -457,6 +457,16 @@ eq('Mismo id tras renombrar (no se recrea el producto)', czProd().id, 'cerveza')
 eq('Consumos del producto intactos (referencian el id)', cervezas(), czCount);
 setVal(q('[data-ch="nombre-producto"][data-id="cerveza"]'), 'Costeñita');   // restaurar para el resto del flujo
 eq('Nombre restaurado a "Costeñita"', czProd().nombre, 'Costeñita');
+// EMOJI ÚNICO por primada: cambiar el emoji de Costeñita (🍺) al de Brownie (🍫) se BLOQUEA y revierte.
+const inpEmoji = q('[data-ch="emoji-producto"][data-id="cerveza"]');
+check('Configurar › Productos: input de EMOJI presente', !!inpEmoji);
+setVal(inpEmoji, '🍫');   // 🍫 ya lo usa Brownie → bloqueado
+eq('Emoji NO cambia (sigue 🍺): rechazado por duplicado', czProd().emoji, '🍺');
+check('El input se revirtió al emoji original (🍺)', q('[data-ch="emoji-producto"][data-id="cerveza"]').value === '🍺');
+setVal(q('[data-ch="emoji-producto"][data-id="cerveza"]'), '🥟');   // libre → OK
+eq('Cambiar a un emoji libre (🥟): OK', czProd().emoji, '🥟');
+setVal(q('[data-ch="emoji-producto"][data-id="cerveza"]'), '🍺');   // restaurar para el resto del flujo
+eq('Emoji restaurado a 🍺', czProd().emoji, '🍺');
 click('[data-act="close-overlay"]');
 // El modelo permite cerrar con deuda (la UI lo gatea tras el CTA); aquí cerramos por acción para
 // probar el congelado con un deudor pendiente (escenario de pago-tras-cerrar en 8b).

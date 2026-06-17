@@ -87,13 +87,16 @@
     // Autosugerencia de emoji a partir del NOMBRE del producto (primer match del catálogo gana).
     // Puro: lee CONFIG.emojiKeywords [[regex, emoji], ...]. Si no hay match → devuelve `fallback`
     // (lo que el llamante quiera conservar; '' = sin sugerencia). Tolerante a regex inválidas.
-    emojiSugerido(nombre, fallback) {
+    // `usados` (opcional): emojis ya en uso en la primada → NO se sugieren (emoji único por primada). Si el match
+    // del nombre ya está usado, devuelve `fallback` en vez de un duplicado.
+    emojiSugerido(nombre, fallback, usados) {
       const n = String(nombre || '').toLowerCase().trim();
       const fb = (fallback != null) ? fallback : '';
       if (!n) return fb;
+      const usadosSet = new Set((usados || []).map(x => String(x || '').trim()).filter(Boolean));
       const kws = CONFIG.emojiKeywords || [];
       for (let k = 0; k < kws.length; k++) {
-        try { if (new RegExp(kws[k][0], 'i').test(n)) return kws[k][1]; } catch (e) {}
+        try { if (new RegExp(kws[k][0], 'i').test(n)) { const em = kws[k][1]; return usadosSet.has(em) ? fb : em; } } catch (e) {}
       }
       return fb;
     },

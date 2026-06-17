@@ -518,6 +518,9 @@ section('Util.emojiSugerido (autosugerencia de emoji por nombre)');
   eq('café → ☕', Util.emojiSugerido('Tinto', '•'), '☕');
   eq('case-insensitive', Util.emojiSugerido('PIZZA', '•'), '🍕');
   eq('sin match → fallback', Util.emojiSugerido('cosa rara xyz', '🎁'), '🎁');
+  // `usados`: si el match ya está en uso, NO lo sugiere (emoji único por primada) → cae al fallback.
+  eq('emojiSugerido: salta el emoji usado → fallback', Util.emojiSugerido('Costeñita', '🎁', ['🍺']), '🎁');
+  eq('emojiSugerido: si el match NO está usado → sí sugiere', Util.emojiSugerido('Costeñita', '🎁', ['🍫']), '🍺');
   eq('vacío → fallback', Util.emojiSugerido('', '•'), '•');
   eq('sin fallback → ""', Util.emojiSugerido('cosa rara xyz'), '');
   eq('null tolerante', Util.emojiSugerido(null, '•'), '•');
@@ -716,6 +719,35 @@ section('Registro histórico: cover propio de la primada + estadoEnEseMomento po
   // Cambiar el cover VIGENTE no toca la primada histórica.
   Store.actions.setCover({ ahorrador: 99000, invitado: 99000 });
   eq('Cambiar el cover vigente NO afecta la primada con cover propio', prm().cover.invitado, 9000);
+}
+
+/* ============================================================ 12d. Emoji ÚNICO por producto (por primada) */
+section('Emoji único: no se permite repetir el emoji de un producto en la misma primada (chip de consumo)');
+{
+  Store.actions.replaceState(null);
+  const ana = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+  const pid = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2026-06' });  // catálogo 🍺🍫🌀🎟️
+  const prm = () => Store.select.state().primadas.find(p => p.id === pid);
+  Store.actions.addProducto(pid, { nombre: 'Empanada', emoji: '🥟', costoNeto: 1000, precioVenta: 2000 });
+  check('Agregar producto con emoji LIBRE (🥟): OK', prm().productos.some(x => x.emoji === '🥟'));
+  let threw = false; try { Store.actions.addProducto(pid, { nombre: 'Pola', emoji: '🍺', costoNeto: 1000, precioVenta: 2000 }); } catch (e) { threw = true; }
+  eq('addProducto con emoji REPETIDO (🍺) lanza', threw, true);
+  check('No se agregó el producto duplicado', !prm().productos.some(x => x.nombre === 'Pola'));
+  const empId = prm().productos.find(x => x.emoji === '🥟').id;
+  let threw2 = false; try { Store.actions.setIdProducto(pid, empId, { emoji: '🍫' }); } catch (e) { threw2 = true; }   // 🍫 = Brownie (usado)
+  eq('setIdProducto a un emoji USADO (🍫) lanza', threw2, true);
+  eq('El emoji NO cambió tras el rechazo', prm().productos.find(x => x.id === empId).emoji, '🥟');
+  Store.actions.setIdProducto(pid, empId, { emoji: '🌮' });   // libre → OK
+  eq('Cambiar a un emoji LIBRE (🌮): OK', prm().productos.find(x => x.id === empId).emoji, '🌮');
+  Store.actions.setIdProducto(pid, empId, { emoji: '🌮' });   // su PROPIO emoji → no choca consigo mismo
+  eq('Re-poner su propio emoji: OK', prm().productos.find(x => x.id === empId).emoji, '🌮');
+  // Placeholder '•' (sin emoji): NO cuenta como choque → varios permitidos (se distinguen por nombre).
+  Store.actions.addProducto(pid, { nombre: 'Cosa A', emoji: '•', costoNeto: 0, precioVenta: 1000 });
+  Store.actions.addProducto(pid, { nombre: 'Cosa B', emoji: '•', costoNeto: 0, precioVenta: 1000 });
+  eq('Dos productos sin emoji (•): permitido', prm().productos.filter(x => x.emoji === '•').length, 2);
+  let threw3 = false;
+  try { Store.actions.createPrimada({ principalId: ana, organizadores: [ana], productos: [{ nombre: 'A', emoji: '🍺', precioVenta: 1000 }, { nombre: 'B', emoji: '🍺', precioVenta: 1000 }] }); } catch (e) { threw3 = true; }
+  eq('createPrimada (wizard) con dos productos del mismo emoji lanza', threw3, true);
 }
 
 /* ============================================================ 13. Estadísticas (agregado, solo cerradas) */
