@@ -614,28 +614,25 @@
      ============================================================ */
   // ESTADÍSTICAS ANUALES (home) = tarjeta COLAPSABLE AL PIE del home (mismo lugar y dock que el Balance).
   // Toggle CENTRADO/teal + selector de AÑO (‹ 2026 ›). Solo aparece si hay primadas CERRADAS. Jerarquía (reusa
-  // los componentes del Balance): HÉROE Ganancia del año → Asistencia promedio → Producto estrella
-  // (vendido/rentable) → Consumidor estrella. (Sin "repartido" ni "recaudado": confunden; la cifra que cuenta es Ganancia.)
+  // los componentes del Balance): HÉROE Ganancia del año → lista PLANA: Asistencia promedio · Más vendido ·
+  // Más rentable · Mayor consumo. (Revisión UX: sin encabezados "estrella" —singular con 2 productos confundía— ni
+  // "consumidor" —transaccional—. Sin "repartido"/"recaudado": confunden; la cifra que cuenta es Ganancia.)
   function estadisticasBody(st) {
     const heroe = `<div class="bal-hero">
         <div class="bal-label">Ganancia</div>
         <div class="bal-amount entregado">${$peso(st.ganancia)}</div>
         <div class="bal-note">${st.nPrimadas} primada${st.nPrimadas === 1 ? '' : 's'} · ${$peso(st.gananciaPromedio)} promedio</div>
       </div>`;
-    const kpis = `<div class="bal-group">
-        <div class="bal-row"><span>Asistencia promedio</span><b>${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'}</b></div>
-      </div>`;
+    // Lista PLANA de datos, sin encabezados "estrella" (revisión UX): cada fila se explica sola, minimalista.
     const prodRow = (lbl, prod, valStr) => prod
       ? `<div class="bal-row"><span>${lbl}</span><b>${e(prod.emoji)} ${e(prod.nombre)} · ${valStr}</b></div>` : '';
-    const producto = (st.masVendido || st.masRentable) ? `<div class="bal-sep"></div>
-        <div class="bal-cobro-head">Producto estrella</div>
-        <div class="bal-group">
-          ${prodRow('Más vendido', st.masVendido, st.masVendido ? st.masVendido.unidades + ' und' : '')}
-          ${prodRow('Más rentable', st.masRentable, st.masRentable ? $peso(st.masRentable.margen) : '')}
-        </div>` : '';
-    const consumidor = st.consumidor ? `<div class="bal-cobro-head">Consumidor estrella</div>
-        <div class="bal-group"><div class="bal-row"><span>${e(st.consumidor.nombre)}</span><b class="pagado">${$peso(st.consumidor.total)}</b></div></div>` : '';
-    return `<div class="card dark bal-card">${heroe}${kpis}${producto}${consumidor}</div>`;
+    const stats = `<div class="bal-group">
+        <div class="bal-row"><span>Asistencia promedio</span><b>${st.asistentesPromedio} ${st.asistentesPromedio === 1 ? 'persona' : 'personas'}</b></div>
+        ${prodRow('Más vendido', st.masVendido, st.masVendido ? st.masVendido.unidades + ' und' : '')}
+        ${prodRow('Más rentable', st.masRentable, st.masRentable ? $peso(st.masRentable.margen) : '')}
+        ${st.consumidor ? `<div class="bal-row"><span>Mayor consumo</span><b>${e(st.consumidor.nombre)} · ${$peso(st.consumidor.total)}</b></div>` : ''}
+      </div>`;
+    return `<div class="card dark bal-card">${heroe}${stats}</div>`;
   }
   // Selector de año ‹ 2026 ›: navega entre los años con primadas cerradas. Flechas deshabilitadas en los extremos.
   function statsAnioNav(anios, anio) {

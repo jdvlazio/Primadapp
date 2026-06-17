@@ -856,15 +856,17 @@ check('Año por defecto = 2026 (más reciente) en el selector', /stats-anio-lbl"
 check('Héroe "Ganancia"; SIN "Recaudado"/"Repartido"/"familia"/"Fondo acumulado" (la cifra que cuenta es Ganancia)',
   /bal-label">Ganancia/.test(stHTML) && !/Recaudado/.test(stHTML)
   && !/Repartido/.test(stHTML) && !/familia/.test(stHTML) && !/Fondo acumulado/.test(stHTML));
-check('2026: 2 primadas + Producto estrella + Consumidor estrella = Cris',
-  /2 primadas/.test(stHTML) && /Producto estrella/.test(stHTML) && /Consumidor estrella/.test(stHTML) && /Cris/.test(stHTML));
+// Lista PLANA (revisión UX): "Más vendido" / "Más rentable" / "Mayor consumo"; SIN "estrella" ni "consumidor".
+check('2026: 2 primadas + Más vendido + Más rentable + Mayor consumo = Cris; SIN "estrella"/"consumidor"',
+  /2 primadas/.test(stHTML) && /Más vendido/.test(stHTML) && /Más rentable/.test(stHTML)
+  && /Mayor consumo/.test(stHTML) && /Cris/.test(stHTML) && !/estrella/i.test(stHTML) && !/[Cc]onsumidor/.test(stHTML));
 // SELECTOR de año: voy al anterior (2025) → cambian los datos (Beto, 1 primada).
 check('Selector de año: flecha al 2025 presente', !!q('[data-act="stats-anio"][data-anio="2025"]'));
 click('[data-act="stats-anio"][data-anio="2025"]');
 stHTML = q('.stats-panel').innerHTML;
 check('Al cambiar de año: el selector muestra 2025', /stats-anio-lbl">2025/.test(stHTML));
-check('2025: 1 primada + Consumidor estrella = Beto (datos del año 2025, no Cris)',
-  /1 primada/.test(stHTML) && /Beto/.test(stHTML) && !/Cris/.test(stHTML));
+check('2025: 1 primada + Mayor consumo = Beto (datos del año 2025, no Cris)',
+  /1 primada/.test(stHTML) && /Mayor consumo/.test(stHTML) && /Beto/.test(stHTML) && !/Cris/.test(stHTML));
 click('[data-act="toggle-stats"]');
 check('Estadísticas se colapsa de nuevo', !q('.stats-panel'));
 

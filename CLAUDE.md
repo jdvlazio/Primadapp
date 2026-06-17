@@ -289,7 +289,8 @@ Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   //
   `asistenciasAhorradoras`, `parteIgual`, `sobranteFondo`, `repartoPorPersona`, `recuperaDe`, `informePrincipal`,
   `deudores`, `recaudado`, `primadaIncompleta`, `nombreSugerido`, `anioContable`, `primadasPorAnio`,
   `aniosEstadisticas`, `estadisticas(anio)` (agregado ANUAL del HOME: **Ganancia** + promedio, asistencia promedio,
-  producto estrella vendido/rentable, consumidor estrella — **solo primadas CERRADAS del año**; `anio` opcional = todas;
+  "Más vendido"/"Más rentable" (producto) y "Mayor consumo" (persona) — sin encabezados "estrella" (revisión UX) —
+  **solo primadas CERRADAS del año**; `anio` opcional = todas;
   **sin "Recaudado"**: Σ cover+consumos incluye el reembolso → engaña, la cifra que cuenta es Ganancia), + directorio (…).
 - **`actions` (mutan + invariantes):** personas (`addPersona`, `setEstadoPersona`, `renombrarPersona`, `setBreBPersona`);
   settings (`setCover`, `upsertDefaultProducto`, `removeDefaultProducto`); ciclo de primada (`createPrimada`,
