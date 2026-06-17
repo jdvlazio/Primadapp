@@ -193,7 +193,7 @@ section('fromRows: filas → AppState crudo');
     consumos: s.primadas[0].consumos.map(c => consumoRowOf('prm_1', c)),
   };
   const app = Api._ser.fromRows(rows);
-  eq('fromRows: schemaVersion 6', app.schemaVersion, 6);
+  eq('fromRows: schemaVersion 7', app.schemaVersion, 7);
   eq('fromRows: 2 personas', app.personas.length, 2);
   eq('fromRows: 1 primada', app.primadas.length, 1);
   eq('fromRows: activePrimadaId null (local por dispositivo, no se sincroniza)', app.activePrimadaId, null);

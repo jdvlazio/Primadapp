@@ -200,7 +200,39 @@
       <label class="fld"><span>Día</span>
         <input class="ti" type="number" min="1" max="31" inputmode="numeric" placeholder="—" data-ch="dia-primada" data-id="${p.id}" value="${dia}" aria-label="Día de la primada"></label>
     </div>`;
-    return `${nombreFld}${fechaFld}<div class="seg-nav cfg-seg">${seg('asistentes', 'Asistentes', p.asistencias.length)}${seg('productos', 'Productos', p.productos.length)}</div>${body}`;
+    // REGISTRO HISTÓRICO (v7): si la primada es de un MES PASADO (anterior al actual) y está abierta, ofrece
+    // ajustar el cover de ENTONCES (propio, distinto del vigente) y el estado de cada quien EN ESE MOMENTO
+    // (p.ej. alguien que era invitado y hoy es ahorrador). No afecta el cover actual ni el directorio.
+    const esPasada = String(p.mesContable || '') < Util.currentMonth();
+    const historico = (esPasada && p.estado !== 'cerrada') ? historicoSeccion(p) : '';
+    return `${nombreFld}${fechaFld}<div class="seg-nav cfg-seg">${seg('asistentes', 'Asistentes', p.asistencias.length)}${seg('productos', 'Productos', p.productos.length)}</div>${body}${historico}`;
+  }
+  // Sección "Cómo fue en su momento": cover propio de la primada + estado histórico por asistente.
+  function historicoSeccion(p) {
+    const estados = p.asistencias.length
+      ? `<div class="cfg-hist-estados">${p.asistencias.map(a => historicoEstadoFila(p, a)).join('')}</div>`
+      : '<div class="muted small">Agregá asistentes (arriba) para ajustar su estado de entonces.</div>';
+    return `<div class="cfg-hist">
+        <div class="sub">Cómo fue en su momento</div>
+        <div class="muted small cfg-hist-nota">Primada de un mes pasado: ajustá el cover y el estado de cada quien tal como fue. No cambia el cover actual ni el directorio.</div>
+        <div class="grid2">
+          <label class="fld"><span>Cover ahorrador</span>
+            <input class="ti" type="number" min="0" step="500" inputmode="numeric" value="${p.cover.ahorrador}" data-ch="cover-primada-ahorrador" data-id="${p.id}" aria-label="Cover ahorrador de esta primada"></label>
+          <label class="fld"><span>Cover invitado</span>
+            <input class="ti" type="number" min="0" step="500" inputmode="numeric" value="${p.cover.invitado}" data-ch="cover-primada-invitado" data-id="${p.id}" aria-label="Cover invitado de esta primada"></label>
+        </div>
+        <div class="cfg-hist-lbl muted small">Estado en ese momento</div>
+        ${estados}
+      </div>`;
+  }
+  function historicoEstadoFila(p, a) {
+    const esPrin = S().esPrincipal(p, a);
+    // El anfitrión debe ser ahorrador (INV#2): su botón "Invitado" va deshabilitado.
+    const seg = est => `<button class="seg ${a.estadoEnEseMomento === est ? 'on' : ''}" data-act="set-estado-momento" data-pid="${a.personaId}" data-estado="${est}" ${esPrin && est === 'invitado' ? 'disabled' : ''}>${cap(est)}</button>`;
+    return `<div class="cfg-hist-row">
+        <span class="cfg-hist-name"><b>${e(nombrePersona(a.personaId))}</b>${esPrin ? ' <span class="rol-tag">Anfitrión</span>' : ''}</span>
+        <span class="seg-nav sm">${seg('ahorrador')}${seg('invitado')}</span>
+      </div>`;
   }
 
   // Tab ASISTENTES: lista COMPACTA agrupada (Ahorradores / Invitados). PRINCIPIO "muestra la excepción,

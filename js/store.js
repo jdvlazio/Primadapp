@@ -2,10 +2,12 @@
    MODELO — Store (único dueño del estado) · esquema v4 DEFINITIVO
    Se carga tras CONFIG y Util.
    ------------------------------------------------------------
-   AppState  { schemaVersion:6, settings{cover,defaultProducts}, personas[], primadas[], activePrimadaId }
+   AppState  { schemaVersion:7, settings{cover,defaultProducts}, personas[], primadas[], activePrimadaId }
    Persona   { id, nombre, estado:'ahorrador'|'invitado', breB }
    Primada   { id, nombre, fecha:'YYYY-MM-DD', mesContable:'YYYY-MM', organizadorPrincipalId,
-               pago{breB}, cover{ahorrador,invitado}, productos[], asistencias[], consumos[], estado }
+               pago{breB}, cover{ahorrador,invitado}, coverPropio:bool, productos[], asistencias[], consumos[], estado }
+             // coverPropio (v7): cover HISTÓRICO propio (registro de primadas pasadas) → coverDe usa primada.cover
+             //   aunque esté abierta; cerrar no lo pisa. Default false = usa el cover vigente como cualquier primada.
    Producto  { id, nombre, emoji, costoNeto, precioVenta, aportadoPor }
    Asistencia{ personaId, estadoEnEseMomento, rol:'principal'|'organizador'|'asistente',
                coverExonerado, pagado:bool }   // pagado = saldó su total (binario). SIN items (v6).
@@ -210,6 +212,7 @@
         organizadorPrincipalId: null,                  // incompleta: principal desconocido en datos viejos
         pago: { breB: null },
         cover: normCover(p.cover),                     // SNAPSHOT preservado (no se reescribe historia)
+        coverPropio: !!p.coverPropio,                  // v7: default false (idempotencia con normV4)
         productos,
         asistencias,
         consumos: p.consumos,                          // v3 no trae → ensureV6 los deriva de items
@@ -284,6 +287,7 @@
         organizadorPrincipalId: principalId,
         pago: { breB: (p.pago && p.pago.breB != null && p.pago.breB !== '') ? String(p.pago.breB) : null },
         cover: normCover(p.cover),
+        coverPropio: !!p.coverPropio,                  // v7: cover HISTÓRICO propio (registro de primadas pasadas)
         productos,
         asistencias,
         consumos: p.consumos,                          // v6: se respetan; v4/v5: undefined → ensureV6 deriva de items
@@ -405,7 +409,8 @@
     coverDe(primada, a) {
       if (!select.aplicaCover(a)) return 0;
       const vigente = state && state.settings && state.settings.cover;
-      const c = (primada.estado === 'cerrada') ? primada.cover : (vigente || primada.cover);
+      // CERRADA o con cover PROPIO (histórico, v7) → usa el snapshot de la primada. ABIERTA normal → cover vigente.
+      const c = (primada.estado === 'cerrada' || primada.coverPropio) ? primada.cover : (vigente || primada.cover);
       return (c && c[a.estadoEnEseMomento]) || 0;
     },
     // Cantidad de un producto para una asistencia (v6: Σ filas de consumo).
@@ -657,6 +662,7 @@
         organizadorPrincipalId: principalId || null,
         pago: { breB: principalPer ? principalPer.breB : null },
         cover: { ...state.settings.cover },        // SNAPSHOT del cover vigente
+        coverPropio: false,                        // v7: cover propio OFF (usa el vigente como cualquier primada nueva)
         productos: productos_, asistencias, consumos: [],
         estado: 'abierta',
       };
@@ -687,7 +693,7 @@
     },
     // Al CERRAR se SELLA el cover vigente en el snapshot (historia congelada): de ahí en más coverDe usa
     // primada.cover, ya no settings. Antes de cerrar, una abierta deriva del cover vigente (ver coverDe).
-    cerrarPrimada(id) { const p = findPrimada(id); if (!p) return; p.cover = { ...state.settings.cover }; p.estado = 'cerrada'; commit({ kind: 'primada', id }); },
+    cerrarPrimada(id) { const p = findPrimada(id); if (!p) return; if (!p.coverPropio) p.cover = { ...state.settings.cover }; p.estado = 'cerrada'; commit({ kind: 'primada', id }); },
     reabrirPrimada(id) { const p = findPrimada(id); if (!p) return; p.estado = 'abierta'; commit({ kind: 'primada', id }); },
     borrarPrimada(id) {
       state.primadas = state.primadas.filter(p => p.id !== id);
@@ -768,6 +774,29 @@
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const a = p.asistencias.find(x => x.personaId === personaId); if (!a) return;
       a.coverExonerado = !a.coverExonerado; commit({ kind: 'primada', id: primadaId });
+    },
+    // REGISTRO HISTÓRICO (v7) — cover PROPIO de la primada (lo que se cobraba EN SU MOMENTO, distinto del vigente).
+    // Marca coverPropio → coverDe usa este snapshot aunque esté abierta; cerrarPrimada NO lo pisa. Para registrar
+    // primadas pasadas. Si ambos quedan 0, vuelve a usar el cover vigente (coverPropio off).
+    setCoverPrimada(primadaId, { ahorrador, invitado } = {}) {
+      const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
+      const c = normCover(p.cover);
+      if (ahorrador != null) c.ahorrador = Number(ahorrador) || 0;
+      if (invitado != null) c.invitado = Number(invitado) || 0;
+      p.cover = c;
+      p.coverPropio = (c.ahorrador > 0 || c.invitado > 0);   // con valores propios = ON; ambos 0 = vuelve al vigente
+      commitQuiet({ kind: 'primada', id: primadaId });        // edición de texto en vivo (no re-render, no pierde foco)
+    },
+    // REGISTRO HISTÓRICO (v7) — corrige el estadoEnEseMomento de UNA asistencia (cómo fue ESA persona en ESA
+    // primada: p.ej. era invitada y hoy es ahorradora). Es una corrección DELIBERADA del snapshot histórico, NO
+    // el cambio del estado vigente (eso es setEstadoPersona, que jamás toca snapshots — INVARIANTE #1). Respeta
+    // INVARIANTE #2: el anfitrión (principal) debe ser ahorrador. NO toca el directorio: su estado de HOY no cambia.
+    setEstadoEnEseMomento(primadaId, personaId, estado) {
+      const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
+      const a = p.asistencias.find(x => x.personaId === personaId); if (!a) return;
+      const e = normEstado(estado);
+      if (a.rol === 'principal' && e !== 'ahorrador') throw new Error('setEstadoEnEseMomento: el anfitrión debe ser ahorrador (INV#2)');
+      a.estadoEnEseMomento = e; commit({ kind: 'primada', id: primadaId });
     },
     // v6: cada +1 = INSERT una fila de consumo (granular, evita el lost-update); cada −1 = DELETE la
     // fila MÁS RECIENTE de (persona, producto). El commit granular {kind:'consumo'} no upserta la primada.

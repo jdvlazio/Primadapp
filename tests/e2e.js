@@ -606,7 +606,7 @@ entrarDetalle();   // re-entrar: los tests siguientes operan sobre el detalle/mo
 /* ---------- 10. Persistencia (lo escrito quedó en localStorage v4) ---------- */
 section('Persistencia');
 const saved = JSON.parse(window.localStorage.getItem('laPrimada'));
-check('localStorage tiene schemaVersion 6', saved && saved.schemaVersion === 6);
+check('localStorage tiene schemaVersion 7', saved && saved.schemaVersion === 7);
 check('Persistió la primada con sus 2 asistencias', saved.primadas[0].asistencias.length === 2);
 check('v6: el espejo local guarda consumos[] en la primada', Array.isArray(saved.primadas[0].consumos));
 
@@ -857,6 +857,38 @@ check('2025: 1 primada + Consumidor estrella = Beto (datos del año 2025, no Cri
   /1 primada/.test(stHTML) && /Beto/.test(stHTML) && !/Cris/.test(stHTML));
 click('[data-act="toggle-stats"]');
 check('Estadísticas se colapsa de nuevo', !q('.stats-panel'));
+
+/* ---------- 19. Registro de primadas PASADAS (v7): "Cómo fue en su momento" ---------- */
+section('Configurar › "Cómo fue en su momento": aparece con fecha pasada; cover propio + estado de entonces');
+irHome();
+Store.actions.replaceState(null);
+Store.actions.setCover({ ahorrador: 15000, invitado: 10000 });   // cover VIGENTE
+const hAna = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+const hMarta = Store.actions.addPersona({ nombre: 'Marta', estado: 'ahorrador' });   // HOY ahorradora
+const past = Store.actions.createPrimada({ principalId: hAna, organizadores: [hAna], mesContable: '2020-01' });  // mes claramente pasado
+Store.actions.addAsistencia(past, hMarta);
+Store.actions.seleccionarPrimada(past);
+entrarDetalle(past);
+abrirConfig();
+const martaAsis = () => st().primadas.find(p => p.id === past).asistencias.find(a => a.personaId === hMarta);
+const prmPast = () => st().primadas.find(p => p.id === past);
+check('Primada pasada: aparece "Cómo fue en su momento" (.cfg-hist)', !!q('.cfg-hist') && /Cómo fue en su momento/.test(q('#overlay').innerHTML));
+eq('Marta entra con el estado de HOY (ahorrador)', martaAsis().estadoEnEseMomento, 'ahorrador');
+check('Anfitrión: su botón "Invitado" va deshabilitado (INV#2)',
+  !!q(`[data-act="set-estado-momento"][data-pid="${hAna}"][data-estado="invitado"]`) && q(`[data-act="set-estado-momento"][data-pid="${hAna}"][data-estado="invitado"]`).disabled);
+click(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="invitado"]`);   // corrige el snapshot histórico
+eq('Estado histórico de Marta → invitado', martaAsis().estadoEnEseMomento, 'invitado');
+eq('El DIRECTORIO no cambia: Marta sigue ahorradora hoy (INV#1)', Store.select.persona(hMarta).estado, 'ahorrador');
+check('Marta sale del reparto (era invitada)', !Store.select.asistenciasAhorradoras(prmPast()).some(a => a.personaId === hMarta));
+setVal(`[data-ch="cover-primada-invitado"][data-id="${past}"]`, '7000');   // cover propio (distinto del vigente)
+eq('Cover propio activado', prmPast().coverPropio, true);
+eq('coverDe de Marta usa el cover PROPIO (7.000), no el vigente (10.000)', Store.select.coverDe(prmPast(), martaAsis()), 7000);
+click('[data-act="close-overlay"]');
+// Una primada FUTURA no muestra la sección histórica.
+const fut = Store.actions.createPrimada({ principalId: hAna, organizadores: [hAna], mesContable: '2099-01' });
+Store.actions.seleccionarPrimada(fut); entrarDetalle(fut); abrirConfig();
+check('Primada futura: NO aparece la sección histórica', !q('.cfg-hist'));
+click('[data-act="close-overlay"]');
 
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);

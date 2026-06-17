@@ -82,7 +82,7 @@
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
     'add-asistencia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus',
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'add-persona', 'set-estado-persona',
-    'borrar-mi-cuenta',
+    'set-estado-momento', 'borrar-mi-cuenta',
   ]);
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
   function pedirLogin() { ui.overlay = 'login'; ui.loginEstado = 'form'; rerender(); }
@@ -345,6 +345,9 @@
       // "Hacer principal" (fix mínimo de primada incompleta): asigna el rol principal a un ahorrador.
       // INVARIANTE #2: setRol('principal') lanza si el snapshot no es ahorrador → tryAction avisa.
       case 'hacer-principal':  tryAction(() => A.setRol(prm, pid, 'principal')); break;
+      // Registro histórico (v7): estado de un asistente EN ESE MOMENTO (Configurar › "Cómo fue en su momento").
+      // INV#2: el anfitrión no puede quedar invitado → tryAction avisa.
+      case 'set-estado-momento': tryAction(() => A.setEstadoEnEseMomento(prm, pid, b.dataset.estado)); break;
       // "Quitar" / [✕] vive en Configurar (no en operación) y pide confirmación.
       case 'remove-asistencia':
         if (!root.confirm || root.confirm('¿Quitar al asistente?')) { A.removeAsistencia(prm, pid); if (ui.activaPid === pid) ui.activaPid = null; }
@@ -466,6 +469,9 @@
       case 'breb-persona':   A.setBreBPersona(pid, v); break;
       case 'cover-ahorrador': A.setCover({ ahorrador: v }); break;
       case 'cover-invitado':  A.setCover({ invitado: v }); break;
+      // Cover PROPIO de una primada pasada (Configurar › "Cómo fue en su momento"): no toca el cover vigente.
+      case 'cover-primada-ahorrador': A.setCoverPrimada(id, { ahorrador: v }); break;
+      case 'cover-primada-invitado':  A.setCoverPrimada(id, { invitado: v }); break;
       // Precios de producto de la primada → commitQuiet en el Store (sin re-render, no pierde foco).
       case 'costo-producto':  A.setPreciosProducto(prm, id, { costoNeto: v }); break;
       case 'venta-producto':  A.setPreciosProducto(prm, id, { precioVenta: v }); break;

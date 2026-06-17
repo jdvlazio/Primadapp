@@ -42,7 +42,7 @@ const CONFIG = require(JS('config.js')).CONFIG;
 
 /* ---------- Forma v4 ---------- */
 function assertFormaV4(name, s) {
-  eq(name + ': schemaVersion 6', s.schemaVersion, 6);
+  eq(name + ': schemaVersion 7', s.schemaVersion, 7);
   check(name + ': personas[]', Array.isArray(s.personas));
   check(name + ': primadas[]', Array.isArray(s.primadas));
   check(name + ': sin natilleras', !('natilleras' in s));
@@ -502,8 +502,8 @@ section("Migración: 'programada' (histórica) → 'abierta' con autosana");
 /* ============================================================ 8. Robustez */
 section('Robustez');
 {
-  const a = migrate(null); check('null → defaultState v6', a.schemaVersion === 6 && a.primadas.length === 0 && a.personas.length === 0);
-  const b = migrate(42); check('basura → defaultState v6', b.schemaVersion === 6 && Array.isArray(b.primadas));
+  const a = migrate(null); check('null → defaultState v7', a.schemaVersion === 7 && a.primadas.length === 0 && a.personas.length === 0);
+  const b = migrate(42); check('basura → defaultState v7', b.schemaVersion === 7 && Array.isArray(b.primadas));
   const d = defaultState(); check('defaultState forma v6', 'personas' in d && 'primadas' in d && 'settings' in d && !('ahorrosMensuales' in d));
   eq('defaultState cover sugerido 15000/10000', d.settings.cover.ahorrador + '/' + d.settings.cover.invitado, '15000/10000');
 }
@@ -558,7 +558,7 @@ section('Migración v5 → v6 (items{} → consumos[] filas)');
   };
   const s = migrate(v5);
   const p = s.primadas[0];
-  eq('v5→v6: schemaVersion 6', s.schemaVersion, 6);
+  eq('v5→v6: schemaVersion 7', s.schemaVersion, 7);
   eq('v5→v6: 3 filas de consumo (2 de Ana + 1 de Beto)', p.consumos.length, 3);
   check('v5→v6: asistencias sin items', p.asistencias.every(a => !('items' in a)));
   eq('v5→v6: Ana 2 cz', p.consumos.filter(c => c.personaId === 'per_a' && c.productoId === 'cz').length, 2);
@@ -668,6 +668,54 @@ section('setIdProducto: renombrar/cambiar emoji sin borrar; consumos (por id) in
   Store.actions.cerrarPrimada(p1);
   Store.actions.setIdProducto(p1, 'cerveza', { nombre: 'Aguila' });
   eq('Cerrada: setIdProducto es no-op (sigue "Club Colombia")', cz().nombre, 'Club Colombia');
+}
+
+/* ============================================================ 12c. Registro de primadas PASADAS (v7) */
+section('Registro histórico: cover propio de la primada + estadoEnEseMomento por asistente; migración v6→v7');
+{
+  // Migración v6 → v7: dato SIN coverPropio sube con coverPropio:false y schemaVersion 7.
+  const v6 = { schemaVersion: 6, settings: { cover: { ahorrador: 15000, invitado: 10000 }, defaultProducts: [] },
+    personas: [{ id: 'pa', nombre: 'Ana', estado: 'ahorrador', breB: null }],
+    primadas: [{ id: 'pm', nombre: 'Vieja', fecha: '2025-02-10', mesContable: '2025-02', organizadorPrincipalId: 'pa',
+      pago: { breB: null }, cover: { ahorrador: 8000, invitado: 12000 }, productos: [], asistencias: [], consumos: [], estado: 'cerrada' }],
+    activePrimadaId: 'pm' };
+  const mig = migrate(v6);
+  eq('Migración: schemaVersion = 7', mig.schemaVersion, 7);
+  eq('Migración v6→v7: coverPropio default false (tolerante)', mig.primadas[0].coverPropio, false);
+  eq('Migración: cover histórico preservado', mig.primadas[0].cover.invitado, 12000);
+
+  // Escenario real: una primada PASADA (febrero) con cover distinto y 2 personas que ERAN invitadas (hoy ahorradoras).
+  Store.actions.replaceState(null);
+  Store.actions.setCover({ ahorrador: 15000, invitado: 10000 });   // cover VIGENTE de hoy
+  const ana = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });    // principal
+  const marta = Store.actions.addPersona({ nombre: 'Marta', estado: 'ahorrador' }); // HOY ahorradora, EN FEB invitada
+  const pedro = Store.actions.addPersona({ nombre: 'Pedro', estado: 'ahorrador' }); // idem
+  const pid = Store.actions.createPrimada({ principalId: ana, organizadores: [ana], mesContable: '2025-02' });
+  const prm = () => Store.select.state().primadas.find(p => p.id === pid);
+  const asis = id => prm().asistencias.find(a => a.personaId === id);
+  Store.actions.addAsistencia(pid, marta);
+  Store.actions.addAsistencia(pid, pedro);
+  eq('Al agregar: estadoEnEseMomento toma el estado de HOY (ahorrador)', asis(marta).estadoEnEseMomento, 'ahorrador');
+  // Corrijo el snapshot histórico: en febrero eran invitadas.
+  Store.actions.setEstadoEnEseMomento(pid, marta, 'invitado');
+  Store.actions.setEstadoEnEseMomento(pid, pedro, 'invitado');
+  eq('estadoEnEseMomento corregido a invitado (Marta)', asis(marta).estadoEnEseMomento, 'invitado');
+  eq('El DIRECTORIO no cambia: Marta sigue ahorradora HOY (INV#1)', Store.select.persona(marta).estado, 'ahorrador');
+  eq('Marta NO entra al reparto (era invitada)', Store.select.asistenciasAhorradoras(prm()).some(a => a.personaId === marta), false);
+  // Cover propio (lo que se cobraba en febrero), distinto del vigente.
+  Store.actions.setCoverPrimada(pid, { ahorrador: 6000, invitado: 9000 });
+  eq('coverPropio activado', prm().coverPropio, true);
+  eq('coverDe usa el cover PROPIO aunque esté ABIERTA (Marta invitado = 9.000, no el vigente 10.000)', Store.select.coverDe(prm(), asis(marta)), 9000);
+  // INV#2: el anfitrión (principal) no puede quedar invitado.
+  let threw = false; try { Store.actions.setEstadoEnEseMomento(pid, ana, 'invitado'); } catch (e) { threw = true; }
+  eq('INV#2: setEstadoEnEseMomento del anfitrión a invitado lanza', threw, true);
+  // Cerrar NO pisa el cover propio; sigue valiendo el histórico.
+  Store.actions.cerrarPrimada(pid);
+  eq('Cerrar no pisa el cover propio (sigue 9.000 invitado)', prm().cover.invitado, 9000);
+  eq('Cerrada: coverDe usa el snapshot histórico', Store.select.coverDe(prm(), asis(marta)), 9000);
+  // Cambiar el cover VIGENTE no toca la primada histórica.
+  Store.actions.setCover({ ahorrador: 99000, invitado: 99000 });
+  eq('Cambiar el cover vigente NO afecta la primada con cover propio', prm().cover.invitado, 9000);
 }
 
 /* ============================================================ 13. Estadísticas (agregado, solo cerradas) */

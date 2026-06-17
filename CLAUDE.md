@@ -243,14 +243,16 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
   (el modelo lo soporta vía `createPrimada`/acciones; el editor simple los mueve juntos).
 - Toda feature nueva debe caber en esta IA (home ↔ detalle). Si no cabe → **pausar y consultar**.
 
-## Modelo de datos (esquema v6 — DEFINITIVO)
+## Modelo de datos (esquema v7 — DEFINITIVO)
 ```
-AppState  { schemaVersion:6, settings{cover{ahorrador,invitado}, defaultProducts[]},
+AppState  { schemaVersion:7, settings{cover{ahorrador,invitado}, defaultProducts[]},
             personas[], primadas[], activePrimadaId }
 Persona   { id, nombre, estado:'ahorrador'|'invitado', breB:string|null }
 Primada   { id, nombre, fecha:'YYYY-MM-DD', mesContable:'YYYY-MM',
             organizadorPrincipalId:personaId|null, pago{ breB:string|null },
-            cover{ahorrador,invitado}, productos[], asistencias[], consumos[], estado:'abierta'|'cerrada' }
+            cover{ahorrador,invitado}, coverPropio:bool, productos[], asistencias[], consumos[], estado:'abierta'|'cerrada' }
+            // coverPropio (v7): cover HISTÓRICO propio (registro de primadas pasadas). coverDe usa primada.cover
+            //   aunque esté abierta; cerrar no lo pisa. Default false = usa el cover vigente como cualquier primada.
 Producto  { id, nombre, emoji, costoNeto, precioVenta, aportadoPor:personaId|null }   // default aportadoPor = principal
 Asistencia{ personaId, estadoEnEseMomento:'ahorrador'|'invitado', rol:'principal'|'organizador'|'asistente',
             coverExonerado:bool, pagado:bool }   // pagado = saldó su total (binario). SIN items (v6).
@@ -294,6 +296,8 @@ Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   //
   `seleccionarPrimada`, `renombrarPrimada`, `setFecha`, `setMesContable`, `cerrarPrimada`, `reabrirPrimada`, `borrarPrimada`);
   productos de la primada (`addProducto`, `setPreciosProducto`, `setIdProducto` (renombrar/emoji sin borrar — snapshot local, consumos van por id), `setAportadoPor`, `removeProducto`);
   asistencias (`addAsistencia`, `removeAsistencia`, `setRol`, `toggleCoverExonerado`, `changeItem`);
+  registro histórico de primadas pasadas (`setCoverPrimada` (cover propio + flag `coverPropio`), `setEstadoEnEseMomento`
+  (corrige el snapshot histórico de una asistencia — respeta INV#2, no toca el directorio → INV#1 intacta));
   pago binario (`setPagado`); infra (`replaceState`).
 
 ## Reglas de datos y migraciones (evitan cambios traumáticos)
@@ -302,8 +306,12 @@ Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   //
 - El **normalizador es tolerante**: rellena campos faltantes con defaults seguros, de modo que datos parciales (incluido
   cualquier borrador previo) suben limpio.
 
-### Migración v1 → … → v5 (implementada)
-`migrate()` detecta la versión y converge a **v5** (normalizador tolerante).
+### Migración v1 → … → v7 (implementada)
+`migrate()` detecta la versión y converge a la actual (normalizador tolerante).
+- **Salto v6 → v7 (cover histórico):** se agrega `Primada.coverPropio:bool`. El normalizador (`normV4` y
+  `migrateV3toV4`) lo rellena con `!!p.coverPropio` (default **false**) → todo dato viejo sube sin cambios y la
+  migración es **idempotente**. No reescribe el cover ni los snapshots históricos.
+- **Salto v5 → v6 (consumos-como-filas):** `Asistencia.items{}` → tabla `consumos[]` (1 fila = 1 pedido). `ensureV6` deriva.
 - **Salto v4 → v5 (pago binario):** `Asistencia.abonos[]` → **`pagado:bool`**. El normalizador deriva
   `pagado = (Σ abonos ≥ total)` (si los abonos cubrían el total → pagado); el principal queda `true`.
   Se **elimina** el historial de abonos parciales (decisión de producto). Idempotente: si ya viene `pagado`, se respeta.
@@ -431,6 +439,12 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   abiertas al instante**, sin depender de re-sellar/persistir un snapshot por primada (robusto ante recargas);
   primada **CERRADA → usa su snapshot CONGELADO** (`primada.cover`, historia, INVARIANTE #4). El **snapshot se sella
   al CERRAR** (`cerrarPrimada` copia el cover vigente). `setCover` solo guarda `settings` + re-render (no toca primadas).
+- **REGISTRO DE PRIMADAS PASADAS (v7) — `coverPropio` + estado histórico.** Para anotar una primada de un mes anterior
+  (cuando el cover y los estados eran otros): **cover PROPIO** (`setCoverPrimada` → `primada.cover` + `coverPropio=true`;
+  `coverDe` lo usa **aunque esté abierta**; `cerrarPrimada` NO lo pisa; default false = se comporta como cualquiera) +
+  **estado EN ESE MOMENTO por asistente** (`setEstadoEnEseMomento` corrige el snapshot histórico de una asistencia —
+  p.ej. alguien que era invitado y hoy es ahorrador; respeta INV#2, **no toca el directorio** → INV#1 intacta). UI:
+  sección **"Cómo fue en su momento"** en Configurar, visible SOLO si `mesContable < Util.currentMonth()` (mes pasado).
 - **"Cerrada"** congela la cuenta del evento pero **sigue aceptando abonos**.
 - **CICLO DE VIDA SIMPLIFICADO — `estado:'abierta' | 'cerrada'` (el `'programada'` se ELIMINÓ):** una primada
   siempre se crea **abierta**. No hay un estado separado "agendada": una primada recién creada sin consumos y una
