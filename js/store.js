@@ -792,16 +792,17 @@
       a.coverExonerado = !a.coverExonerado; commit({ kind: 'primada', id: primadaId });
     },
     // REGISTRO HISTÓRICO (v7) — cover PROPIO de la primada (lo que se cobraba EN SU MOMENTO, distinto del vigente).
-    // Marca coverPropio → coverDe usa este snapshot aunque esté abierta; cerrarPrimada NO lo pisa. Para registrar
-    // primadas pasadas. Si ambos quedan 0, vuelve a usar el cover vigente (coverPropio off).
+    // Al ajustarlo, `coverPropio=true` → coverDe usa este snapshot aunque esté abierta; cerrarPrimada NO lo pisa.
     setCoverPrimada(primadaId, { ahorrador, invitado } = {}) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const c = normCover(p.cover);
       if (ahorrador != null) c.ahorrador = Number(ahorrador) || 0;
       if (invitado != null) c.invitado = Number(invitado) || 0;
       p.cover = c;
-      p.coverPropio = (c.ahorrador > 0 || c.invitado > 0);   // con valores propios = ON; ambos 0 = vuelve al vigente
-      commitQuiet({ kind: 'primada', id: primadaId });        // edición de texto en vivo (no re-render, no pierde foco)
+      p.coverPropio = true;   // ajustar el cover histórico LO FIJA (vale aunque sea 0; el usuario lo está registrando)
+      // commit NORMAL (NO commitQuiet): el cover entra a TODOS los totales → hay que re-renderizar para que se
+      // reflejen. El input es type=number (dispara `change` en blur), así que el re-render no rompe foco (= setCover).
+      commit({ kind: 'primada', id: primadaId });
     },
     // REGISTRO HISTÓRICO (v7) — corrige el estadoEnEseMomento de UNA asistencia (cómo fue ESA persona en ESA
     // primada: p.ej. era invitada y hoy es ahorradora). Es una corrección DELIBERADA del snapshot histórico, NO

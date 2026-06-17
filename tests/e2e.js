@@ -892,9 +892,13 @@ click(`[data-act="set-estado-momento"][data-pid="${hMarta}"][data-estado="invita
 eq('Estado histórico de Marta → invitado', martaAsis().estadoEnEseMomento, 'invitado');
 eq('El DIRECTORIO no cambia: Marta sigue ahorradora hoy (INV#1)', Store.select.persona(hMarta).estado, 'ahorrador');
 check('Marta sale del reparto (era invitada)', !Store.select.asistenciasAhorradoras(prmPast()).some(a => a.personaId === hMarta));
-setVal(`[data-ch="cover-primada-invitado"][data-id="${past}"]`, '7000');   // cover propio (distinto del vigente)
+setVal(`[data-ch="cover-primada-invitado"][data-id="${past}"]`, '7000');   // cover propio (distinto del vigente 10.000)
 eq('Cover propio activado', prmPast().coverPropio, true);
 eq('coverDe de Marta usa el cover PROPIO (7.000), no el vigente (10.000)', Store.select.coverDe(prmPast(), martaAsis()), 7000);
+// REGRESIÓN (bug del cover propio): ajustar el cover debe RE-RENDERIZAR → el grupo Invitados muestra "Cover $7.000"
+// (con commitQuiet quedaba stale en $10.000 y el total salía "aumentado").
+check('El cover ajustado se REFLEJA en pantalla (grupo Invitados = "Cover $7.000")', /Cover \$7\.000/.test(q('#overlay').innerHTML));
+check('Ya NO muestra el cover vigente viejo ($10.000) en el grupo Invitados', !/Invitados[^]*Cover \$10\.000/.test(q('#overlay').innerHTML));
 click('[data-act="close-overlay"]');
 // Una primada FUTURA no muestra la sección histórica.
 const fut = Store.actions.createPrimada({ principalId: hAna, organizadores: [hAna], mesContable: '2099-01' });
