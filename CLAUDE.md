@@ -507,16 +507,3 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - **Nunca confiar en un preview reusado sin recarga limpia.** El servidor de Preview reutiliza el proceso y puede servir
   el **bundle viejo**, dando verificaciones falsas. Antes de verificar en navegador: forzar recarga / reiniciar el server,
   y confirmar que el código nuevo está cargado (p. ej. una señal del DOM que solo exista con el cambio) **antes** de dar fe del resultado.
-
-## Resumen copiable (regla de comunicación)
-El usuario trabaja con Claude Code por **Remote Control en el celular**, donde no se puede seleccionar y copiar
-el texto largo de las respuestas. Por eso, **SIEMPRE** termina cada respuesta con un bloque de resumen dentro de un
-**único bloque de código** (```), que el usuario pueda copiar de un toque para pegarlo en el chat de PM. El resumen
-debe ser **autocontenido** e incluir:
-- **Qué hiciste** (cambios concretos: archivos, acciones).
-- **Resultado de la verificación** (tests, números clave, lo que se confirmó en el navegador).
-- **Estado del repo** (qué está commiteado, en qué rama, qué queda sin commitear).
-- **Qué sigue** / qué decisión o aprobación se necesita del usuario.
-
-Mantén el resumen **conciso pero completo**: es lo único que el PM va a ver, así que no dejes por fuera nada que
-necesite para decidir. El detalle largo va arriba como siempre, pero **el bloque copiable al final es obligatorio**.
