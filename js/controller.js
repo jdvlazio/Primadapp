@@ -328,9 +328,12 @@
       // cerrar/reabrir cambian el ESTADO → la cara por defecto cambia. La acción commitea y dispara un
       // rerender por el subscribe, pero con la cara aún vieja; fijamos la cara y RE-renderizamos explícito
       // (return) para que el pintado final refleje el nuevo estado (cerrada → 'balance', abierta → 'operacion').
+      // Se invoca desde el banner "Todos pagaron" (atajo feliz) Y desde el "···" de la primada. INVARIANTE #4:
+      // cerrar CONGELA la cuenta pero sigue aceptando pagos → cerrar con deuda pendiente es un caso VÁLIDO
+      // (se cierra el evento, la gente paga después). Por eso el menú ofrece cerrar siempre, no solo al saldar.
       case 'cerrar-primada':
         if (!root.confirm || root.confirm('¿Cerrar la cuenta?')) {
-          A.cerrarPrimada(id); resetBalancePanel(); View.toast('Cuenta cerrada'); rerender();
+          A.cerrarPrimada(id); resetBalancePanel(); ui.overlay = null; ui.primadaMenuId = null; View.toast('Cuenta cerrada'); rerender();
         }
         return;
       case 'reabrir-primada':  A.reabrirPrimada(id); resetBalancePanel(); ui.overlay = null; ui.primadaMenuId = null; View.toast('Cuenta reabierta'); rerender(); return;
@@ -339,7 +342,7 @@
           A.borrarPrimada(id); ui.overlay = null; ui.primadaMenuId = null; View.toast('Primada borrada'); rerender(); return;
         }
         break;
-      // "···" de una primada en el home → hoja con Reabrir/Eliminar (acciones administrativas, sin swipe).
+      // "···" de una primada en el home → hoja con Cerrar/Reabrir/Eliminar (administrativas, sin swipe).
       case 'primada-menu': ui.primadaMenuId = id; ui.overlay = 'primada-menu'; rerender(); return;
 
       // ----- asistencias -----

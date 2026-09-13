@@ -375,6 +375,14 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - Modelo/migración: alimentar datos v1/v2/v3 → v4 y verificar **forma, totales, ganancias y reparto**.
 - **Invariante de inmutabilidad histórica:** test explícito de que cambiar el estado vigente no toca snapshots pasados.
 - Flujo MVC (cuando haya UI): test e2e con `jsdom` por clics reales, re-consultando nodos tras cada render.
+- **Tests con fecha: NUNCA hardcodear un mes/año.** Derivar lo esperado del dato (`Util.monthYear(p.mesContable)`),
+  no de una cadena fija: un `/Junio 2026/` pasa verde solo mientras el reloj esté en ese mes y estalla al cambiar.
+- ⚠️ **TRAMPA DEL ENTORNO — iCloud expulsa `node_modules`.** El repo vive en `~/Documents`, que iCloud Drive
+  sincroniza; con "Optimizar almacenamiento" macOS deja archivos **`dataless`** (0 bytes reales, ver `ls -lO`).
+  Al `require()` uno, Node **se cuelga para siempre esperando la descarga** — sin error y sin salida: el síntoma
+  es `node tests/e2e.js` colgado ANTES del primer test (fue `form-data`, dependencia de `jsdom`). **NO es un bug
+  del código.** Arreglo: `rm -rf node_modules && npm install` (es devDependency, no toca producción). Antes de
+  culpar a un cambio por un e2e colgado, verificar con `ls -lO node_modules/<paquete>/lib/`.
 
 ## Despliegue
 - El deployable es `index.html` + `js/*.js` + `manifest.json` + `sw.js` + `icons/`. GitHub Pages (rama `main`, root) publica solo.

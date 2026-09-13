@@ -314,7 +314,9 @@
   // (vuelve a estar disponible en el chip picker). Vacío → mensaje, no tarjeta en blanco.
   // MODELO 3 — Lista viva: los productos de la persona ACTIVA se muestran INLINE como CHIPS (no acordeón
   // + stepper). Dos tipos de chip, en una sola fila que envuelve:
-  //   · CONSUMIDO (`.chip.has`): emoji + ×cantidad. El cuerpo es +1 (gesto frecuente); un `−` chico
+  //   · CONSUMIDO (`.chip.has`): emoji + NOMBRE + ×cantidad. El nombre NO desaparece al pasar de disponible a
+  //     consumido (antes quedaba solo el emoji → confundía al apuntar, sobre todo con un producto recién creado).
+  //     El cuerpo es +1 (gesto frecuente); un `−` chico
   //     subordinado hace −1 (corrección). Solo aparece en la persona activa (es el único lugar con chips).
   //   · DISPONIBLE (`.chip`): emoji + nombre + precio; tap = +1 (0→1 → pasa a ser consumido).
   // CERRADA: chips de solo lectura (sin +/−); si no consumió, "Sin consumo".
@@ -324,12 +326,12 @@
     const disponibles = S().disponiblesPara(p, a);
     const chipsCons = consumidos.map(prod => {
       const q = S().cantidadDe(p, a, prod);   // v6: cantidad = Σ filas de consumo
-      if (cerrada) return `<span class="chip has ro">${e(prod.emoji)} <b class="chip-q">×${q}</b></span>`;
+      if (cerrada) return `<span class="chip has ro">${e(prod.emoji)} ${e(prod.nombre)} <b class="chip-q">×${q}</b></span>`;
       // Stepper compacto [− 🍺×9 +]: el + explícito a la DERECHA es el gesto universal de "agregar"
       // (en teal, resalta); el cuerpo (emoji ×N) TAMBIÉN suma (target grande, menos fricción); − corrige.
       return `<span class="chip has">
           <button class="chip-minus" data-act="item-minus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: menos">−</button>
-          <button class="chip-plus" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más">${e(prod.emoji)} <b class="chip-q">×${q}</b></button>
+          <button class="chip-plus" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más">${e(prod.emoji)} ${e(prod.nombre)} <b class="chip-q">×${q}</b></button>
           <button class="chip-add" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más">+</button>
         </span>`;
     }).join('');
@@ -738,7 +740,9 @@
       <div class="sheet-head"><div class="sheet-title">${e(nombreCorto(p.nombre))}</div>
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
       <div class="sheet-body menu-list">
-        ${p.estado === 'cerrada' ? `<button class="menu-item" data-act="reabrir-primada" data-id="${p.id}">${icon('rotate-ccw')}Reabrir</button>` : ''}
+        ${p.estado === 'cerrada'
+          ? `<button class="menu-item" data-act="reabrir-primada" data-id="${p.id}">${icon('rotate-ccw')}Reabrir</button>`
+          : `<button class="menu-item" data-act="cerrar-primada" data-id="${p.id}">${icon('check')}Cerrar primada</button>`}
         <button class="menu-item danger" data-act="borrar-primada" data-id="${p.id}" ${esActiva ? 'data-activa="1"' : ''}>${icon('trash-2')}Eliminar</button>
       </div>
     </div>`;

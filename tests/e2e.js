@@ -211,6 +211,11 @@ check('El chip pasó a CONSUMIDO (.chip.has con ×N)', !!q(`.chip.has [data-act=
 // Stepper [− 🍺×N +]: − a la izquierda, + EXPLÍCITO a la derecha (gesto universal), + cuerpo tappable.
 check('Chip consumido: + explícito a la derecha (.chip-add) y − a la izquierda (.chip-minus)',
   !!q('.chip.has .chip-add') && !!q('.chip.has .chip-minus'));
+// El NOMBRE del producto NO desaparece al pasar de disponible a consumido: antes quedaba solo el emoji
+// (🍺 ×1) y confundía al apuntar, sobre todo con un producto recién creado cuyo emoji aún no se reconoce.
+const nomCz = prm().productos.find(x => x.id === 'cerveza').nombre;
+check('Chip consumido MUESTRA el nombre del producto (no solo el emoji)',
+  q('.chip.has .chip-plus').textContent.includes(nomCz));
 // El chip consumido: + explícito y cuerpo = +1, − = −1 (mismo data-act item-plus/item-minus).
 click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
 eq('Beto lleva 2 cervezas (tap chip = +1)', cervezas(), 2);
@@ -321,7 +326,9 @@ abrirBalance();
 check('Trigger "Compartir informe" al pie del panel de Balance', !!q('.balance-panel [data-act="compartir-informe"].compartir-link'));
 check('Trigger ya NO está en la topbar', !q('#topbar [data-act="compartir-informe"]'));
 const informe = window.View.informeTemplateHTML(prm());
-check('Informe: UNA marca wordmark "Primad"+"app" (acento) + período', /informe-brand">Primad<span class="informe-brand-ac">app/.test(informe) && /Junio 2026/.test(informe));
+// El PERÍODO se deriva del mesContable de la primada (NO se hardcodea un mes: el test corría verde solo
+// mientras el reloj estuviera en ese mes — era una bomba de tiempo que estalló al cambiar de mes).
+check('Informe: UNA marca wordmark "Primad"+"app" (acento) + período', /informe-brand">Primad<span class="informe-brand-ac">app/.test(informe) && informe.includes('informe-period">' + window.Util.monthYear(prm().mesContable)));
 // El título quita la palabra "Primada" (nombreCorto): deja SOLO los organizadores ("Primada Ana + Beto" → "Ana + Beto").
 const nombreOrig = prm().nombre;
 Store.actions.renombrarPrimada(prm().id, 'Primada Ana + Beto');
@@ -761,6 +768,16 @@ check('Menú se cerró tras reabrir', q('#overlay').hidden);
 // Abierta → el "···" ya NO ofrece Reabrir (solo Eliminar).
 click(`[data-act="primada-menu"][data-id="${idMenu}"]`);
 check('Abierta → "···" sin Reabrir', !q(`[data-act="reabrir-primada"][data-id="${idMenu}"]`));
+// INVARIANTE #4: cerrar CONGELA la cuenta pero sigue aceptando pagos → cerrar con deuda pendiente es VÁLIDO.
+// Por eso el "···" ofrece "Cerrar primada" siempre que esté abierta (el banner "Todos pagaron" es solo el atajo).
+check('Abierta → "···" ofrece Cerrar primada', !!q(`[data-act="cerrar-primada"][data-id="${idMenu}"]`));
+click(`[data-act="cerrar-primada"][data-id="${idMenu}"]`);   // confirm() stubbeado a true
+eq('Cerrar desde el "···" → cerrada', st().primadas.find(p => p.id === idMenu).estado, 'cerrada');
+check('Menú se cerró tras cerrar', q('#overlay').hidden);
+// Reabrir para dejar el estado como lo esperaba el resto de la sección.
+click(`[data-act="primada-menu"][data-id="${idMenu}"]`);
+click(`[data-act="reabrir-primada"][data-id="${idMenu}"]`);
+click(`[data-act="primada-menu"][data-id="${idMenu}"]`);
 const antesBorrar = st().primadas.length;
 click(`[data-act="borrar-primada"][data-id="${idMenu}"]`);   // confirm() stubbeado a true
 eq('Eliminar desde el "···" borra la primada', st().primadas.length, antesBorrar - 1);
