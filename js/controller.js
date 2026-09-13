@@ -81,7 +81,7 @@
   const WRITE_ACTS = new Set([
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
     'add-asistencia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus',
-    'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'add-persona', 'set-estado-persona',
+    'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'toggle-pagado', 'add-persona', 'set-estado-persona',
     'set-estado-momento', 'borrar-mi-cuenta',
   ]);
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
@@ -414,6 +414,23 @@
         rerender(); return;
       }
       case 'set-no-pagado': A.setPagado(prm, pid, false); break;
+      // CHECK de pago en la FILA: un toque marca/desmarca, sin abrir la hoja "Pagar" (que es para QUIEN PAGA,
+      // porque necesita la llave). Este es el gesto del ANFITRIÓN chuleando quién pagó. Mismo cierre simétrico
+      // que "Ya pagué" cuando se salda al ÚLTIMO deudor: colapsa Asistentes y despliega el Balance.
+      case 'toggle-pagado': {
+        const ap = Store.select.activePrimada();
+        const asis = ap && (ap.asistencias || []).find(x => x.personaId === pid);
+        if (!asis) return;
+        const eraPagado = !!asis.pagado;
+        const antes = Store.select.informePrincipal(ap).saldoPendiente;
+        A.setPagado(prm, pid, !eraPagado);
+        const nom = (Store.select.persona(pid) || {}).nombre || '';
+        if (eraPagado) View.toast(nom + ' queda debiendo');
+        else View.toast('✓ ' + nom + ' saldado', 'ok');
+        const despues = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
+        if (!eraPagado && antes > 0 && despues === 0) { ui.activaPid = null; ui.asisOpen = false; ui.balanceOpen = true; }
+        rerender(); return;
+      }
       case 'copiar-llave': {
         const llave = b.dataset.llave || '';
         const ok = () => View.toast('Llave copiada');

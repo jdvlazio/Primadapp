@@ -370,10 +370,24 @@
     const esPrin = S().esPrincipal(p, a);
     const activa = ui && ui.activaPid === a.personaId;
     const saldado = S().saldoDe(p, a) === 0 && total > 0;
-    const fila = `<button class="asis-fila ${activa ? 'on' : ''}" data-act="activar-asis" data-pid="${a.personaId}" aria-expanded="${activa ? 'true' : 'false'}">
-        <span class="asis-fila-id ${saldado ? 'saldado' : ''}"><b>${e(nombrePersona(a.personaId))}</b>${saldado ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : ''} ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Anfitrión</span>' : ''}</span>
-        <span class="acc-amt">${$peso(total)}</span>
-      </button>`;
+    // CHECK DE PAGO EN LA FILA (patrón universal "marcar completado"): círculo vacío = debe, ✓ teal = pagó.
+    // UN toque marca/desmarca sin abrir nada — es el gesto del ANFITRIÓN al cerrar la cuenta ("¿quién pagó?").
+    // La hoja "Pagar" (llave Bre-B + monto) se CONSERVA para el que VA A PAGAR: son dos trabajos distintos
+    // (el que paga necesita la llave; el anfitrión solo necesita chulear). Sigue viva con la primada CERRADA
+    // (INVARIANTE #4: la cuenta se congela, los pagos llegan después). No lo llevan el anfitrión (auto-saldado)
+    // ni quien no debe nada. Va FUERA del <button> de la fila (no se anidan botones) → la línea es un flex.
+    const checkable = !esPrin && total > 0;
+    const check = checkable
+      ? `<button class="asis-pay ${a.pagado ? 'on' : ''}" data-act="toggle-pagado" data-pid="${a.personaId}" aria-pressed="${a.pagado ? 'true' : 'false'}" aria-label="${e(nombrePersona(a.personaId))}: ${a.pagado ? 'pagado, tocar para deshacer' : 'marcar como pagado'}"><span class="circ">${a.pagado ? icon('check', 'sm') : ''}</span></button>`
+      : '';
+    // El check inline junto al nombre solo cuando NO hay círculo tocable (evita dos chulos en la misma fila).
+    const checkInline = (saldado && !checkable) ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : '';
+    const fila = `<div class="asis-linea ${activa ? 'on' : ''}">
+        <button class="asis-fila ${activa ? 'on' : ''}" data-act="activar-asis" data-pid="${a.personaId}" aria-expanded="${activa ? 'true' : 'false'}">
+          <span class="asis-fila-id ${saldado ? 'saldado' : ''}"><b>${e(nombrePersona(a.personaId))}</b>${checkInline} ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Anfitrión</span>' : ''}</span>
+          <span class="acc-amt">${$peso(total)}</span>
+        </button>${check}
+      </div>`;
     if (!activa) return `<div class="asis">${fila}</div>`;
     // REVEAL de la persona activa: chips (apuntar) ARRIBA, PAGO abajo (saldar = menos frecuente). El rol,
     // el cover y "Quitar" son CONFIGURACIÓN (overlay Configurar › Asistentes), no aquí.
