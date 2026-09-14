@@ -243,7 +243,16 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     —el monto va en la cabecera, NO por fila (§0 no repetir); el **ANFITRIÓN va en la lista, marcado** —siempre es
     ahorrador, también recibe; los invitados NO. Es a quiénes distribuye el Tesorero, distinto del cobro) ·
     **3) Composición** (Cover · Margen · **"Reembolso a {Anfitrión}"** atenuado —nombra al destinatario— · Sobrante si >0,
-    SIN líneas por fila) · **4) Cobro** (cabecera "Por cobrar $X"/"✓ Todo cobrado" + **🔑 Bre-B del anfitrión SOLO si
+    SIN líneas por fila) · **4) Cobro** (**CHULEABLE**: cada fila lleva el **mismo check de pago que la lista
+    viva** —`toggle-pagado`, aro ámbar = debe / teal con ✓ = pagó—. El Balance era de **solo lectura** y para
+    marcar un pago había que **subir, desplegar Asistentes y buscar a la persona**, justo cuando la pantalla
+    donde uno está mirando ES el Balance (alguien transfiere al día siguiente, primada ya cerrada). **Mismo
+    control, no un gesto nuevo.** El anfitrión no lo lleva (auto-saldado) pero **reserva la columna vacía**
+    (`.asis-pay-sp`), y el recibo reserva ese mismo ancho, para que las cifras no se descuadren. Decisión del
+    PM (sep 2026); el riesgo de **toque accidental sobre un documento** se asume: es **reversible** de un toque
+    y avisa con toast. ⚠️ **Por esto mismo la sección NO se renombra a "Consumos" en las cerradas:** el check
+    sigue VIVO con la primada cerrada (INV#4), así que ese rótulo mentiría sobre la única acción que queda ahí.
+    Cabecera "Por cobrar $X"/"✓ Todo cobrado" + **🔑 Bre-B del anfitrión SOLO si
     hay saldo pendiente** —los deudores la miran para pagar, abierta o cerrada; se oculta al estar todo cobrado— +
     lista = **registro TRANSPARENTE del consumo de cada quien**: deudores ámbar / saldados check teal, y el
     **ANFITRIÓN aparece SIEMPRE como saldado** (consumo en mano, marcado "Anfitrión"): su total se ve igual que el de

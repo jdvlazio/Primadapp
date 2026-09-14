@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-123607-5764ad4">
+<meta name="build" content="20260914-141053-ab037e8">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -380,8 +380,13 @@
   /* MINI RECIBO en el cobro del Balance: nombre + total como cabecera, partidas indentadas debajo. */
   .bal-row b{font-variant-numeric:tabular-nums}
   .bal-persona{display:flex;flex-direction:column;gap:2px}
-  .bal-persona>.bal-row>span{color:var(--ink);font-weight:600}   /* cabecera por POSICIÓN (no por clase extra: el marcado de la fila queda idéntico) */
-  .bal-desglose{display:flex;flex-direction:column;gap:2px;padding:0 0 2px 12px}
+  /* Cabecera de la persona + su CHECK de pago a la derecha (mismo control que la lista viva). */
+  .bal-linea{display:flex;align-items:center;gap:var(--space-2)}
+  .bal-linea>.bal-row{flex:1;min-width:0}
+  .bal-linea>.bal-row>span{color:var(--ink);font-weight:600}   /* cabecera por POSICIÓN (el marcado de la fila queda idéntico) */
+  /* El check es el MISMO de la lista (.asis-pay, --tap-row) — no se re-dimensiona acá: mismo control, mismo
+     tamaño de toque. El recibo reserva ESA MISMA columna; si no, sus cifras quedan fuera de la del encabezado. */
+  .bal-desglose{display:flex;flex-direction:column;gap:2px;padding:0 calc(var(--tap-row) + var(--space-2)) 2px 12px}
   .bal-desglose .bal-row{font-size:12px}
   .bal-desglose .bal-row b{font-weight:500;color:var(--ink-soft)}
   .bal-desglose .q{opacity:.65}
@@ -864,13 +869,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-123607-5764ad4"></script>
-  <script src="js/util.js?v=20260914-123607-5764ad4"></script>
-  <script src="js/api.js?v=20260914-123607-5764ad4"></script>
-  <script src="js/auth.js?v=20260914-123607-5764ad4"></script>
-  <script src="js/store.js?v=20260914-123607-5764ad4"></script>
-  <script src="js/view.js?v=20260914-123607-5764ad4"></script>
-  <script src="js/controller.js?v=20260914-123607-5764ad4"></script>
+  <script src="js/config.js?v=20260914-141053-ab037e8"></script>
+  <script src="js/util.js?v=20260914-141053-ab037e8"></script>
+  <script src="js/api.js?v=20260914-141053-ab037e8"></script>
+  <script src="js/auth.js?v=20260914-141053-ab037e8"></script>
+  <script src="js/store.js?v=20260914-141053-ab037e8"></script>
+  <script src="js/view.js?v=20260914-141053-ab037e8"></script>
+  <script src="js/controller.js?v=20260914-141053-ab037e8"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

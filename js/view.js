@@ -990,10 +990,22 @@
     } else if (deud.length || saldadas.length) {
       // Cada persona = cabecera (nombre + total, ámbar si debe / teal si pagó) + su MINI RECIBO indentado debajo
       // (mismo bloque que el informe y la hoja Pagar): ve QUÉ se le cobra sin salir del Balance.
-      const persona = (a, monto, cls, check, anf) => `<div class="bal-persona">
-        <div class="bal-row${check ? ' saldada' : ''}"><span>${check ? `<span class="asis-check">${icon('check', 'sm')}</span>` : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</span><b class="${cls}">${$peso(monto)}</b></div>
+      // CHULEAR EL PAGO DESDE ACÁ (decisión del PM, sep 2026). El Balance era de SOLO LECTURA: se veía quién
+      // debe y su desglose, pero para marcar que pagó había que SUBIR, desplegar Asistentes y buscar a la
+      // persona — y al día siguiente (primada cerrada, alguien transfiere) el Balance es justo la pantalla
+      // donde uno está mirando. Es el MISMO control de la lista (mismo círculo, misma acción, mismo toast),
+      // no un gesto nuevo: solo vive también acá. El anfitrión está auto-saldado → columna vacía, para que
+      // los montos no se descuadren.
+      const persona = (a, monto, cls, check, anf) => {
+        const puede = !anf && S().totalAsistencia(p, a) > 0;
+        const pay = puede
+          ? `<button class="asis-pay bal-pay ${a.pagado ? 'on' : ''}" data-act="toggle-pagado" data-pid="${a.personaId}" aria-pressed="${a.pagado ? 'true' : 'false'}" aria-label="${e(nombrePersona(a.personaId))}: ${a.pagado ? 'pagado, tocar para deshacer' : 'marcar como pagado'}"><span class="circ">${a.pagado ? icon('check', 'sm') : ''}</span></button>`
+          : '<span class="asis-pay-sp" aria-hidden="true"></span>';
+        return `<div class="bal-persona">
+        <div class="bal-linea"><div class="bal-row${check ? ' saldada' : ''}"><span>${check ? `<span class="asis-check">${icon('check', 'sm')}</span>` : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</span><b class="${cls}">${$peso(monto)}</b></div>${pay}</div>
         ${desgloseHTML(p, a, 'bal-row', 'bal-desglose')}
       </div>`;
+      };
       const asisDe = pid => (p.asistencias || []).find(x => x.personaId === pid);
       const pendRows = deud.map(d => persona(asisDe(d.personaId), d.saldo, 'pend', false, false)).join('');
       const saldRows = saldadas.map(({ a, total }) => persona(a, total, 'pagado', true, sel.esPrincipal(p, a))).join('');

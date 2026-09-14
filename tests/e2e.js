@@ -462,6 +462,10 @@ const balCons = q('.balance-panel').innerHTML;
 check('Balance: el anfitrión (Ana) en el cobro = .bal-row.saldada + "Anfitrión" + su total',
   new RegExp('bal-row saldada[^]*' + ana.nombre + ' <span class="bal-rep-anf">Anfitrión').test(balCons)
   && new RegExp('Anfitrión</span></span><b class="pagado">' + window.Util.peso(totAna).replace(/[$.]/g, '\\$&')).test(balCons));
+// El anfitrión no lleva check tocable (auto-saldado) pero SÍ reserva su columna: si no, su monto quedaría
+// 48px por fuera de la columna de todos los demás.
+check('Balance: el anfitrión reserva la columna del check, vacía (.asis-pay-sp)',
+  !q(`.balance-panel .bal-pay[data-pid="${ana.id}"]`) && !!q('.balance-panel .bal-persona .asis-pay-sp'));
 cerrarBalance();
 Store.actions.changeItem(prm().id, ana.id, 'cerveza', -1);   // restaurar: Ana vuelve a total 0 (para el resto del flujo)
 check('Restaurado: Ana (anfitrión) vuelve a total 0', Store.select.totalAsistencia(prm(), anaAsis()) === 0);
@@ -644,6 +648,29 @@ check('Balance: Beto saldado presente (.bal-row.saldada con check + nombre)',
   /bal-row saldada/.test(tras) && new RegExp('bal-row saldada[^]*asis-check[^]*' + beto.nombre).test(tras));
 check('Balance: el saldado conserva su monto ($7.000) en teal (.pagado)',
   new RegExp('bal-row saldada"><span>[^]*' + beto.nombre + '</span><b class="pagado">\\$7\\.000').test(tras));
+/* ---------- 8b·1c. CHULEAR EL PAGO DESDE EL BALANCE (decisión del PM, sep 2026) ---------- */
+// El Balance era de SOLO LECTURA: se veía quién debe y su desglose, pero para marcar que pagó había que SUBIR,
+// desplegar Asistentes y buscar a la persona. Al día siguiente (primada cerrada, alguien transfiere) el Balance
+// es justo la pantalla donde uno está mirando. Es el MISMO control de la lista, viviendo también acá.
+section('Balance › Cobro: el check de pago se puede tocar desde el propio Balance');
+const payBal = pid => q(`.balance-panel .bal-pay[data-act="toggle-pagado"][data-pid="${pid}"]`);
+check('Balance: la fila de la persona trae su check de pago', !!payBal(beto.id));
+check('Balance: el check refleja el estado (Beto pagado → .on)', payBal(beto.id).classList.contains('on'));
+check('Balance: el anfitrión NO lleva check (está auto-saldado)', !payBal(ana.id));
+// Des-marcar DESDE el Balance: vuelve a deber y la cabecera de Cobro lo dice.
+click(payBal(beto.id));
+check('Un toque en el Balance DES-marca el pago (vuelve a deber)',
+  prm().asistencias.find(x => x.personaId === beto.id).pagado === false
+  && Store.select.informePrincipal(prm()).saldoPendiente > 0);
+check('La cabecera de Cobro pasa a "Por cobrar $X" sin salir del Balance',
+  /bal-cobro-head">Por cobrar/.test(q('#screen').innerHTML));
+check('Y el check queda vacío (pendiente)', !!payBal(beto.id) && !payBal(beto.id).classList.contains('on'));
+// Volver a marcar DESDE el Balance: saldado otra vez.
+click(payBal(beto.id));
+check('Otro toque lo marca saldado de nuevo (sin abrir la hoja Pagar)',
+  prm().asistencias.find(x => x.personaId === beto.id).pagado === true
+  && Store.select.informePrincipal(prm()).saldoPendiente === 0 && q('#overlay').hidden);
+check('El recibo por persona sigue ahí (el check no lo desplazó)', !!q('.balance-panel .bal-persona .bal-desglose'));
 cerrarBalance();   // colapsar de nuevo (no contaminar tests posteriores)
 
 /* ---------- 8b·2. CTA contextual "Todos pagaron · Cerrar primada" (P5 lote visual) ---------- */
