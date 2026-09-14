@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-114208-0dc9c9c">
+<meta name="build" content="20260914-115945-d249d2d">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -402,7 +402,11 @@
   .informe-rep-anf{font-size:10.5px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-left:5px}
   /* COMPOSICIÓN: Cover · Margen · Reembolso (atenuado) · Sobrante. Filas livianas, sin línea por fila. */
   .informe-comp{margin-top:var(--space-2);display:flex;flex-direction:column;gap:3px}
-  .informe-kv{display:flex;align-items:baseline;justify-content:space-between;padding:2px 0;font-size:13px;color:var(--ink)}
+  /* gap + elisión: sin `gap` la etiqueta y la cifra se TOCABAN ("…Restrepo Villegas$1.159.400") en el PNG
+     que se comparte por WhatsApp. Su gemelo .bal-row ya lo tenía; aquí faltaba. */
+  .informe-kv{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);padding:2px 0;font-size:13px;color:var(--ink)}
+  .informe-kv>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .informe-kv>b{flex:none;font-variant-numeric:tabular-nums}
   .informe-kv span{color:var(--ink-soft)}
   .informe-kv b{font-weight:800;color:var(--ink)}
   .informe-kv.dim span,.informe-kv.dim b{color:var(--ink-soft);font-weight:400}
@@ -459,7 +463,11 @@
   .acc-id-stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
   .acc-id-stack .acc-id{flex:none}
   .acc-sub{font-size:12px;color:var(--ink-soft)}
-  .acc-amt{flex:none;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
+  /* COLUMNA de montos: ancho reservado + cifras TABULARES. Sin esto las cifras bailaban 6,7px en cada `+`
+     ($208.000 = 66,9px vs $181.000 = 60,2px) y el monto más alto se salía 48px de la columna cuando el nombre
+     era largo. Un documento de plata se lee confiable cuando los números forman columna. */
+  .acc-amt{flex:none;font-weight:700;font-size:14px;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
+  .acc-amt.debe{color:var(--amber)}
   .acc-amt i{font-style:normal;font-weight:400;font-size:11px}
   .acc-body{padding:0 var(--space-3) var(--space-3);animation:accIn .18s ease}
   @keyframes accIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
@@ -472,7 +480,11 @@
   .asis-fila{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);width:100%;background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-3)}
   .asis-fila.on{background:var(--paper-2)}
   .asis-fila:active{background:var(--paper-2)}
-  .asis-fila-id{flex:1;min-width:0;font-size:15px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  /* Nombre largo: se ELIDE con "…" en vez de romper la fila en dos líneas (66px vs 48px) y empujar el monto
+     fuera de columna. El rol y el dot nunca se encogen. */
+  .asis-fila-id{flex:1;min-width:0;font-size:15px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:nowrap;overflow:hidden}
+  .asis-fila-id>b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .asis-fila-id .rol-tag,.asis-fila-id .dot,.asis-fila-id .asis-check{flex:none}
   .asis-fila-id.saldado b{color:var(--accent)}            /* saldada: nombre en teal (resuelto) + check */
   /* Línea de la fila: el botón de activar + el CHECK de pago (fuera del botón, no se anidan botones). */
   .asis-linea{display:flex;align-items:center}
@@ -480,22 +492,36 @@
   .asis-linea>.asis-fila{flex:1;min-width:0;width:auto;padding-right:var(--space-2)}
   /* CHECK de pago (patrón "marcar completado"): círculo vacío = debe, relleno teal con ✓ = pagó. */
   .asis-pay{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--tap-row);min-height:var(--tap-row);background:transparent;border:none;cursor:pointer;padding:0;color:var(--accent-ink)}
-  .asis-pay .circ{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:transparent}
-  .asis-pay.on .circ{background:var(--accent);border-color:var(--accent)}
+  /* PESO INVERTIDO (auditoría visual, sep 2026): antes el SALDADO gritaba (disco teal RELLENO + nombre teal)
+     y el que DEBE no tenía color — el aro gris contrastaba 1,63:1, casi invisible. El ojo iba al revés de la
+     única pregunta de esta pantalla ("¿quién falta por pagar?"). Ahora: pendiente = aro ÁMBAR (DESIGN.md §1)
+     + monto ámbar; saldado = aro teal con ✓ (sin relleno). Mismo registro que el Balance y el informe. */
+  .asis-pay .circ{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;border:2px solid var(--amber);background:transparent}
+  .asis-pay.on{color:var(--accent)}
+  .asis-pay.on .circ{background:transparent;border-color:var(--accent)}
   .asis-pay .circ .icon{width:14px;height:14px}
   .asis-pay:active{transform:scale(.9)}
+  .asis-pay-sp{flex:none;width:var(--tap-row)}   /* columna vacía: mantiene la columna de montos alineada */
   /* REVEAL de la persona activa: chips (apuntar) ARRIBA + pago (footer). */
   .asis-reveal{padding:0 var(--space-3) var(--space-3);animation:accIn .18s ease}
   .chips-viva{display:flex;flex-wrap:wrap;gap:var(--space-2)}
-  /* chip CONSUMIDO = stepper compacto (borde teal): cuerpo "emoji ×N" = +1; − chico subordinado = −1. */
-  .chip.has{padding:0;overflow:hidden;border-color:var(--accent)}
-  .chip.has .chip-plus{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:var(--space-2) var(--space-3)}
-  .chip.has .chip-minus{display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap-sec);width:var(--tap-sec);background:transparent;border:none;border-right:1px solid var(--line);cursor:pointer;color:var(--ink-soft);font-size:17px;line-height:1}
+  /* chip CONSUMIDO = stepper a ANCHO COMPLETO con columnas FIJAS: [−] [nombre … ×N] [+].
+     Antes era un pill `inline-flex` cuyo ancho lo fijaba el largo del nombre → el `+` DERIVABA hasta 118px
+     (30% de la pantalla) entre fila y fila, y el anfitrión tenía que re-apuntar el pulgar en cada producto
+     (auditoría visual, sep 2026). Ahora el `+` queda anclado al borde derecho: el gesto más repetido de la
+     app se hace en el mismo sitio, a ciegas. Los dos controles suben de 36px a 44px (--tap-input): se apunta
+     de noche, con una mano, en una fiesta. El BORDE vuelve a gris: el teal queda SOLO en el `+`, que es lo
+     que significa algo (antes 5 cajas teal por pantalla diluían el acento). */
+  .chip.has{padding:0;overflow:hidden;border-color:var(--line);display:flex;width:100%;min-height:var(--tap-input)}
+  .chip.has .chip-plus{display:inline-flex;align-items:center;gap:var(--space-1);flex:1;min-width:0;min-height:var(--tap-input);background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:var(--space-2) var(--space-3);text-align:left}
+  .chip-nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip.has .chip-minus{display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--tap-input);width:var(--tap-input);min-height:var(--tap-input);background:transparent;border:none;border-right:1px solid var(--line);cursor:pointer;color:var(--ink-soft);font-size:17px;line-height:1}
   /* + EXPLÍCITO a la derecha (gesto universal de agregar): en teal para que resalte sobre el − tenue. */
-  .chip.has .chip-add{display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap-sec);width:var(--tap-sec);background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--accent);font-size:18px;font-weight:700;line-height:1}
+  .chip.has .chip-add{display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--tap-input);width:var(--tap-input);min-height:var(--tap-input);background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--accent);font-size:18px;font-weight:700;line-height:1}
   .chip.has .chip-minus:active,.chip.has .chip-plus:active,.chip.has .chip-add:active{transform:scale(.9)}
-  .chip-q{font-variant-numeric:tabular-nums}
-  .chip.has.ro{padding:var(--space-2) var(--space-3);border-color:var(--line)}   /* cerrada: solo lectura */
+  .chip-q{font-variant-numeric:tabular-nums;flex:none}
+  /* cerrada = solo lectura: nada que tocar → vuelve a pill compacto (más denso, sin controles). */
+  .chip.has.ro{display:inline-flex;width:auto;min-height:var(--tap-sec);padding:var(--space-2) var(--space-3);border-color:var(--line)}
   .consumo-vacio{padding:var(--space-1) 0}
   /* Auditoría (C2): botón ⓘ discreto + panel colapsado (hora · producto · quién apuntó). */
   .aud-btn{margin-top:var(--space-2);color:var(--ink-soft);display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap-sec);min-width:var(--tap-sec)}   /* target ≥36px (medía 24×25) */
@@ -786,13 +812,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-114208-0dc9c9c"></script>
-  <script src="js/util.js?v=20260914-114208-0dc9c9c"></script>
-  <script src="js/api.js?v=20260914-114208-0dc9c9c"></script>
-  <script src="js/auth.js?v=20260914-114208-0dc9c9c"></script>
-  <script src="js/store.js?v=20260914-114208-0dc9c9c"></script>
-  <script src="js/view.js?v=20260914-114208-0dc9c9c"></script>
-  <script src="js/controller.js?v=20260914-114208-0dc9c9c"></script>
+  <script src="js/config.js?v=20260914-115945-d249d2d"></script>
+  <script src="js/util.js?v=20260914-115945-d249d2d"></script>
+  <script src="js/api.js?v=20260914-115945-d249d2d"></script>
+  <script src="js/auth.js?v=20260914-115945-d249d2d"></script>
+  <script src="js/store.js?v=20260914-115945-d249d2d"></script>
+  <script src="js/view.js?v=20260914-115945-d249d2d"></script>
+  <script src="js/controller.js?v=20260914-115945-d249d2d"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

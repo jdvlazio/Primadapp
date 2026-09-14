@@ -371,7 +371,7 @@
       // (en teal, resalta); el cuerpo (emoji ×N) TAMBIÉN suma (target grande, menos fricción); − corrige.
       return `<span class="chip has">
           <button class="chip-minus" data-act="item-minus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: menos">−</button>
-          <button class="chip-plus" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más">${e(prod.emoji)} ${e(prod.nombre)} <b class="chip-q">×${q}</b></button>
+          <button class="chip-plus" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más"><span class="chip-nom">${e(prod.emoji)} ${e(prod.nombre)}</span> <b class="chip-q">×${q}</b></button>
           <button class="chip-add" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más">+</button>
         </span>`;
     }).join('');
@@ -417,15 +417,21 @@
     // (INVARIANTE #4: la cuenta se congela, los pagos llegan después). No lo llevan el anfitrión (auto-saldado)
     // ni quien no debe nada. Va FUERA del <button> de la fila (no se anidan botones) → la línea es un flex.
     const checkable = !esPrin && total > 0;
+    // El que DEBE lleva el monto en ÁMBAR (DESIGN.md §1: ámbar = pendiente). Antes la lista solo marcaba a
+    // los SALDADOS (teal) y los pendientes no tenían color: el ojo iba al revés de la tarea del anfitrión
+    // ("¿quién falta por pagar?"). El anfitrión está auto-saldado → nunca va en ámbar.
+    const debe = checkable && !a.pagado;
     const check = checkable
       ? `<button class="asis-pay ${a.pagado ? 'on' : ''}" data-act="toggle-pagado" data-pid="${a.personaId}" aria-pressed="${a.pagado ? 'true' : 'false'}" aria-label="${e(nombrePersona(a.personaId))}: ${a.pagado ? 'pagado, tocar para deshacer' : 'marcar como pagado'}"><span class="circ">${a.pagado ? icon('check', 'sm') : ''}</span></button>`
-      : '';
+      // Sin círculo (anfitrión auto-saldado / quien no debe nada) se reserva la MISMA columna vacía: si no,
+      // su monto quedaba 48px por fuera de la columna de todos los demás y la lista dejaba de leerse como tabla.
+      : '<span class="asis-pay-sp" aria-hidden="true"></span>';
     // El check inline junto al nombre solo cuando NO hay círculo tocable (evita dos chulos en la misma fila).
     const checkInline = (saldado && !checkable) ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : '';
     const fila = `<div class="asis-linea ${activa ? 'on' : ''}">
         <button class="asis-fila ${activa ? 'on' : ''}" data-act="activar-asis" data-pid="${a.personaId}" aria-expanded="${activa ? 'true' : 'false'}">
           <span class="asis-fila-id ${saldado ? 'saldado' : ''}"><b>${e(nombrePersona(a.personaId))}</b>${checkInline} ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Anfitrión</span>' : ''}</span>
-          <span class="acc-amt">${$peso(total)}</span>
+          <span class="acc-amt${debe ? ' debe' : ''}">${$peso(total)}</span>
         </button>${check}
       </div>`;
     if (!activa) return `<div class="asis">${fila}</div>`;

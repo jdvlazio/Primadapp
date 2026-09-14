@@ -216,6 +216,11 @@ check('Chip consumido: + explícito a la derecha (.chip-add) y − a la izquierd
 const nomCz = prm().productos.find(x => x.id === 'cerveza').nombre;
 check('Chip consumido MUESTRA el nombre del producto (no solo el emoji)',
   q('.chip.has .chip-plus').textContent.includes(nomCz));
+// El nombre va en su PROPIO span (.chip-nom) para poder elidirse con "…" sin empujar el ×N ni el +:
+// el stepper es de columnas fijas [−][nombre … ×N][+] y el + queda anclado al borde derecho.
+check('Chip consumido: el nombre en su propio .chip-nom (columna elidible)',
+  !!q('.chip.has .chip-nom') && q('.chip.has .chip-nom').textContent.includes(nomCz)
+  && !!q('.chip.has .chip-q'));
 // El chip consumido: + explícito y cuerpo = +1, − = −1 (mismo data-act item-plus/item-minus).
 click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);
 eq('Beto lleva 2 cervezas (tap chip = +1)', cervezas(), 2);
@@ -566,6 +571,17 @@ check('Consumos: sin chulo inline duplicado en la fila con círculo',
   !/asis-check/.test(q('#screen').querySelector(`[data-act="activar-asis"][data-pid="${beto.id}"]`).innerHTML));
 check('Consumos: la fila saldada lleva el nombre en teal (.asis-fila-id.saldado)',
   !!q('#screen').querySelector(`.asis-fila[data-pid="${beto.id}"] .asis-fila-id.saldado`));
+// PESO INVERTIDO: el ÁMBAR marca a quien DEBE (no a quien ya pagó). Beto está saldado → su monto NO lleva
+// .debe; al des-marcarlo vuelve el ámbar. Antes la lista solo coloreaba a los saldados y el ojo iba al revés.
+const amtDe = pid => q('#screen').querySelector(`.asis-fila[data-pid="${pid}"] .acc-amt`);
+check('Consumos: el saldado NO lleva el monto en ámbar (.acc-amt.debe)',
+  !!amtDe(beto.id) && !amtDe(beto.id).classList.contains('debe'));
+Store.actions.setPagado(prm().id, beto.id, false);
+check('Consumos: el que DEBE lleva el monto en ámbar (.acc-amt.debe)',
+  !!amtDe(beto.id) && amtDe(beto.id).classList.contains('debe'));
+check('Consumos: el anfitrión (auto-saldado) nunca va en ámbar',
+  !!amtDe(ana.id) && !amtDe(ana.id).classList.contains('debe'));
+Store.actions.setPagado(prm().id, beto.id, true);   // restaurar el estado que espera el resto del flujo
 // Balance: nadie debe → cobro = "✓ Todo cobrado" (sin "Por cobrar"); PERO el saldado NO desaparece —
 // aparece con check teal + el monto que pagó, SIN rótulo (solo el color y el check lo dicen).
 abrirBalance();

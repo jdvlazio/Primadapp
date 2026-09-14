@@ -368,6 +368,23 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - **Nombres de PRODUCTO en Title Case (regla enforced en datos):** `Util.titleCase` normaliza al guardar
   ("club colombia" → "Club Colombia"); se aplica en `normProducts` (alta/wizard/carga, idempotente) y `setIdProducto`
   (renombrar). Conectores en minúscula salvo si abren el nombre. Los defaults del `CONFIG` ya cumplen la regla. Ver `DESIGN.md` §4.
+- **LISTA VIVA — el stepper de consumo es una FILA de columnas fijas, no un pill (auditoría visual, sep 2026):**
+  `[−] [emoji nombre … ×N] [+]` a **ancho completo**. Antes era `inline-flex` y su ancho lo fijaba el largo del
+  nombre → el `+` **derivaba hasta 118px** (30% de la pantalla) entre fila y fila y el anfitrión tenía que
+  re-apuntar el pulgar en cada producto. Ahora el `+` queda **anclado al borde derecho (deriva 0px)** y ambos
+  controles miden **44px** (`--tap-input`, antes 36px). El **borde del chip es gris**: el **teal queda SOLO en el
+  `+`** (cinco cajas teal por pantalla diluían el acento). El nombre va en `.chip-nom` (se elide con "…"), y
+  `.chip.has.ro` (cerrada, solo lectura) vuelve a pill compacto porque no hay nada que tocar.
+- **ESCALERA DE COLOR EN LA LISTA — el ámbar marca a quien DEBE, el teal a quien ya pagó.** Antes el saldado
+  gritaba (disco teal RELLENO + nombre teal) y el pendiente no tenía color (aro gris, contraste 1,63:1): el ojo
+  iba **al revés** de la única pregunta de esa pantalla ("¿quién falta por pagar?"). Hoy: **pendiente** = aro
+  **ámbar** + **monto ámbar** (`.acc-amt.debe`); **saldado** = aro teal con ✓ **sin relleno** + nombre teal.
+  Mismo registro que el Balance y el informe. El **anfitrión** está auto-saldado → **nunca** va en ámbar.
+- **COLUMNA DE MONTOS (regla de maquetación):** todo monto en lista lleva **ancho reservado + `tabular-nums`**
+  (`.acc-amt{min-width:84px}`) y el nombre se **elide** en vez de romper la fila en dos líneas. Las filas sin
+  círculo de pago (anfitrión, quien no debe) reservan la **columna vacía** (`.asis-pay-sp`) para no descuadrar
+  la columna 48px. En el informe, `.informe-kv` lleva `gap` (su gemelo `.bal-row` ya lo tenía): sin él, nombre
+  y cifra **se tocaban** en el PNG que se comparte por WhatsApp.
 - **Emoji ÚNICO por primada (regla enforced en datos):** dos productos de la misma primada NO pueden compartir un
   emoji REAL (el placeholder `•`/vacío sí se repite — "sin emoji"). Motivo: el **chip de consumo** muestra **solo el
   emoji** (`🍺 ×2`, sin nombre, `view.js`), así que repetirlo confunde. `addProducto`/`setIdProducto`(emoji)/`createPrimada`
