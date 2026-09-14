@@ -51,6 +51,19 @@
        wordmark + período → título → HÉROE Ganancia (teal, banda) → KPI Parte igual c/u → COMPOSICIÓN
        (Cover · Margen · Reembolso atenuado · Sobrante si>0) → COBRO (debe/pagó: ✓ teal / ámbar + total).
      ============================================================ */
+  // DESGLOSE de lo que paga una persona: "Cover $10.000 · 🍺 ×2 $7.000 · 🍫 ×1 $5.000". UNA sola línea atenuada
+  // que SUMA exactamente el total (cover + subtotal por ítem): resuelve el "¿y esto por qué?" sin quitarle
+  // protagonismo al nombre y al total. Reusa el lenguaje de los chips (🍺 ×2). Cover 0 (organizador/exonerado)
+  // se omite. Vacío si no hay nada que desglosar. Se usa en el INFORME y en la hoja PAGAR (el momento de pagar).
+  function desgloseLinea(p, a) {
+    const partes = [];
+    const cov = S().coverDe(p, a);
+    if (cov > 0) partes.push(`Cover ${$peso(cov)}`);
+    S().resumenConsumoDe(p, a).forEach(({ prod, cantidad }) => {
+      partes.push(`${e(prod.emoji)} ×${cantidad} ${$peso((Number(prod.precioVenta) || 0) * cantidad)}`);
+    });
+    return partes.join(' · ');
+  }
   function informeTemplateHTML(p) {
     const sel = S();
     const inf = sel.informePrincipal(p);
@@ -106,12 +119,18 @@
       .filter(a => (sel.esPrincipal(p, a) || a.pagado) && sel.totalAsistencia(p, a) > 0)
       .map(a => ({ a, total: sel.totalAsistencia(p, a) }))
       .sort((x, y) => y.total - x.total);
-    const fila = (nombre, monto, cls, check, anf) => `<div class="informe-asis">
-        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombre)}${anf ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div></div>
+    // Cada fila lleva el DESGLOSE (cover + ítems con subtotal) en una línea atenuada bajo el nombre: la persona
+    // sabe qué se le cobra y la suma cuadra a ojo con el total de la derecha.
+    const fila = (a, monto, cls, check, anf) => {
+      const desg = desgloseLinea(p, a);
+      return `<div class="informe-asis">
+        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div>${desg ? `<div class="informe-desglose">${desg}</div>` : ''}</div>
         <div class="informe-total ${cls}">${$peso(monto)}</div>
       </div>`;
-    const pendRows = deud.map(d => fila(nombrePersona(d.personaId), d.saldo, 'pend', false, false)).join('');
-    const saldRows = saldadas.map(({ a, total }) => fila(nombrePersona(a.personaId), total, 'ok', true, sel.esPrincipal(p, a))).join('');
+    };
+    const asisDe = pid => (p.asistencias || []).find(x => x.personaId === pid);
+    const pendRows = deud.map(d => fila(asisDe(d.personaId), d.saldo, 'pend', false, false)).join('');
+    const saldRows = saldadas.map(({ a, total }) => fila(a, total, 'ok', true, sel.esPrincipal(p, a))).join('');
     const cobroTot = inf.saldoPendiente > 0
       ? `<div class="informe-cobro-tot pend">Por cobrar ${$peso(inf.saldoPendiente)}</div>`
       : `<div class="informe-cobro-tot ok">✓ Todo cobrado</div>`;
@@ -438,8 +457,10 @@
          </div>`
       : `<div class="muted small">El anfitrión aún no tiene una llave Bre-B.
            <button class="link-inline" data-act="open-personas">Agregar en Personas</button></div>`;
+    const desg = desgloseLinea(p, a);   // qué está pagando, justo cuando va a transferir
     const cuerpo = `
       <div class="pagar-amount">${$peso(total)}</div>
+      ${desg ? `<div class="pagar-desglose">${desg}</div>` : ''}
       <div class="pagar-to">Transfiere por Bre-B a <b>${e(nombrePrin)}</b></div>
       ${llaveBlock}
       <button class="btn" data-act="marcar-pagado" data-pid="${a.personaId}">${icon('check')}Ya pagué</button>`;

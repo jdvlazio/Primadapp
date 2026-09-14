@@ -329,6 +329,10 @@ const informe = window.View.informeTemplateHTML(prm());
 // El PERÍODO se deriva del mesContable de la primada (NO se hardcodea un mes: el test corría verde solo
 // mientras el reloj estuviera en ese mes — era una bomba de tiempo que estalló al cambiar de mes).
 check('Informe: UNA marca wordmark "Primad"+"app" (acento) + período', /informe-brand">Primad<span class="informe-brand-ac">app/.test(informe) && informe.includes('informe-period">' + window.Util.monthYear(prm().mesContable)));
+// DESGLOSE por persona (cover + ítems con subtotal, UNA línea atenuada bajo el nombre): cada quien sabe QUÉ se
+// le cobra y la suma cuadra a ojo con el total de la derecha. No reemplaza nada; el nombre y el total siguen mandando.
+check('Informe: cada fila de Cobro lleva su desglose (.informe-desglose con ítem ×N $subtotal)',
+  /informe-desglose">[^<]*×\d+ \$[\d.]+/.test(informe));
 // El título quita la palabra "Primada" (nombreCorto): deja SOLO los organizadores ("Primada Ana + Beto" → "Ana + Beto").
 const nombreOrig = prm().nombre;
 Store.actions.renombrarPrimada(prm().id, 'Primada Ana + Beto');
@@ -508,6 +512,10 @@ eq('Otro toque lo deshace: Beto vuelve a deber', betoAsis().pagado, false);
 activar(beto.id);                                          // la UI de pago vive en el reveal de la persona activa
 click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);   // abre la hoja "Pagar"
 check('Hoja Pagar abierta (aún cerrada la primada)', !q('#overlay').hidden && /sheet-title">Pagar a/.test(q('#overlay').innerHTML));
+// La hoja Pagar dice QUÉ está pagando (desglose bajo el monto): es el momento en que más importa saberlo.
+// Beto está exonerado → SIN "Cover"; sus 2 cervezas = $7.000 = el total.
+check('Hoja Pagar: desglose bajo el monto (🍺 ×2 $7.000, sin Cover por exonerado)',
+  !!q('.pagar-desglose') && /×2 \$7\.000/.test(q('.pagar-desglose').textContent) && !/Cover/.test(q('.pagar-desglose').textContent));
 click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`); // "Ya pagué"
 eq('Beto marcado pagado', betoAsis().pagado, true);
 eq('Saldo de Beto = 0 tras pagar', Store.select.saldoDe(prm(), betoAsis()), 0);
