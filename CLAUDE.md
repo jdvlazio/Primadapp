@@ -103,6 +103,17 @@ alrededor de cada primada mensual, no a diario.
   usable; el login (hoja cerrable con X) **salta al intentar ESCRIBIR** (o desde el ícono de Cuenta). Al iniciar sesión
   se recargan los datos en modo autenticado; al volver (`onChange`) se cierra la hoja y se recarga.
 
+> ⚠️ **TRAMPA DE AUTH (diagnosticada en vivo, sep 2026) — hay DOS plantillas de correo, no una.**
+> `signInWithOtp({ shouldCreateUser: true })` manda al usuario **NUEVO** por la plantilla **"Confirm signup"**,
+> NO por "Magic Link". Si solo se personalizó la de Magic Link con `{{ .Token }}`, los que YA existen reciben el
+> código y **los nuevos reciben el enlace por defecto** → lo abren, Supabase consume el token de un solo uso y los
+> redirige al **Site URL**; si ese Site URL no es el de la app, aterrizan en un 404 y el login queda roto (síntoma
+> reportado: "nunca me llegó el código / me salió un error de GitHub"). Firma en los logs: `/verify` con **303**
+> (clic en enlace) y luego `One-time token not found`; el flujo sano es `/otp` 200 → `/verify` **200**.
+> **AMBAS plantillas deben renderizar `{{ .Token }}` y NINGUNA debe traer `{{ .ConfirmationURL }}`.** El **Site URL**
+> debe ser `https://jdvlazio.github.io/Primadapp/` (no la raíz). Para probar: pedir código con un correo NUEVO
+> (sirve un alias `tucorreo+loquesea@gmail.com`) — un correo ya existente NO ejerce esta ruta.
+
 **Roles y permisos.**
 - **admin** = email designado, **sembrado a mano** en Supabase. **Todos los demás** = acceso **completo de lectura y escritura**
   de los datos de primadas. **Transparencia total — todos ven todo** (confianza familiar).
