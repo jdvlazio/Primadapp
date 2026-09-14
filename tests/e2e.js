@@ -410,12 +410,14 @@ Store.actions.changeItem(prm().id, ana.id, 'cerveza', -1);   // restaurar: Ana v
 check('Restaurado: Ana (anfitrión) vuelve a total 0', Store.select.totalAsistencia(prm(), anaAsis()) === 0);
 
 /* ---------- 7c. Orden por consumo (mayor total arriba) en app e informe ---------- */
-section('Orden por consumo: el que más debe, primero (cara Consumos + informe)');
+section('Orden: cara Consumos ABIERTA = alfabético estable; "el que más debe, primero" = informe/Balance/cerrada');
 cerrarBalance();   // volver a la cara Consumos
-// Beto (2 cervezas = 7.000, exonerado) vs Ana (principal, 0) → Beto arriba en la lista.
+// ABIERTA: orden ESTABLE alfabético (decisión de producto, auditoría UX sep 2026): la fila NO salta de posición al
+// apuntar y cualquiera se encuentra por nombre. Ana va antes que Beto AUNQUE Beto deba $7.000 y Ana $0. El "mayor
+// total primero" sigue vivo donde es documento: Balance, informe y primada CERRADA (asistenciasPorConsumo).
 const ordenDom = qa('[data-act="activar-asis"]').map(el => el.dataset.pid);
-check('Consumos: mayor total primero (Beto $7.000 antes que Ana $0)',
-  ordenDom.indexOf(beto.id) >= 0 && ordenDom.indexOf(beto.id) < ordenDom.indexOf(ana.id));
+check('Consumos ABIERTA: alfabético estable (Ana antes que Beto aunque Beto deba más)',
+  ordenDom.indexOf(ana.id) >= 0 && ordenDom.indexOf(ana.id) < ordenDom.indexOf(beto.id));
 // Informe (cobro): pagados con ✓ teal (.ok) y "Todo cobrado" cuando no falta nadie. El orden pendiente→saldado
 // es el mismo del Balance (ya cubierto en la sección 17). Marco a Beto pagado, verifico, y restauro.
 Store.actions.setPagado(prm().id, beto.id, true);

@@ -550,7 +550,7 @@
     const body = abierto
       ? `<div class="asis-list">
           ${p.asistencias.length
-            ? S().asistenciasPorConsumo(p).map(a => asistenteFilaViva(p, a, ui)).join('')
+            ? S().asistenciasLista(p).map(a => asistenteFilaViva(p, a, ui)).join('')   // abierta: alfabético ESTABLE (no salta al apuntar); cerrada: por total
             : '<div class="empty-soft">Sin asistentes</div>'}
         </div>${picker ? `<div class="asis-add">${picker}</div>` : ''}`
       : '';
@@ -815,8 +815,20 @@
     const activa = S().activePrimada();
     if (!activa) return homeBody(state, ui);
     const abierto = balanceAbierto(activa, ui);
+    // El chip lleva el DATO CLAVE (DESIGN §0: el elemento de arriba comunica el número; el detalle vive dentro).
+    // Con deuda → "· Por cobrar $X" (ámbar), abierta O cerrada (cerrar no la esconde: es plata que aún falta);
+    // sin deuda → cerrada "· Ganancia $X" (teal) / abierta "· ✓ Todo cobrado". Antes solo decía "Balance" y la
+    // pregunta nº 1 de la noche ("¿cuánto falta?") exigía desplegar el panel y hacer scroll. Incompleta → nada.
+    const pc = S().activePrimada();
+    const infc = pc ? S().informePrincipal(pc) : null;
+    let kv = '';
+    if (infc && !infc.incompleta) {
+      if (infc.saldoPendiente > 0)        kv = `<span class="bt-kv pend">· Por cobrar ${$peso(infc.saldoPendiente)}</span>`;
+      else if (pc.estado === 'cerrada')   kv = `<span class="bt-kv ok">· Ganancia ${$peso(S().ganancia(pc))}</span>`;
+      else if (infc.recaudadoTeorico > 0) kv = `<span class="bt-kv ok">· ✓ Todo cobrado</span>`;
+    }
     const chip = `<button class="balance-toggle ${abierto ? 'on' : ''}" data-act="toggle-balance-panel" aria-expanded="${abierto ? 'true' : 'false'}">
-      <span>Balance</span>${icon(abierto ? 'chevron-down' : 'chevron-up')}</button>`;
+      <span>Balance</span>${kv}${icon(abierto ? 'chevron-down' : 'chevron-up')}</button>`;
     // "Compartir informe" vive AL FINAL del panel (es lo que el informe muestra: Ganancia + Recaudo), no en la
     // topbar (allí confundía / se tocaba sin querer en medio de operar). Solo si hay datos que compartir.
     const compartir = hayDatosInforme(activa)

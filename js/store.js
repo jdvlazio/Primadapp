@@ -466,6 +466,16 @@
       const tot = new Map(arr.map(a => [a, select.totalAsistencia(primada, a)]));
       return arr.sort((a, b) => tot.get(b) - tot.get(a));
     },
+    // ORDEN de la LISTA VIVA, por estado. ABIERTA (se está operando): orden ESTABLE alfabético → la fila de la persona
+    // que estás apuntando NO salta de posición tras cada +1 (antes se reordenaba por total en cada render: la fila
+    // con los chips abiertos "se movía" y el anfitrión, con $0, quedaba enterrado al fondo), y el asistente se
+    // encuentra por nombre. CERRADA (ya es documento): por total desc, coherente con Balance e informe
+    // (asistenciasPorConsumo). Empates → orden de inserción (sort estable). No muta el Store.
+    asistenciasLista(primada) {
+      if (primada.estado === 'cerrada') return select.asistenciasPorConsumo(primada);
+      const nom = a => ((select.persona(a.personaId) || {}).nombre || '');
+      return (primada.asistencias || []).slice().sort((a, b) => nom(a).localeCompare(nom(b), CONFIG.locale, { sensitivity: 'base' }));
+    },
     esPrincipal(primada, a) { return a.personaId != null && a.personaId === primada.organizadorPrincipalId; },
     // Saldo BINARIO: el principal está auto-saldado (plata en mano); un asistente debe su total
     // completo hasta que marca "pagado" (entonces 0). No hay pagos parciales (v5).

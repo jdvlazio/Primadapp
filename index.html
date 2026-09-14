@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-105121-2ad7c54">
+<meta name="build" content="20260914-112808-91d5f2a">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -494,12 +494,12 @@
   .chip.has.ro{padding:var(--space-2) var(--space-3);border-color:var(--line)}   /* cerrada: solo lectura */
   .consumo-vacio{padding:var(--space-1) 0}
   /* Auditoría (C2): botón ⓘ discreto + panel colapsado (hora · producto · quién apuntó). */
-  .aud-btn{margin-top:var(--space-2);color:var(--ink-soft)}
+  .aud-btn{margin-top:var(--space-2);color:var(--ink-soft);display:inline-flex;align-items:center;justify-content:center;min-height:var(--tap-sec);min-width:var(--tap-sec)}   /* target ≥36px (medía 24×25) */
   .aud-btn.on{color:var(--accent)}
   .aud-panel{margin-top:var(--space-2);padding-top:var(--space-2);display:flex;flex-direction:column;gap:var(--space-1)}
   .aud-head{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:var(--space-1)}
   .aud-row{display:flex;gap:var(--space-2);align-items:baseline;font-size:12px}
-  .aud-hora{color:var(--ink-soft);font-variant-numeric:tabular-nums;flex:none;width:44px}
+  .aud-hora{color:var(--ink-soft);font-variant-numeric:tabular-nums;flex:none;min-width:44px;white-space:nowrap}   /* ancho auto: es-CO "11:11 a. m." no cabía en 44px y se partía en 2 líneas */
   .aud-prod{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .aud-quien{color:var(--ink-soft);flex:none;max-width:45%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* chips: catálogo del wizard (co-organizadores) + productos DISPONIBLES en la lista viva (tap = +1). */
@@ -560,6 +560,9 @@
   .balance-toggle:active{opacity:.7}
   .balance-toggle.on{color:var(--accent)}
   .balance-toggle .icon{width:18px;height:18px}
+  .balance-toggle .bt-kv{font-variant-numeric:tabular-nums}          /* dato clave del chip: "· Por cobrar $X" / "· Ganancia $X" */
+  .balance-toggle .bt-kv.pend{color:var(--amber)}                       /* falta cobrar → ámbar (aun con el chip .on) */
+  .balance-toggle .bt-kv.ok{color:var(--accent)}                        /* resuelto → teal */
   .balance-panel{padding-top:var(--space-2)}
   /* ESTADÍSTICAS (home): tarjeta colapsable AL PIE del home, IDÉNTICA al dock del Balance (mismo patrón del
      sistema): borde superior + margin-top que la separan del historial. Reusa .balance-toggle y las card .bal-*. */
@@ -779,13 +782,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-105121-2ad7c54"></script>
-  <script src="js/util.js?v=20260914-105121-2ad7c54"></script>
-  <script src="js/api.js?v=20260914-105121-2ad7c54"></script>
-  <script src="js/auth.js?v=20260914-105121-2ad7c54"></script>
-  <script src="js/store.js?v=20260914-105121-2ad7c54"></script>
-  <script src="js/view.js?v=20260914-105121-2ad7c54"></script>
-  <script src="js/controller.js?v=20260914-105121-2ad7c54"></script>
+  <script src="js/config.js?v=20260914-112808-91d5f2a"></script>
+  <script src="js/util.js?v=20260914-112808-91d5f2a"></script>
+  <script src="js/api.js?v=20260914-112808-91d5f2a"></script>
+  <script src="js/auth.js?v=20260914-112808-91d5f2a"></script>
+  <script src="js/store.js?v=20260914-112808-91d5f2a"></script>
+  <script src="js/view.js?v=20260914-112808-91d5f2a"></script>
+  <script src="js/controller.js?v=20260914-112808-91d5f2a"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

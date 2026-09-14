@@ -878,6 +878,38 @@ section('rankProductos: común (más personas) → particular; desempata por uni
   check('Determinista (dos llamadas, mismo orden)', JSON.stringify([...Store.select.rankProductos(prm())]) === JSON.stringify([...rank]));
 }
 
+/* ---------- Orden de la LISTA VIVA por estado: abierta estable (alfabético) · cerrada por total ---------- */
+section('asistenciasLista: ABIERTA = alfabético ESTABLE (la fila no salta al apuntar); CERRADA = por total (documento)');
+{
+  Store.actions.replaceState(null);
+  const zoe = Store.actions.addPersona({ nombre: 'Zoe', estado: 'ahorrador' });      // será anfitriona → primera en inserción
+  const ana = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+  const mateo = Store.actions.addPersona({ nombre: 'Mateo', estado: 'invitado' });
+  const alvaro = Store.actions.addPersona({ nombre: 'Álvaro', estado: 'ahorrador' });
+  const lp = Store.actions.createPrimada({ principalId: zoe, organizadores: [zoe], mesContable: '2026-09' });
+  [ana, mateo, alvaro].forEach(pid => Store.actions.addAsistencia(lp, pid));
+  const prm = () => Store.select.state().primadas.find(p => p.id === lp);
+  const prod0 = prm().productos[0].id;
+  Store.actions.changeItem(lp, mateo, prod0, 3);   // Mateo es el que MÁS consume: por total iría primero
+  const nombres = arr => arr.map(a => (Store.select.persona(a.personaId) || {}).nombre);
+  check('ABIERTA: alfabético (Álvaro, Ana, Mateo, Zoe) aunque Mateo tenga el mayor total',
+    deepEqual(nombres(Store.select.asistenciasLista(prm())), ['Álvaro', 'Ana', 'Mateo', 'Zoe']));
+  check('ABIERTA: insensible a acentos/mayúsculas (Álvaro antes que Ana)', nombres(Store.select.asistenciasLista(prm()))[0] === 'Álvaro');
+  Store.actions.changeItem(lp, zoe, prod0, 5);      // la anfitriona pasa a ser la que más consume…
+  check('ABIERTA: apuntar consumos NO reordena la lista (estable)',
+    deepEqual(nombres(Store.select.asistenciasLista(prm())), ['Álvaro', 'Ana', 'Mateo', 'Zoe']));
+  check('No muta el Store: p.asistencias conserva el orden de inserción (Zoe primero)',
+    deepEqual(nombres(prm().asistencias), ['Zoe', 'Ana', 'Mateo', 'Álvaro']));
+  Store.actions.cerrarPrimada(lp);
+  // CERRADA: por TOTAL desc — y el total INCLUYE el cover: Mateo (invitado: cover $10.000 + 3 und) supera a Zoe
+  // (anfitriona: SIN cover + 5 und). El esperado se deriva de totalAsistencia para no depender del catálogo.
+  const porTotal = prm().asistencias.slice().sort((a, b) => Store.select.totalAsistencia(prm(), b) - Store.select.totalAsistencia(prm(), a));
+  check('CERRADA: por total desc (incluye cover: Mateo invitado+3 und > Zoe anfitriona+5 und)',
+    deepEqual(nombres(Store.select.asistenciasLista(prm())), nombres(porTotal)) && nombres(porTotal)[0] === 'Mateo' && nombres(porTotal)[1] === 'Zoe');
+  check('CERRADA: coincide con asistenciasPorConsumo (Balance/informe)',
+    deepEqual(nombres(Store.select.asistenciasLista(prm())), nombres(Store.select.asistenciasPorConsumo(prm()))));
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);
