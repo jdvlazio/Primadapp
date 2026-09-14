@@ -362,6 +362,18 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - v1 (arreglo pelado) y v2 (`{products, people}`) se envuelven como una primada con **cover 0** (no había cover) y pasan por el mismo camino.
 - Se **conserva** `activePrimadaId`. La migración es **idempotente** y **estable en ids**.
 
+## Feedback al usuario — el TOAST (registros y posición)
+- **Tres registros:** `toast(msg)` neutro · `toast(msg,'ok')` confirmación positiva (`--pos`) · `toast(msg,'err')`
+  **validación o fallo** (`--alert`). Antes **todo** salía en el mismo chip gris (31 llamadas, solo 2 con `kind`):
+  el éxito, el error y el aviso se veían idénticos, contra los cuatro registros de `DESIGN.md` §1.
+- **Copy en registro de ACCIÓN, no de reproche:** "Elegí el anfitrión" (no "Falta el anfitrión"), "Agregá al
+  menos un producto", "Escribí el nombre".
+- **Con una hoja abierta el toast se va ARRIBA** (`.toast.over-sheet`, la clase la pone `View.toast` mirando
+  `#overlay.hidden`). Abajo caía **encima del botón al que se refiere** (medido: 39 de sus 41px de alto sobre
+  "Siguiente" → se leía *"Cancela… Falta el anfitrión …guiente"*). **Subirlo "un botón" NO basta:** los botones
+  de una hoja no están anclados al fondo, están donde termine su cuerpo. Arriba solo vive el título → nunca tapa
+  un control. *(Se usa una clase y no `:has()` por soporte.)*
+
 ## Convenciones
 - Comentarios y nombres de dominio en español (persona, asistencia, primada, organizador, cover, abono, fondo, Tesorero).
 - IDs vía `Util.uid(prefix)`. Escapar texto de usuario con `Util.esc()` antes de inyectar HTML.
@@ -380,10 +392,18 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   iba **al revés** de la única pregunta de esa pantalla ("¿quién falta por pagar?"). Hoy: **pendiente** = aro
   **ámbar** + **monto ámbar** (`.acc-amt.debe`); **saldado** = aro teal con ✓ **sin relleno** + nombre teal.
   Mismo registro que el Balance y el informe. El **anfitrión** está auto-saldado → **nunca** va en ámbar.
+- **IDENTIDAD DE LA FILA EN DOS LÍNEAS (idea del PM, sep 2026):** **nombre** arriba (`.asis-fila-id`, lleva
+  `.saldado`), **rol / Anfitrión** como **subtexto** debajo (`.asis-sub`), ambos en `.asis-fila-stack`. Con el
+  rol en la MISMA línea, un nombre de tres palabras se comía el ancho y envolvía; bajándolo, el nombre dispone
+  de la fila entera. Mismo patrón que `.acc-id-stack`. *(Los tests de Playwright miran `.asis-fila-stack .dot.prin`.)*
 - **COLUMNA DE MONTOS (regla de maquetación):** todo monto en lista lleva **ancho reservado + `tabular-nums`**
-  (`.acc-amt{min-width:84px}`) y el nombre se **elide** en vez de romper la fila en dos líneas. Las filas sin
-  círculo de pago (anfitrión, quien no debe) reservan la **columna vacía** (`.asis-pay-sp`) para no descuadrar
-  la columna 48px. En el informe, `.informe-kv` lleva `gap` (su gemelo `.bal-row` ya lo tenía): sin él, nombre
+  (`.acc-amt{min-width:84px}`), y las filas sin círculo de pago (anfitrión, quien no debe) reservan la
+  **columna vacía** (`.asis-pay-sp`) para no descuadrar la columna 48px. ⚠️ **El NOMBRE DE UNA PERSONA NO SE
+  TRUNCA NUNCA** (decisión del PM, sep 2026): se probó elidirlo con "…" y es inaceptable — en esta familia
+  muchos comparten el primer nombre ("Juan David", "Juan Carlos", "Juan Pablo") y `Juan C…` vuelve
+  INDISTINGUIBLES a dos personas. El nombre **envuelve a dos líneas**; la fila crece y no pasa nada, porque la
+  columna de montos ya tiene ancho propio. (El nombre de PRODUCTO sí se elide en el chip: ahí el **emoji es
+  único por primada** —invariante— y desambigua.) En el informe, `.informe-kv` lleva `gap` (su gemelo `.bal-row` ya lo tenía): sin él, nombre
   y cifra **se tocaban** en el PNG que se comparte por WhatsApp.
 - **Emoji ÚNICO por primada (regla enforced en datos):** dos productos de la misma primada NO pueden compartir un
   emoji REAL (el placeholder `•`/vacío sí se repite — "sin emoji"). Motivo: el **chip de consumo** muestra **solo el
@@ -508,6 +528,15 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   **estado EN ESE MOMENTO por asistente** (`setEstadoEnEseMomento` corrige el snapshot histórico de una asistencia —
   p.ej. alguien que era invitado y hoy es ahorrador; respeta INV#2, **no toca el directorio** → INV#1 intacta). UI:
   sección **"Cómo fue en su momento"** en Configurar, visible SOLO si `mesContable < Util.currentMonth()` (mes pasado).
+- **CERRAR LA CUENTA SE PUEDE SIEMPRE, DESDE EL DETALLE (auditoría de producto, sep 2026).** El único cerrar
+  del detalle era el banner verde **"Todos pagaron · Cerrar primada"**, que exige `saldoPendiente === 0` → **con
+  deuda no había forma de cerrar sin volver al home**. El caso real del anfitrión a la 1 a.m. es el CONTRARIO
+  (la fiesta se acabó, falta plata por cobrar, quiere congelar para que nadie apunte más) y la **INVARIANTE #4**
+  lo soporta. Hoy el pie del **panel de Balance** lleva `.cerrar-link` → **"Cerrar la cuenta"** (o **"Reabrir la
+  cuenta"** si está cerrada), justo debajo de "Por cobrar $X": se decide con la deuda a la vista. Va ahí —y no en
+  la topbar ni en Configurar— porque el Balance es la superficie del final de la noche. La **confirmación NOMBRA
+  la deuda**: *"¿Cerrar la cuenta? Quedan $X por cobrar — los pagos se siguen registrando."* El banner verde se
+  conserva como **atajo feliz**.
 - **"Cerrada"** congela la cuenta del evento pero **sigue aceptando abonos**.
 - **CICLO DE VIDA SIMPLIFICADO — `estado:'abierta' | 'cerrada'` (el `'programada'` se ELIMINÓ):** una primada
   siempre se crea **abierta**. No hay un estado separado "agendada": una primada recién creada sin consumos y una

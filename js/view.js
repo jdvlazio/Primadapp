@@ -430,7 +430,10 @@
     const checkInline = (saldado && !checkable) ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : '';
     const fila = `<div class="asis-linea ${activa ? 'on' : ''}">
         <button class="asis-fila ${activa ? 'on' : ''}" data-act="activar-asis" data-pid="${a.personaId}" aria-expanded="${activa ? 'true' : 'false'}">
-          <span class="asis-fila-id ${saldado ? 'saldado' : ''}"><b>${e(nombrePersona(a.personaId))}</b>${checkInline} ${rolTag(a.estadoEnEseMomento)}${esPrin ? ' <span class="dot prin"></span><span class="rol-tag">Anfitrión</span>' : ''}</span>
+          <span class="asis-fila-stack">
+            <span class="asis-fila-id ${saldado ? 'saldado' : ''}"><b>${e(nombrePersona(a.personaId))}</b>${checkInline}</span>
+            <span class="asis-sub">${rolTag(a.estadoEnEseMomento)}${esPrin ? '<span class="dot prin"></span><span class="rol-tag">Anfitrión</span>' : ''}</span>
+          </span>
           <span class="acc-amt${debe ? ' debe' : ''}">${$peso(total)}</span>
         </button>${check}
       </div>`;
@@ -844,7 +847,17 @@
     const compartir = hayDatosInforme(activa)
       ? `<button class="compartir-link" data-act="compartir-informe">${icon('share-2')}Compartir informe</button>`
       : '';
-    const panel = abierto ? `<div class="balance-panel">${balancePrimada(activa, ui)}${compartir}</div>` : '';
+    // CERRAR (o REABRIR) la cuenta, al pie del Balance. ANTES el único cerrar del detalle era el banner verde
+    // "Todos pagaron", que aparece SOLO con saldoPendiente 0 → con deuda pendiente no había forma de cerrar
+    // sin volver al home (auditoría de producto, sep 2026). El caso real del anfitrión a la 1 a.m. es el
+    // contrario: la fiesta se acabó, FALTA plata por cobrar, y quiere congelar la cuenta para que nadie
+    // apunte más. INVARIANTE #4 lo soporta: cerrar congela la cuenta pero SIGUE aceptando pagos. Va aquí
+    // —no en la topbar ni en Configurar— porque el Balance es la superficie del final de la noche, y queda
+    // justo debajo de "Por cobrar $X": se ve la deuda y se decide con ella a la vista.
+    const cerrar = activa.estado === 'cerrada'
+      ? `<button class="cerrar-link" data-act="reabrir-primada" data-id="${activa.id}">${icon('rotate-ccw')}Reabrir la cuenta</button>`
+      : `<button class="cerrar-link" data-act="cerrar-primada" data-id="${activa.id}">${icon('check')}Cerrar la cuenta</button>`;
+    const panel = abierto ? `<div class="balance-panel">${balancePrimada(activa, ui)}${compartir}${cerrar}</div>` : '';
     return `${primadaDetalle(activa, ui)}<div class="balance-dock">${chip}${panel}</div>`;
   }
 
@@ -1220,9 +1233,16 @@
 
   let toastTimer;
   // toast(msg, kind?) — kind 'ok' = tono POSITIVO (confirmación de acción exitosa, p.ej. pago saldado).
+  // kind: 'ok' = confirmación positiva · 'err' = validación o fallo · sin kind = neutro.
+  // Antes TODO salía en el mismo chip gris (31 llamadas, solo 2 con kind): el éxito, el error y el aviso se
+  // veían idénticos, contra los cuatro registros de DESIGN.md §1.
   function toast(msg, kind) {
     els.toast.textContent = msg;
     els.toast.classList.toggle('ok', kind === 'ok');
+    els.toast.classList.toggle('err', kind === 'err');
+    // Con una hoja abierta el toast SUBE: si no, cae encima del botón al que se refiere (medido: 39 de sus
+    // 41px de alto superpuestos con "Siguiente" del wizard). Se calcula al mostrarlo, no con :has() (soporte).
+    els.toast.classList.toggle('over-sheet', !!(els.overlay && !els.overlay.hidden));
     els.toast.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2400);
   }

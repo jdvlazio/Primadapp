@@ -256,6 +256,28 @@ check('Balance: REPARTO a ahorradores (.bal-stat) visible', !!q('.bal-stat') && 
 // STATE-AWARE: primada ABIERTA → nota provisional bajo el héroe.
 check('Balance ABIERTA: nota "Provisional" bajo el héroe', /Provisional/.test(q('#screen').innerHTML));
 check('Resumen NO repite "Ganancia" como línea (vive solo en el héroe)', !/<span>Ganancia<\/span>/.test(q('#screen').innerHTML));
+// LOTE B · CERRAR DESDE EL DETALLE CON DEUDA (auditoría de producto, sep 2026). Antes el único cerrar del
+// detalle era el banner verde "Todos pagaron", que exige saldoPendiente 0 → con deuda había que volver al
+// home. El caso real es el contrario (fiesta terminada, falta plata) e INV#4 lo permite: cerrar congela la
+// cuenta pero sigue aceptando pagos. El link vive al pie del Balance, debajo de "Por cobrar $X".
+check('Con DEUDA: el banner "Todos pagaron" NO está (exige saldo 0)',
+  Store.select.informePrincipal(prm()).saldoPendiente > 0 && !q('.cerrar-cta'));
+check('Con DEUDA: "Cerrar la cuenta" SÍ está, al pie del Balance',
+  !!q('.balance-panel .cerrar-link[data-act="cerrar-primada"]')
+  && /Cerrar la cuenta/.test(q('.balance-panel .cerrar-link').textContent));
+// La confirmación NOMBRA la deuda: cerrar con saldo es válido (INV#4) pero el anfitrión debe saber con qué
+// cierra. Se intercepta confirm() para leer el texto SIN cerrar (devuelve false).
+{
+  const pendAhora = Store.select.informePrincipal(prm()).saldoPendiente;
+  const origConfirm = window.confirm; let visto = null;
+  window.confirm = (m) => { visto = m; return false; };
+  click('.balance-panel .cerrar-link[data-act="cerrar-primada"]');
+  window.confirm = origConfirm;
+  check('Cerrar con deuda: la confirmación dice cuánto queda por cobrar',
+    !!visto && visto.includes(window.Util.peso(pendAhora)) && /por cobrar/.test(visto)
+    && /se siguen registrando/.test(visto));
+  eq('Cerrar con deuda: al cancelar, la primada sigue abierta', prm().estado, 'abierta');
+}
 check('Sobrante = 0 → NO se muestra (podado)', !/Sobrante/.test(q('#screen').innerHTML));
 cerrarBalance();   // volver a operar
 
@@ -619,6 +641,9 @@ check('Chip de Balance marcado activo (on) al abrir cerrada',
 // STATE-AWARE en CERRADA (documento final): SIN nota provisional; UN solo héroe = Ganancia, tono NEUTRO
 // (ya no hay 2º héroe "Por cobrar"/"Entregado al Tesorero"). Nadie debe → sin bloque de cobro.
 check('Cerrada: SIN nota "Provisional"', !/[Pp]rovisional/.test(q('#screen').innerHTML));
+check('Cerrada: el pie del Balance ofrece "Reabrir la cuenta"',
+  !!q('.balance-panel .cerrar-link[data-act="reabrir-primada"]')
+  && /Reabrir la cuenta/.test(q('.balance-panel .cerrar-link').textContent));
 check('Cerrada: héroe "Ganancia · al Tesorero" (sin "Por cobrar" ni "Entregado al Tesorero" como 2º héroe)',
   /class="bal-label">[^]*?Ganancia · al Tesorero/.test(q('#screen').innerHTML) && !/Por cobrar/.test(q('#screen').innerHTML)
   && !/Entregado al Tesorero/.test(q('#screen').innerHTML));
@@ -786,6 +811,25 @@ check('Wizard: Beto co-organizador (rol organizador)', nueva.asistencias.find(a 
 eq('Wizard: 1 producto (Cóctel)', nueva.productos.length, 1);
 eq('Wizard: producto Cóctel nombre', nueva.productos[0].nombre, 'Cóctel');
 eq('Wizard: margen Cóctel = 8000', Store.select.margenProducto(nueva.productos[0]), 8000);
+
+/* ---------- 12b. El link "Agregar en Personas" del wizard NO deja encerrado al usuario ---------- */
+// Arranque en frío: sin ahorradores el wizard no deja avanzar y su único enlace ("Agregar en Personas")
+// seteaba el overlay PERO render() evalúa `if (ui.wizard)` primero → el wizard seguía pintado encima y
+// Ajustes nunca aparecía. Callejón sin salida en el primer minuto de la app (auditoría de producto, sep 2026).
+section('Wizard: "Agregar en Personas" cierra el wizard y abre Ajustes (no deja encerrado)');
+click('[data-act="volver-home"]');
+click('[data-act="new-primada"]');
+check('Wizard abierto', !q('#overlay').hidden && /wz-title/.test(q('#overlay').innerHTML));
+// El enlace se pinta en el paso 1 SOLO cuando no hay ahorradores (el arranque en frío). Aquí sí los hay,
+// así que se verifica la RUTA del controller con el mismo data-act, con el wizard abierto: es el caso real.
+const linkPers = q('#overlay').ownerDocument.createElement('button');
+linkPers.setAttribute('data-act', 'open-personas');
+q('#screen').appendChild(linkPers);
+click(linkPers);
+check('El wizard se CERRÓ (ya no se pinta encima)', !/wz-title/.test(q('#overlay').innerHTML));
+check('Ajustes quedó abierto y usable (+ Agregar persona a la vista)',
+  !q('#overlay').hidden && !!q('[data-act="nueva-persona"], [data-act="open-nueva-persona"]'));
+click('[data-act="close-overlay"]');
 eq('Wizard: fecha = mes + día (2026-06-15)', nueva.fecha, '2026-06-15');
 eq('Wizard: mes contable 2026-06', nueva.mesContable, '2026-06');
 // cancelar un wizard nuevo no crea nada

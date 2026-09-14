@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-115945-d249d2d">
+<meta name="build" content="20260914-122135-d2ac12d">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -244,6 +244,15 @@
   .toast{position:fixed;left:50%;bottom:calc(var(--space-5) + max(env(safe-area-inset-bottom), 20px));transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:1200;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.ok{background:var(--pos-bg);color:var(--pos)}   /* confirmación POSITIVA (pago saldado) — tokens existentes */
+  /* registro de ERROR: validaciones y fallos. Antes TODO salía en el mismo chip gris — el éxito, el error y
+     el aviso se veían idénticos, contra los cuatro registros de DESIGN.md §1. */
+  .toast.err{background:var(--alert-bg);color:var(--alert)}
+  /* Con una hoja abierta el toast caía ENCIMA del botón al que se refiere (medido: 39 de sus 41px de alto
+     superpuestos con "Siguiente"; se leía "Cancela… Falta el anfitrión …guiente"). Subirlo un botón no basta:
+     los botones de una hoja NO están anclados al fondo, están donde termine su cuerpo. Con hoja abierta el
+     toast se va ARRIBA, donde solo vive el título de la hoja: nunca puede tapar un control de acción. */
+  .toast.over-sheet{bottom:auto;top:calc(var(--space-4) + max(env(safe-area-inset-top), 12px));transform:translateX(-50%) translateY(-20px)}
+  .toast.over-sheet.show{transform:translateX(-50%) translateY(0)}
 
   /* Indicador de sincronización con la nube (lo crea View.renderSync). Discreto, esquina superior. */
   .sync-indicator{position:fixed;top:var(--space-2);right:var(--space-2);z-index:1300;font-size:11px;font-weight:700;padding:var(--space-1) var(--space-3);border-radius:var(--radius-xl);background:var(--paper-3);color:var(--ink-soft);border:1px solid var(--line);box-shadow:0 6px 18px -10px rgba(0,0,0,.6)}
@@ -285,7 +294,9 @@
      font-size 16px a propósito: iOS hace AUTO-ZOOM al enfocar un input con font-size < 16px (y al terminar deja
      la página descuadrada, hay que gesticular para volver). Con 16px NO zoomea. (No se toca el viewport → el
      pinch-zoom del usuario sigue disponible.) Aplica a todos los .ti, incluidos number/month/date. */
-  .ti{font-family:inherit;font-size:16px;min-height:var(--tap-input);padding:var(--space-2) var(--space-3);border:1px solid var(--line-soft);border-radius:var(--radius-md);background:var(--paper);color:var(--ink);width:100%}
+  /* borde en var(--line) (no --line-soft, 1,16:1 = invisible): un campo cuyo borde no se ve deja de
+     anunciarse como editable, justo en Configurar, donde TODO es editable. DESIGN.md §2.3. */
+  .ti{font-family:inherit;font-size:16px;min-height:var(--tap-input);padding:var(--space-2) var(--space-3);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--paper);color:var(--ink);width:100%}
   /* Inputs nativos de fecha/mes: en iOS el control nativo rendea MÁS ALTO que el min-height y con el
      texto centrado → parecen botones grandes. appearance:none los ciñe al alto real del .ti (el picker
      sigue abriéndose al tocar) y text-align:left los vuelve campo, no botón. */
@@ -295,7 +306,7 @@
   .ti:disabled{opacity:.6}
   /* Select con chevron-down de Lucide (appearance:none): una sola flecha, no las dobles nativas.
      Igual que el caret de fila (.acc-caret, --ink-soft). El <select> nativo sigue funcional. */
-  .sel{font-family:inherit;font-size:16px;min-height:var(--tap-input);padding:var(--space-2) calc(var(--space-3) + 22px) var(--space-2) var(--space-3);border:1px solid var(--line);border-radius:var(--radius-md);color:var(--ink);appearance:none;-webkit-appearance:none;background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238aa3a0' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right var(--space-3) center;background-size:16px;border:1px solid var(--line-soft)}
+  .sel{font-family:inherit;font-size:16px;min-height:var(--tap-input);padding:var(--space-2) calc(var(--space-3) + 22px) var(--space-2) var(--space-3);border:1px solid var(--line);border-radius:var(--radius-md);color:var(--ink);appearance:none;-webkit-appearance:none;background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238aa3a0' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right var(--space-3) center;background-size:16px;border:1px solid var(--line)}
   .sel:focus{outline:none;border-color:var(--accent)}
   .sel:disabled{opacity:.6}
   .fld{display:flex;flex-direction:column;gap:var(--space-1);font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em}
@@ -480,11 +491,20 @@
   .asis-fila{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);width:100%;background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left;padding:var(--space-3)}
   .asis-fila.on{background:var(--paper-2)}
   .asis-fila:active{background:var(--paper-2)}
-  /* Nombre largo: se ELIDE con "…" en vez de romper la fila en dos líneas (66px vs 48px) y empujar el monto
-     fuera de columna. El rol y el dot nunca se encogen. */
-  .asis-fila-id{flex:1;min-width:0;font-size:15px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:nowrap;overflow:hidden}
-  .asis-fila-id>b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .asis-fila-id .rol-tag,.asis-fila-id .dot,.asis-fila-id .asis-check{flex:none}
+  /* NOMBRE DE PERSONA: NUNCA se corta. Se intentó elidirlo con "…" para que la fila no creciera a dos
+     líneas; es INACEPTABLE en esta familia, donde muchos comparten el primer nombre ("Juan David",
+     "Juan Carlos", "Juan Pablo"): truncar deja "Juan C…" y dos personas distintas se ven IGUAL. El nombre
+     envuelve a dos líneas y la fila crece — el monto ya NO se descuadra por eso, porque su columna tiene
+     ancho reservado (.acc-amt) y las filas sin círculo reservan la suya (.asis-pay-sp). */
+  /* IDENTIDAD EN DOS LÍNEAS (idea del PM, sep 2026): nombre arriba, rol/Anfitrión como SUBTEXTO debajo.
+     Con el rol en la misma línea, un nombre de tres palabras se comía el ancho y envolvía; bajándolo, el
+     nombre dispone de la fila entera y casi nunca necesita dos líneas. Mismo patrón que .acc-id-stack. */
+  .asis-fila-stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .asis-fila-id{min-width:0;font-size:15px;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  .asis-fila-id>b{min-width:0;overflow-wrap:anywhere}
+  .asis-fila-id .asis-check{flex:none}
+  .asis-sub{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+  .asis-sub .rol-tag,.asis-sub .dot{flex:none}
   .asis-fila-id.saldado b{color:var(--accent)}            /* saldada: nombre en teal (resuelto) + check */
   /* Línea de la fila: el botón de activar + el CHECK de pago (fuera del botón, no se anidan botones). */
   .asis-linea{display:flex;align-items:center}
@@ -609,6 +629,11 @@
   .compartir-link:active{opacity:.7}
   .compartir-link:hover{border-color:var(--accent)}
   .compartir-link .icon{width:18px;height:18px}
+  /* CERRAR/REABRIR la cuenta: hermano de "Compartir informe" pero TENUE — es el final de la noche, no la
+     acción principal. Queda justo debajo de "Por cobrar $X": se decide con la deuda a la vista. */
+  .cerrar-link{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;min-height:var(--tap-row);margin-top:var(--space-2);background:transparent;border:1px solid var(--line);border-radius:var(--radius-md);cursor:pointer;color:var(--ink-soft);font-family:inherit;font-weight:700;font-size:14px}
+  .cerrar-link:active{opacity:.7}
+  .cerrar-link .icon{width:18px;height:18px}
 
   /* AJUSTES GLOBALES = pantalla plana (sin tabs). LIVIANDAD (DESIGN.md): organiza el ESPACIO + los labels de
      sección, NO las líneas. Sin divisores entre acordeones ni entre secciones — solo aire. */
@@ -665,7 +690,11 @@
   .cfg-hist-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-1) 0}
   .cfg-hist-name{display:flex;align-items:center;gap:var(--space-1);font-size:14px;color:var(--ink)}
   .seg{min-height:var(--tap-sec);font-family:"Instrument Sans",sans-serif;font-weight:700;font-size:14px;cursor:pointer;border:none;background:transparent;color:var(--ink-soft);padding:var(--space-2) var(--space-3);border-radius:var(--radius-sm)}
-  .seg.on{background:var(--paper-2);color:var(--ink)}
+  /* .seg.on tenía background:var(--paper-2) — EXACTAMENTE el mismo color que el riel .seg-nav: la píldora
+     de selección era CSS muerto (contraste 1,00:1 medido) y el conmutador se leía como un título dentro de
+     una caja. --paper-3 la hace aparecer sin gritar. Aplica a Configurar y a Ahorrador|Invitado, donde el
+     valor actual es un DATO, no una decoración. */
+  .seg.on{background:var(--paper-3);color:var(--ink)}
   .seg-nav.sm .seg{font-size:12px;padding:var(--space-2) var(--space-3)}
   /* Gear: seg-nav de 4 tabs (Primada·Calendario·Personas·Ajustes) → full-width, segs distribuidos. */
   .seg-nav.cols4{display:flex;flex:1;min-width:0}
@@ -812,13 +841,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-115945-d249d2d"></script>
-  <script src="js/util.js?v=20260914-115945-d249d2d"></script>
-  <script src="js/api.js?v=20260914-115945-d249d2d"></script>
-  <script src="js/auth.js?v=20260914-115945-d249d2d"></script>
-  <script src="js/store.js?v=20260914-115945-d249d2d"></script>
-  <script src="js/view.js?v=20260914-115945-d249d2d"></script>
-  <script src="js/controller.js?v=20260914-115945-d249d2d"></script>
+  <script src="js/config.js?v=20260914-122135-d2ac12d"></script>
+  <script src="js/util.js?v=20260914-122135-d2ac12d"></script>
+  <script src="js/api.js?v=20260914-122135-d2ac12d"></script>
+  <script src="js/auth.js?v=20260914-122135-d2ac12d"></script>
+  <script src="js/store.js?v=20260914-122135-d2ac12d"></script>
+  <script src="js/view.js?v=20260914-122135-d2ac12d"></script>
+  <script src="js/controller.js?v=20260914-122135-d2ac12d"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

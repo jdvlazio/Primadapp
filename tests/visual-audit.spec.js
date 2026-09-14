@@ -176,8 +176,9 @@ test.describe('Conformidad DESIGN.md — rediseño aplicado', () => {
   test('D2 — principal marcado con punto+texto, NO badge con borde (§2.1)', async ({ page }) => {
     await appConPrimadaAbierta(page);
     const ident = await page.evaluate(() => ({
-      badges: document.querySelectorAll('.asis-fila-id .badge').length,
-      dotPrin: document.querySelectorAll('.asis-fila-id .dot.prin').length,
+      // La identidad va en DOS líneas (.asis-fila-stack): nombre arriba, rol/Anfitrión de subtexto abajo.
+      badges: document.querySelectorAll('.asis-fila-stack .badge').length,
+      dotPrin: document.querySelectorAll('.asis-fila-stack .dot.prin').length,
     }));
     expect(ident.badges).toBe(0);     // cero badges en la identidad
     expect(ident.dotPrin).toBeGreaterThan(0); // el principal lleva punto teal

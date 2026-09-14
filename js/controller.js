@@ -177,7 +177,7 @@
   // Envuelve acciones que pueden lanzar por invariante (principal ahorrador, etc.)
   function tryAction(fn) {
     try { fn(); }
-    catch (err) { View.toast(err && err.message ? err.message : 'Acción no permitida'); rerender(); }
+    catch (err) { View.toast(err && err.message ? err.message : 'Acción no permitida', 'err'); rerender(); }
   }
 
   function activeId() { const p = Store.select.activePrimada(); return p ? p.id : null; }
@@ -228,23 +228,23 @@
       case 'login-enviar': {
         const inp = document.getElementById('login-email');
         const email = (inp && inp.value || '').trim();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { View.toast('Correo no válido'); return; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { View.toast('Correo no válido', 'err'); return; }
         b.disabled = true;
         ui.loginEmail = email;
         Promise.resolve(Auth && Auth.signIn(email))
           .then(() => { ui.loginEstado = 'sent'; rerender(); })
-          .catch((err) => { View.toast(err && err.message ? err.message : 'No se pudo enviar el código'); ui.loginEstado = 'form'; rerender(); });
+          .catch((err) => { View.toast(err && err.message ? err.message : 'No se pudo enviar el código', 'err'); ui.loginEstado = 'form'; rerender(); });
         return;
       }
       // Verifica el CÓDIGO pegado → sesión EN ESTE dispositivo. El onChange (gate) cierra la hoja y carga.
       case 'login-verificar': {
         const inp = document.getElementById('login-codigo');
         const code = (inp && inp.value || '').replace(/\s/g, '').trim();
-        if (!/^\d{4,10}$/.test(code)) { View.toast('Código no válido'); return; }   // Supabase OTP = 6–10 dígitos
+        if (!/^\d{4,10}$/.test(code)) { View.toast('Código no válido', 'err'); return; }   // Supabase OTP = 6–10 dígitos
         b.disabled = true;
         Promise.resolve(Auth && Auth.verifyOtp(ui.loginEmail, code))
           .then(() => { View.toast('Sesión iniciada'); /* onChange cierra y recarga */ })
-          .catch((err) => { b.disabled = false; View.toast(err && err.message ? err.message : 'Código inválido o vencido'); });
+          .catch((err) => { b.disabled = false; View.toast(err && err.message ? err.message : 'Código inválido o vencido', 'err'); });
         return;
       }
       case 'login-reset': ui.loginEstado = 'form'; rerender(); return;
@@ -296,13 +296,13 @@
         // sincronizar inputs del paso actual antes de avanzar (los selects/date no disparan change si no se tocaron)
         wzSync();
         if (w.paso === 1) {
-          if (!w.principalId) { View.toast('Falta el anfitrión'); return; }
+          if (!w.principalId) { View.toast('Elegí el anfitrión', 'err'); return; }
           const per = Store.select.persona(w.principalId);
-          if (!per || per.estado !== 'ahorrador') { View.toast('El anfitrión debe ser ahorrador'); return; }
+          if (!per || per.estado !== 'ahorrador') { View.toast('El anfitrión debe ser ahorrador', 'err'); return; }
         }
         if (w.paso === 2) {
           w.productos = w.productos.filter(p => (p.nombre || '').trim());   // descarta filas vacías
-          if (!w.productos.length) { View.toast('Falta un producto'); return; }
+          if (!w.productos.length) { View.toast('Agregá al menos un producto', 'err'); return; }
         }
         w.paso++; rerender(); return;
       }
@@ -319,7 +319,7 @@
           ui.wizard = null;                // cierra wizard → aterriza DENTRO de la primada nueva (detalle)
           entrarDetalle(id);               // selecciona + fija cara + ui.view='detalle' + pushState + render
           View.toast('Primada creada');
-        } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo crear'); }
+        } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo crear', 'err'); }
         return;
       }
       // Conmuta la pestaña interna de config del evento activo (Asistentes | Productos) en el gear › Primadas.
@@ -331,11 +331,19 @@
       // Se invoca desde el banner "Todos pagaron" (atajo feliz) Y desde el "···" de la primada. INVARIANTE #4:
       // cerrar CONGELA la cuenta pero sigue aceptando pagos → cerrar con deuda pendiente es un caso VÁLIDO
       // (se cierra el evento, la gente paga después). Por eso el menú ofrece cerrar siempre, no solo al saldar.
-      case 'cerrar-primada':
-        if (!root.confirm || root.confirm('¿Cerrar la cuenta?')) {
+      case 'cerrar-primada': {
+        // La confirmación NOMBRA la deuda: cerrar con saldo pendiente es válido (INV#4) pero el anfitrión
+        // debe saber con qué está cerrando. Sin deuda, la pregunta corta de siempre.
+        const pC = (Store.select.state().primadas || []).find(x => x.id === id);
+        const pend = pC ? Store.select.informePrincipal(pC).saldoPendiente : 0;
+        const msg = pend > 0
+          ? '¿Cerrar la cuenta? Quedan ' + Util.peso(pend) + ' por cobrar — los pagos se siguen registrando.'
+          : '¿Cerrar la cuenta?';
+        if (!root.confirm || root.confirm(msg)) {
           A.cerrarPrimada(id); resetBalancePanel(); ui.overlay = null; ui.primadaMenuId = null; View.toast('Cuenta cerrada'); rerender();
         }
         return;
+      }
       case 'reabrir-primada':  A.reabrirPrimada(id); resetBalancePanel(); ui.overlay = null; ui.primadaMenuId = null; View.toast('Cuenta reabierta'); rerender(); return;
       case 'borrar-primada':
         if (!root.confirm || root.confirm('¿Borrar la primada?')) {
@@ -391,11 +399,11 @@
         const nombre = ((document.getElementById('pn-nombre') || {}).value || '').trim();
         const costoNeto = Number((document.getElementById('pn-costo') || {}).value) || 0;
         const precioVenta = Number((document.getElementById('pn-venta') || {}).value) || 0;
-        if (!nombre) { View.toast('Falta el nombre'); return; }
+        if (!nombre) { View.toast('Escribí el nombre', 'err'); return; }
         try {
           A.addProducto(prm, { nombre, emoji: emoji || '•', costoNeto, precioVenta });
           View.toast('Producto agregado');
-        } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo agregar'); }
+        } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo agregar', 'err'); }
         break;
       }
 
@@ -442,7 +450,10 @@
       }
 
       // ----- Ajustes GLOBALES = pantalla PLANA (sin tabs): Personas · Cover · Legal · Versión · Cuenta -----
-      case 'open-personas':                                     // legado (link del wizard "Agregar en Personas")
+      // El link del wizard ("Agregar en Personas") dejaba al usuario ENCERRADO: seteaba el overlay pero
+      // render() evalúa `if (ui.wizard)` primero, así que el wizard seguía pintado y Ajustes nunca aparecía.
+      // Era el primer minuto de la app (sin ahorradores no se puede crear primada) → hay que cerrar el wizard.
+      case 'open-personas':   ui.wizard = null; ui.overlay = 'ajustes'; ui.editPersonaId = null; rerender(); return;
       case 'open-ajustes':   ui.overlay = 'ajustes'; ui.editPersonaId = null; rerender(); return;
       // Acordeón de Ajustes (Ahorradores/Invitados/Cover/Legal/Versión): (v) despliega/colapsa.
       case 'toggle-ajustes-sec': { const k = b.dataset.sec; if (ui.ajustesSec.has(k)) ui.ajustesSec.delete(k); else ui.ajustesSec.add(k); rerender(); return; }
@@ -461,7 +472,7 @@
         const n = document.getElementById('np-nombre');
         const es = document.getElementById('np-estado');
         const nombre = (n && n.value || '').trim();
-        if (!nombre) { View.toast('Falta el nombre'); return; }
+        if (!nombre) { View.toast('Escribí el nombre', 'err'); return; }
         A.addPersona({ nombre, estado: es ? es.value : 'ahorrador' });
         View.toast('Persona agregada');
         break;   // el form queda abierto (nuevaPersona) para sumar varias
@@ -524,7 +535,7 @@
         // Emoji ÚNICO por primada: si choca, setIdProducto lanza → aviso + revierto el input al emoji actual.
         try { A.setIdProducto(prm, id, { emoji: v }); }
         catch (err) {
-          View.toast(err && err.message ? err.message : 'Ese emoji ya está usado');
+          View.toast(err && err.message ? err.message : 'Ese emoji ya está usado', 'err');
           const ap = Store.select.activePrimada();
           const prod = ap && (ap.productos || []).find(x => x.id === id);
           if (prod) t.value = prod.emoji;
