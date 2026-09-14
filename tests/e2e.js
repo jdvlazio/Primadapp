@@ -233,7 +233,18 @@ check('Lista viva: al activar aparece el reveal con chips', !!q(`.asis-fila[data
 // Modelo 3: el primer consumo entra por el chip DISPONIBLE (tap = +1 = INSERT fila); mismo data-act item-plus.
 click(`[data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`);   // 0→1
 eq('Beto lleva 1 cerveza (chip disponible → +1)', cervezas(), 1);
-check('El chip pasó a CONSUMIDO (.chip.has con ×N)', !!q(`.chip.has [data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`));
+// ORDEN ESTABLE: TODOS los productos son SIEMPRE la misma fila-stepper, en orden de catálogo; consumir solo
+// cambia el ×N. Antes el producto SALTABA al grupo de arriba y todo se reacomodaba bajo el dedo (el punto que
+// acababas de tocar pasaba a ser el +1 de OTRO producto). La fila en cero lleva .cero y muestra el precio.
+check('El chip pasó a CONSUMIDO (.chip.has sin .cero, con ×N)',
+  !!q(`.chip.has [data-act="item-plus"][data-pid="${beto.id}"][data-prod="cerveza"]`)
+  && !q(`.chip.has.cero [data-act="item-plus"][data-prod="cerveza"]`)
+  && /×1/.test(q('.chips-viva').textContent));
+check('Orden estable: hay una fila por CADA producto del catálogo, consumido o no',
+  qa('.chips-viva .chip.has').length === prm().productos.length);
+check('Los NO consumidos son la MISMA fila, en cero (.chip.has.cero con precio y − inerte)',
+  !!q('.chip.has.cero .chip-precio') && q('.chip.has.cero .chip-minus').disabled === true);
+check('Ya NO existe la pastilla suelta de "disponible" (.chip sin .has)', !q('.chips-viva .chip:not(.has)'));
 // Stepper [− 🍺×N +]: − a la izquierda, + EXPLÍCITO a la derecha (gesto universal), + cuerpo tappable.
 check('Chip consumido: + explícito a la derecha (.chip-add) y − a la izquierda (.chip-minus)',
   !!q('.chip.has .chip-add') && !!q('.chip.has .chip-minus'));

@@ -365,23 +365,40 @@
   // CERRADA: chips de solo lectura (sin +/−); si no consumió, "Sin consumo".
   function chipsConsumoViva(p, a, ui) {
     const cerrada = p.estado === 'cerrada';
-    const consumidos = S().consumidosDe(p, a);
-    const disponibles = S().disponiblesPara(p, a);
-    const chipsCons = consumidos.map(prod => {
+    // CERRADA: solo lo consumido, de solo lectura (no hay nada que tocar → pill compacto, más denso).
+    if (cerrada) {
+      const cons = S().consumidosDe(p, a);
+      const ro = cons.map(prod =>
+        `<span class="chip has ro">${e(prod.emoji)} ${e(prod.nombre)} <b class="chip-q">×${S().cantidadDe(p, a, prod)}</b></span>`).join('');
+      const vacioRO = cons.length ? '' : '<div class="muted small consumo-vacio">Sin consumo</div>';
+      const auditOpenRO = ui && ui.auditPid === a.personaId;
+      const auditBtnRO = cons.length
+        ? `<button class="xmini aud-btn ${auditOpenRO ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpenRO ? 'true' : 'false'}" aria-label="Detalle por evento">${icon('info', 'sm')}</button>`
+        : '';
+      return `<div class="chips-viva">${ro}${vacioRO}</div>${auditBtnRO}${auditOpenRO ? auditoriaPanel(p, a, ui) : ''}`;
+    }
+    // ══ ORDEN ESTABLE: TODOS los productos, SIEMPRE, en orden de catálogo ══════════════════════════════
+    // ANTES la lista se partía en dos grupos (consumidos arriba, disponibles abajo): al apuntar, el producto
+    // SALTABA al grupo de arriba y TODO lo de abajo se reacomodaba **bajo el dedo**. Medido con datos reales:
+    // el punto exacto que acababas de tocar pasaba a ser el +1 de OTRO producto, sin animación y en 0,1ms.
+    // Querer 3 brownies con 3 toques en el mismo sitio registraba 3 productos distintos (error medido de
+    // $64.000, uno de ellos la botella de aguardiente). La causa NO era "un toque = +1" —que es lo mejor del
+    // patrón, y se conserva— sino el REFLOW. Hoy nada se mueve nunca: consumir solo cambia el ×N.
+    // (Es lo que hacen Square y Toast: rejilla de productos FIJA + el ticket aparte.)
+    // La fila mide igual con 0 que con N (mismas 3 columnas): a 0 muestra el PRECIO y el − va inerte; a N≥1
+    // muestra ×N y el − corrige. Así tampoco hay salto al pasar de 0 a 1.
+    const filas = (p.productos || []).map(prod => {
       const q = S().cantidadDe(p, a, prod);   // v6: cantidad = Σ filas de consumo
-      if (cerrada) return `<span class="chip has ro">${e(prod.emoji)} ${e(prod.nombre)} <b class="chip-q">×${q}</b></span>`;
-      // Stepper compacto [− 🍺×9 +]: el + explícito a la DERECHA es el gesto universal de "agregar"
-      // (en teal, resalta); el cuerpo (emoji ×N) TAMBIÉN suma (target grande, menos fricción); − corrige.
-      return `<span class="chip has">
-          <button class="chip-minus" data-act="item-minus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: menos">−</button>
-          <button class="chip-plus" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más"><span class="chip-nom">${e(prod.emoji)} ${e(prod.nombre)}</span> <b class="chip-q">×${q}</b></button>
-          <button class="chip-add" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${e(prod.nombre)}: más">+</button>
+      const cero = q === 0;
+      const lbl = e(prod.nombre);
+      return `<span class="chip has${cero ? ' cero' : ''}">
+          <button class="chip-minus" data-act="item-minus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${lbl}: menos"${cero ? ' disabled aria-hidden="true"' : ''}>−</button>
+          <button class="chip-plus" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${lbl}: más"><span class="chip-nom">${e(prod.emoji)} ${lbl}</span> ${cero ? `<i class="chip-precio">${$peso(prod.precioVenta)}</i>` : `<b class="chip-q">×${q}</b>`}</button>
+          <button class="chip-add" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}" aria-label="${lbl}: más">+</button>
         </span>`;
     }).join('');
-    const chipsDisp = cerrada ? '' : disponibles.map(prod =>
-      `<button class="chip" data-act="item-plus" data-pid="${a.personaId}" data-prod="${prod.id}">${e(prod.emoji)} ${e(prod.nombre)} <i>${$peso(prod.precioVenta)}</i></button>`
-    ).join('');
-    const vacio = (cerrada && !consumidos.length) ? '<div class="muted small consumo-vacio">Sin consumo</div>' : '';
+    const chipsCons = filas, chipsDisp = '', vacio = '';
+    const consumidos = S().consumidosDe(p, a);
     // AUDITORÍA (C2): el detalle por evento (hora + quién apuntó) NO se exhibe; se pide con el ⓘ.
     const auditOpen = ui && ui.auditPid === a.personaId;
     const auditBtn = consumidos.length
@@ -1428,6 +1445,26 @@
   // se teclea ABAJO, SIN reconstruir el overlay (no pierde foco ni suelta teclas en Android). El re-render
   // estructural completo (filas "sin cover", sobrante, etc.) llega en el blur/change. Devuelve si lo encontró
   // (si el cover venía en 0 no hay header que tocar → cae al re-render de blur).
+  // CONFIRMACIÓN IMPLÍCITA del registro (auditoría de captura, sep 2026). Apuntar NO avisaba NADA: ni toast ni
+  // animación — el único rastro era el ×N y el total, y un consumo fantasma quedaba con aspecto de dato
+  // legítimo. Esto no PREVIENE el error (de eso se encarga el orden estable) pero lo hace DETECTABLE: un
+  // destello corto sobre la cifra que cambió y sobre el total de la persona. Se pinta QUIRÚRGICO (la Vista
+  // dibuja → MVC intacto), igual que `actualizarCoverGrupo`, para no meter estado efímero de animación en el
+  // Store ni forzar un segundo render. El controller lo llama JUSTO DESPUÉS de la acción, cuando el commit ya
+  // re-renderizó y los nodos están frescos.
+  function flashConsumo(personaId, prodId) {
+    const cuerpo = document.querySelector(`.chip-plus[data-pid="${personaId}"][data-prod="${prodId}"]`);
+    const cifra = cuerpo && cuerpo.querySelector('.chip-q, .chip-precio');
+    const total = document.querySelector(`.asis-fila[data-pid="${personaId}"] .acc-amt`);
+    [cifra, total].forEach(el => {
+      if (!el) return;
+      el.classList.remove('flash');
+      void el.offsetWidth;            // fuerza reflow: reinicia la animación si se toca rápido varias veces
+      el.classList.add('flash');
+      setTimeout(() => el.classList.remove('flash'), 400);
+    });
+  }
+
   function actualizarCoverGrupo(estado, monto) {
     const el = els.overlay && els.overlay.querySelector(`.grp-cover[data-cover-grp="${estado}"]`);
     if (!el) return false;
@@ -1435,6 +1472,6 @@
     return true;
   }
 
-  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML, actualizarCoverGrupo };
+  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML, actualizarCoverGrupo, flashConsumo };
   if (typeof module !== 'undefined' && module.exports) module.exports = { View: root.View };
 })(typeof window !== 'undefined' ? window : globalThis);

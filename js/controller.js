@@ -420,8 +420,10 @@
         break;
       // MODELO 3 — Lista viva: el chip (consumido o disponible) usa item-plus/minus directo (changeItem).
       // El disponible 0→1 también es item-plus (ya no hay "add-item" ni picker aparte).
-      case 'item-plus':         A.changeItem(prm, pid, b.dataset.prod, +1); marcarApuntando(); break;
-      case 'item-minus':        A.changeItem(prm, pid, b.dataset.prod, -1); marcarApuntando(); break;
+      // El destello va DESPUÉS de la acción: changeItem commitea y el commit ya re-renderizó, así que los
+      // nodos están frescos. Confirma lo que acaba de pasar (antes apuntar no avisaba nada).
+      case 'item-plus':         A.changeItem(prm, pid, b.dataset.prod, +1); marcarApuntando(); View.flashConsumo(pid, b.dataset.prod); break;
+      case 'item-minus':        A.changeItem(prm, pid, b.dataset.prod, -1); marcarApuntando(); View.flashConsumo(pid, b.dataset.prod); break;
 
       // ----- Lista viva: activar/colapsar la persona (UNA a la vez). Tap otra reemplaza (colapsa la anterior). -----
       case 'activar-asis': {

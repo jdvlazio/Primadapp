@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-143228-8772482">
+<meta name="build" content="20260914-150622-ad7aac5">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -554,6 +554,15 @@
   .chip.has .chip-add{display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--tap-input);width:var(--tap-input);min-height:var(--tap-input);background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--accent);font-size:18px;font-weight:700;line-height:1}
   .chip.has .chip-minus:active,.chip.has .chip-plus:active,.chip.has .chip-add:active{transform:scale(.9)}
   .chip-q{font-variant-numeric:tabular-nums;flex:none}
+  /* Fila en CERO: misma caja y mismas 3 columnas que una con N (para que 0→1 tampoco mueva nada). Cambia
+     solo el contenido: precio tenue en vez de ×N, y el − inerte (no hay nada que corregir). */
+  .chip.has.cero .chip-plus{color:var(--ink)}
+  .chip.has.cero .chip-minus{opacity:.25;pointer-events:none}
+  .chip-precio{flex:none;font-style:normal;font-weight:400;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  /* DESTELLO de confirmación: apuntar no avisaba nada. Corto y sin desplazar nada (transform, no layout). */
+  @keyframes flashNum{0%{transform:scale(1)}35%{transform:scale(1.22);color:var(--accent)}100%{transform:scale(1)}}
+  .chip-q.flash,.chip-precio.flash,.acc-amt.flash{animation:flashNum .35s ease-out}
+  @media (prefers-reduced-motion: reduce){ .chip-q.flash,.chip-precio.flash,.acc-amt.flash{animation:none} }
   /* cerrada = solo lectura: nada que tocar → vuelve a pill compacto (más denso, sin controles). */
   .chip.has.ro{display:inline-flex;width:auto;min-height:var(--tap-sec);padding:var(--space-2) var(--space-3);border-color:var(--line)}
   .consumo-vacio{padding:var(--space-1) 0}
@@ -865,13 +874,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-143228-8772482"></script>
-  <script src="js/util.js?v=20260914-143228-8772482"></script>
-  <script src="js/api.js?v=20260914-143228-8772482"></script>
-  <script src="js/auth.js?v=20260914-143228-8772482"></script>
-  <script src="js/store.js?v=20260914-143228-8772482"></script>
-  <script src="js/view.js?v=20260914-143228-8772482"></script>
-  <script src="js/controller.js?v=20260914-143228-8772482"></script>
+  <script src="js/config.js?v=20260914-150622-ad7aac5"></script>
+  <script src="js/util.js?v=20260914-150622-ad7aac5"></script>
+  <script src="js/api.js?v=20260914-150622-ad7aac5"></script>
+  <script src="js/auth.js?v=20260914-150622-ad7aac5"></script>
+  <script src="js/store.js?v=20260914-150622-ad7aac5"></script>
+  <script src="js/view.js?v=20260914-150622-ad7aac5"></script>
+  <script src="js/controller.js?v=20260914-150622-ad7aac5"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

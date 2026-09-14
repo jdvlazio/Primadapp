@@ -395,6 +395,26 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - **Nombres de PRODUCTO en Title Case (regla enforced en datos):** `Util.titleCase` normaliza al guardar
   ("club colombia" → "Club Colombia"); se aplica en `normProducts` (alta/wizard/carga, idempotente) y `setIdProducto`
   (renombrar). Conectores en minúscula salvo si abren el nombre. Los defaults del `CONFIG` ya cumplen la regla. Ver `DESIGN.md` §4.
+- **LISTA VIVA — ORDEN ESTABLE: la rejilla de productos NO SE MUEVE NUNCA (auditoría de captura, sep 2026).**
+  Antes la lista se partía en dos grupos —**consumidos arriba, disponibles abajo**— así que al apuntar el
+  producto **saltaba** al grupo de arriba y **todo se reacomodaba BAJO EL DEDO**. Medido con datos reales: el
+  punto exacto que acababas de tocar pasaba a ser el `+1` de **OTRO producto**, sin animación y en 0,1ms →
+  querer 3 de algo con 3 toques en el mismo sitio registraba **3 productos distintos** (error medido de
+  $64.000). Hoy se dibuja **una fila por CADA producto del catálogo, siempre, en el orden del catálogo**;
+  consumir solo cambia el `×N`. La fila en **cero** (`.chip.has.cero`) mide **igual** que una con N (mismas 3
+  columnas): muestra el **precio** en vez del `×N` y su `−` va **inerte** — así 0→1 tampoco mueve nada.
+  Es el patrón de **Square y Toast**: rejilla de productos **fija** + el ticket aparte. ⚠️ **NO volver a
+  ordenar esta lista por consumo, ni agrupar consumidos aparte**: el reflow bajo el dedo es el bug.
+  **"Un toque = +1" se CONSERVA** (es lo mejor del patrón; la causa del error nunca fue esa).
+  Cuesta alto de pantalla (11 productos ≈ 608px) y se acepta: a cambio, la posición de cada producto es
+  **predecible** y la memoria muscular funciona.
+- **CONFIRMACIÓN IMPLÍCITA al apuntar:** `View.flashConsumo(pid, prodId)` — destello corto (`transform`, no
+  toca layout) sobre la cifra que cambió y sobre el total de la persona. Apuntar **no avisaba NADA** (ni toast
+  ni animación) y un consumo fantasma quedaba con aspecto de dato legítimo. Es **quirúrgico** (la Vista dibuja
+  → MVC intacto, igual que `actualizarCoverGrupo`), lo llama el controller **justo después** de la acción
+  —cuando el commit ya re-renderizó— y así no mete estado de animación en el Store. Respeta
+  `prefers-reduced-motion`. **NO se usó toast con "Deshacer"** (descartado: dispararía en cada cerveza y tapa
+  justo la zona donde se apunta).
 - **LISTA VIVA — el stepper de consumo es una FILA de columnas fijas, no un pill (auditoría visual, sep 2026):**
   `[−] [emoji nombre … ×N] [+]` a **ancho completo**. Antes era `inline-flex` y su ancho lo fijaba el largo del
   nombre → el `+` **derivaba hasta 118px** (30% de la pantalla) entre fila y fila y el anfitrión tenía que
