@@ -424,14 +424,29 @@ check('Informe ABIERTA: héroe "Ganancia" (gan) con la ganancia + nota Provision
   informe.includes('informe-hero gan') && informe.includes('informe-hero-lbl">Ganancia')
   && informe.includes('informe-hero-val">' + window.Util.peso(Store.select.ganancia(prm())))
   && informe.includes('informe-hero-note'));
-// REPARTO: a QUIÉNES se distribuye (los ahorradores). El Anfitrión (Ana) DEBE aparecer en la lista, marcado.
-// §0: el monto (parteIgual) se dice UNA vez en la cabecera (.informe-stat-v) y NO se repite por fila (no .informe-rep-v).
-check('Informe: REPARTO nombra a los ahorradores, Anfitrión (Ana) incluido; monto solo en cabecera',
-  informe.includes('informe-stat') && /informe-stat-k">Reparto a ahorradores/.test(informe) && informe.includes('informe-stat-sub') && /ahorrador/.test(informe)
-  && /informe-rep-list/.test(informe)
-  && new RegExp('informe-rep">' + ana.nombre + ' <span class="informe-rep-anf">Anfitrión').test(informe)
+// REPARTO (informe compartido): cuántos son y cuánto toca c/u. Los NOMBRES ya NO se listan acá: el COBRO va
+// AGRUPADO POR ESTADO y su grupo "Ahorradores" ES el padrón de quiénes reciben (decisión del PM, sep 2026:
+// no repetir la misma información dos veces en el mismo documento). §0: el monto, UNA vez en la cabecera.
+check('Informe: REPARTO dice cuántos y cuánto c/u, SIN repetir los nombres',
+  informe.includes('informe-stat') && /informe-stat-k"><span>Reparto a ahorradores<\/span>/.test(informe) && informe.includes('informe-stat-sub')
+  && !/informe-rep-list/.test(informe)
   && new RegExp('informe-stat-v">' + window.Util.peso(Store.select.parteIgual(prm())).replace(/[$.]/g, '\\$&')).test(informe)
   && !/informe-rep-v/.test(informe));
+// El COBRO agrupa por estado y dice el Cover UNA vez por grupo (antes se repetía en cada persona).
+check('Informe: COBRO agrupado por estado (Ahorradores / Invitados)',
+  /informe-grupo-t">Ahorradores/.test(informe) && /informe-grupo-t">Invitados/.test(informe)
+  && !/informe-cov">Cover /.test(informe));
+// El Cover se anuncia SOLO si alguien del grupo lo paga: acá Beto (único invitado) está EXONERADO, así que
+// el grupo Invitados no puede anunciar un cover que nadie pagó — y su fila lleva el tag "sin cover".
+check('Informe: grupo con todos exonerados NO anuncia Cover (y la fila dice "sin cover")',
+  Store.select.coverDe(prm(), betoAsis()) === 0
+  && !new RegExp('informe-grupo-t">Invitados[^]{0,200}informe-grupo-cov').test(informe)
+  && /informe-cov">sin cover/.test(informe));
+// El grupo de Ahorradores es el PADRÓN: incluye al ahorrador aunque su total sea 0 (co-organizador sin
+// consumo), que antes desaparecía del documento.
+check('Informe: el anfitrión aparece en el grupo de Ahorradores aunque no haya consumido',
+  new RegExp('informe-nombre">[^<]*<span class="informe-check">✓</span> ' + ana.nombre).test(informe)
+  || new RegExp('informe-check">✓</span> ' + ana.nombre).test(informe));
 // COMPOSICIÓN: Cover · Margen · Reembolso de productos (atenuado .informe-kv.dim) — como el Balance.
 check('Informe: composición Cover · Margen · Reembolso atenuado (.informe-comp / .informe-kv.dim)',
   /informe-comp/.test(informe) && /<span>Cover<\/span>/.test(informe) && /<span>Margen<\/span>/.test(informe)

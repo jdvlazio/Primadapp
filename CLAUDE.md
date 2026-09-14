@@ -384,6 +384,21 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
 - v1 (arreglo pelado) y v2 (`{products, people}`) se envuelven como una primada con **cover 0** (no había cover) y pasan por el mismo camino.
 - Se **conserva** `activePrimadaId`. La migración es **idempotente** y **estable en ids**.
 
+## Informe compartido (PNG) — es un RASTER, no una pantalla
+El acta que se comparte por WhatsApp (`informeTemplateHTML` + `shareInforme`) **no se rige por el viewport de
+390px**: es una imagen de **940px de ancho** con tipografía ~2,5× la de la app. Lo que decide su legibilidad es
+la **fracción del ancho** que ocupa el texto, y sobre todo la **RELACIÓN de aspecto**: a 4,5:1 el teléfono
+ajustaba la imagen **por ALTO** (se veía a 166pt en una pantalla de 390pt → zoom obligatorio y la vista previa
+recortaba la cabecera); **por debajo de ~2,1:1 el ajuste pasa a ser por ANCHO**. Detalle, medidas y las dos
+trampas de html2canvas (`min-width:0` en los hijos flex · texto suelto en flex con `letter-spacing`) en
+`DESIGN.md` §5. **Reglas del documento:** el **Cover** se dice UNA vez por grupo (no por persona); los
+**nombres aparecen UNA sola vez** (el grupo *Ahorradores* del cobro ES el padrón del reparto, y por eso
+**incluye a los ahorradores con total 0** —un co-organizador sin consumo recibe plata y antes no figuraba—);
+el **desglose por producto se conserva íntegro** y **no se elide**; el Cover del grupo **solo se anuncia si
+alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cover de $0 cobrados).
+⚠️ En el recibo del informe, **Σ partidas = total − cover** (el cover subió a la cabecera del grupo); en el
+**Balance y la hoja Pagar el cover SIGUE siendo una partida** y ahí la suma sí cuadra con el total.
+
 ## Feedback al usuario — el TOAST (registros y posición)
 - **Tres registros:** `toast(msg)` neutro · `toast(msg,'ok')` confirmación positiva (`--pos`) · `toast(msg,'err')`
   **validación o fallo** (`--alert`). Antes **todo** salía en el mismo chip gris (31 llamadas, solo 2 con `kind`):

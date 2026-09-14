@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-155140-60135fd">
+<meta name="build" content="20260914-173255-6070e29">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -402,67 +402,98 @@
      (.informe-host) solo para rasterizarse. Fondo en gradiente oscuro; UNA sola marca (wordmark
      Primad+app); HÉROE grande en banda destacada; detalle por persona. La cola de emoji da color en canvas. */
   .informe-host{position:absolute;left:-99999px;top:0;pointer-events:none}
-  .informe-card{width:380px;box-sizing:border-box;padding:var(--space-5) var(--space-4) var(--space-4);
+  /* ANCHO 940 (auditoría de diseño de información, sep 2026). Los 380px eran herencia del viewport móvil,
+     pero la imagen compartida es OTRO artefacto. A 4,5:1 el teléfono ajusta la imagen POR ALTO: una tarjeta de
+     380px se mostraba a 166pt en una pantalla de 390pt → había que hacer zoom y la vista previa recortaba la
+     cabecera. Por debajo de ~2,1:1 el ajuste pasa a ser POR ANCHO y usa la pantalla entera. Ensanchando y
+     escalando la tipografía ×2 (lo que decide la legibilidad es la FRACCIÓN del ancho que ocupa el texto, no
+     el tamaño absoluto), el nombre pasa de 6,1pt a 10,8pt SIN quitar un solo dato. */
+  .informe-card{width:940px;box-sizing:border-box;padding:34px 30px 26px;
     background:linear-gradient(165deg,#173a31 0%,#102019 52%,#0b1412 100%);color:var(--ink);
     font-family:"Instrument Sans",system-ui,-apple-system,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
-  .informe-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)}
-  .informe-brand{font-weight:800;font-size:16px;letter-spacing:-.01em;color:var(--ink)}
+  .informe-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .informe-brand{font-weight:800;font-size:30px;letter-spacing:-.01em;color:var(--ink)}
   .informe-brand-ac{color:var(--accent)}
-  .informe-period{font-size:12px;font-weight:700;color:var(--ink-soft);text-transform:capitalize}
-  .informe-title{font-weight:800;font-size:24px;line-height:1.06;letter-spacing:-.02em;color:var(--ink)}
+  /* SIN `text-transform:capitalize`: html2canvas lo rasteriza mal y la fecha salía "Sáb, 28  Feb2026" (espacio
+     de más y espacio de menos) en el PNG. `Util.fechaCompleta` ya entrega "Sáb, 28 feb 2026", que además es la
+     forma correcta en español (los meses van en minúscula). */
+  .informe-period{font-size:22px;font-weight:700;color:var(--ink-soft)}
+  .informe-title{font-weight:800;font-size:46px;line-height:1.04;letter-spacing:-.02em;color:var(--ink)}
   /* HÉROE: banda con la cifra (Ganancia teal). COMPACTA (padding chico) para que quede limpio:
      el peso lo da el color y la tipografía, no el tamaño de la caja. */
-  .informe-hero{margin:var(--space-3) 0 0;padding:var(--space-2) var(--space-3);border-radius:12px;
-    display:flex;flex-direction:column;gap:1px;background:rgba(45,212,191,.10);border:1px solid rgba(45,212,191,.22)}
-  .informe-hero-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-soft)}
-  .informe-hero-val{font-size:29px;font-weight:800;line-height:1.05;letter-spacing:-.02em;color:var(--accent)}
-  .informe-hero-note{margin-top:2px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
-  .informe-hero-note.pend{color:var(--amber);text-transform:none;letter-spacing:0;font-size:11px}
+  .informe-hero{flex:1 1 46%;min-width:0;padding:14px 22px;border-radius:18px;justify-content:center;
+    display:flex;flex-direction:column;gap:2px;background:rgba(45,212,191,.10);border:2px solid rgba(45,212,191,.22)}
+  .informe-hero-lbl{font-size:19px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#a9c2bf}   /* 5,6:1 sobre el degradado (con --ink-soft daba 3,95:1) */
+  .informe-hero-val{font-size:60px;font-weight:800;line-height:1.02;letter-spacing:-.02em;color:var(--accent)}
+  .informe-hero-note{margin-top:2px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
+  .informe-hero-note.pend{color:var(--amber);text-transform:none;letter-spacing:0;font-size:21px}
   /* KPI Parte igual c/u — el segundo número clave (espejo del .bal-stat del Balance in-app). */
-  .informe-stat{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-3)}
-  .informe-stat-k{display:flex;flex-direction:column;gap:0;font-size:13px;color:var(--ink-soft)}
-  .informe-stat-sub{font-size:10.5px;color:var(--ink-soft);opacity:.75}
-  .informe-stat-v{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;color:var(--accent)}
+  .informe-stat{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:22px}
+  .informe-stat-k{display:flex;align-items:baseline;gap:8px;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
+  .informe-stat-sub{font-size:20px;color:var(--ink-soft);opacity:.7;text-transform:none;letter-spacing:0}
+  .informe-stat-v{font-family:"Instrument Sans",sans-serif;font-weight:800;font-size:32px;letter-spacing:-.01em;color:var(--accent)}
   /* REPARTO: A QUIÉNES se distribuye (los ahorradores, anfitrión incluido). Solo NOMBRES: el monto ($X c/u)
      se dice UNA vez en la cabecera (.informe-stat-v, §0 no repetir). El anfitrión va marcado. */
-  .informe-stat-cu{font-size:11px;font-weight:700;color:var(--ink-soft)}
-  .informe-rep-list{margin-top:6px;display:flex;flex-direction:column;gap:4px}
-  .informe-rep{font-size:14px;font-weight:700;color:var(--ink)}
-  .informe-rep-anf{font-size:10.5px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-left:5px}
+  .informe-stat-cu{font-size:19px;font-weight:700;color:var(--ink-soft)}
+  .informe-rep-anf{font-size:17px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-left:5px}
   /* COMPOSICIÓN: Cover · Margen · Reembolso (atenuado) · Sobrante. Filas livianas, sin línea por fila. */
-  .informe-comp{margin-top:var(--space-2);display:flex;flex-direction:column;gap:3px}
+  /* BANDA: héroe (izq) + composición (der) a la MISMA altura — el ancho paga el alto. */
+  .informe-banda{display:flex;gap:24px;align-items:stretch;margin-top:20px}
+  /* min-width:0 es OBLIGATORIO: sin él, como .informe-kv es nowrap, el mínimo intrínseco del flex lo fija el
+     texto completo, la elipsis nunca entra y el bloque se sale de la tarjeta — medido: +325px fuera con un
+     nombre de anfitrión largo, y en el PNG las cifras de Cover/Margen/Reembolso quedaban FUERA del lienzo. */
+  .informe-comp{flex:1 1 54%;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px}
   /* gap + elisión: sin `gap` la etiqueta y la cifra se TOCABAN ("…Restrepo Villegas$1.159.400") en el PNG
      que se comparte por WhatsApp. Su gemelo .bal-row ya lo tenía; aquí faltaba. */
-  .informe-kv{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3);padding:2px 0;font-size:13px;color:var(--ink)}
+  .informe-kv{display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding:2px 0;font-size:25px;color:var(--ink)}
   .informe-kv>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .informe-kv>b{flex:none;font-variant-numeric:tabular-nums}
   .informe-kv span{color:var(--ink-soft)}
   .informe-kv b{font-weight:800;color:var(--ink)}
   .informe-kv.dim span,.informe-kv.dim b{color:var(--ink-soft);font-weight:400}
-  .informe-kv-sub{color:var(--ink-soft);font-weight:600;font-size:11px;margin-left:5px}
   /* COBRO: rótulo (con divisor arriba) + filas debe/pagó (reusa .informe-asis/.informe-total) + total. */
-  .informe-sub{margin-top:var(--space-3);margin-bottom:2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
-  .informe-cobro-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);margin-top:var(--space-3);margin-bottom:2px}
+  .informe-sub{margin-top:var(--space-3);margin-bottom:2px;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft)}
+  .informe-cobro-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:26px;margin-bottom:2px;padding-top:18px;border-top:2px solid rgba(255,255,255,.07)}
   .informe-cobro-head .informe-sub{margin:0}
-  .informe-cobro-tot{font-weight:800;font-size:13px;font-variant-numeric:tabular-nums}
+  .informe-cobro-tot{font-weight:800;font-size:25px;font-variant-numeric:tabular-nums}
   .informe-cobro-tot.pend{color:var(--amber)}
   .informe-cobro-tot.ok{color:var(--accent)}
   /* Detalle por persona (lo que paga): dos columnas — izquierda (nombre + productos), TOTAL a la derecha. */
   .informe-list{margin-top:var(--space-1)}
-  .informe-asis{display:flex;align-items:center;gap:var(--space-2);padding:7px 0}
+  /* GRUPOS del cobro (Ahorradores / Invitados): el cover se dice UNA vez acá en vez de repetirse en cada
+     persona, y el grupo de Ahorradores hace de padrón del reparto (por eso arriba ya no van los nombres). */
+  .informe-grupo{margin-top:18px}
+  .informe-grupo-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-bottom:4px}
+  .informe-grupo-t{font-size:22px;font-weight:800;color:var(--ink)}
+  .informe-grupo-n{font-size:19px;font-weight:700;color:var(--ink-soft)}
+  .informe-grupo-cov{font-size:19px;font-weight:600;color:var(--ink-soft)}
+  /* RECIBOS EN COLUMNAS: el ancho paga el alto sin tocar el dato (2 columnas; 3 cuando el grupo pasa de 15). */
+  .informe-cols{display:flex;gap:34px;margin-top:10px;align-items:flex-start}
+  .informe-col{flex:1 1 0;min-width:0}
+  /* SIN hairline por fila (DESIGN.md §1: las únicas líneas del sistema son las de los docks). Los recibos se
+     separan por AIRE: el bloque nombre+partidas ya se lee como una unidad. */
+  .informe-asis{display:flex;align-items:baseline;gap:14px;padding:14px 0 2px}
+  .informe-col>.informe-asis:first-child{padding-top:2px}
   .informe-left{flex:1;min-width:0}            /* min-width:0 → el texto largo no empuja el total fuera */
-  .informe-nombre{font-weight:700;font-size:14px;color:var(--ink)}
+  /* Flujo de TEXTO (no flex): un nombre largo junto al chip de cover se empaqueta en 2 renglones; como
+     flex-wrap cada trozo tomaba renglón propio y llegaba a 3 (medido: 147,8px contra 48px del resto). */
+  .informe-nombre{font-weight:700;font-size:26px;color:var(--ink);line-height:1.15}
+  /* El COVER sube al renglón del nombre: se repetía idéntico en TODAS las personas y valía una línea entera
+     cada vez. Atenuado y sin partir el renglón cuando el nombre es largo. */
+  .informe-cov{font-size:19px;font-weight:600;color:var(--ink-soft);white-space:nowrap;margin-left:8px}
   /* MINI RECIBO por persona: partidas indentadas bajo el nombre; cifras en columna (tabulares) para sumar a ojo. */
   .informe-asis.con-desglose{padding-bottom:2px}
   .informe-total{font-variant-numeric:tabular-nums}
-  .informe-desglose{padding:0 0 5px 12px}
-  .informe-desglose .informe-kv{font-size:12px;padding:1px 0}
+  .informe-desglose{padding:2px 0 9px 22px}
+  .informe-desglose .informe-kv{font-size:21px;gap:16px;padding:1px 0}
+  /* El recibo NO se elide: con 3 columnas (271px) se cortaban líneas ("🌀 Rollo de Ca…") y la persona no
+     podía verificar qué se le cobra. Acá el texto ENVUELVE; la elisión de .informe-kv es para la composición. */
+  .informe-desglose .informe-kv>span{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
   .informe-desglose .informe-kv b{font-weight:600;color:var(--ink-soft);font-variant-numeric:tabular-nums}
   .informe-desglose .q{opacity:.65}
   .informe-check{color:var(--accent);font-weight:800}        /* ✓ delante de quien ya saldó */
-  .informe-prods{margin-top:1px;font-size:11px;line-height:1.3;color:var(--ink-soft)}
   /* total por persona: pendiente ámbar (lo que debe) · saldado teal (ya pagó), igual que el Balance. */
-  .informe-total{font-weight:800;font-size:14px;white-space:nowrap;flex:none}
+  .informe-total{font-weight:800;font-size:26px;white-space:nowrap;flex:none}
   .informe-total.pend{color:var(--amber)}
   .informe-total.ok{color:var(--accent)}
   /* Balance consolidado: divisor entre lo ACCIONABLE (Cobro) y las CUENTAS de referencia; y fila "dim"
@@ -893,13 +924,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-155140-60135fd"></script>
-  <script src="js/util.js?v=20260914-155140-60135fd"></script>
-  <script src="js/api.js?v=20260914-155140-60135fd"></script>
-  <script src="js/auth.js?v=20260914-155140-60135fd"></script>
-  <script src="js/store.js?v=20260914-155140-60135fd"></script>
-  <script src="js/view.js?v=20260914-155140-60135fd"></script>
-  <script src="js/controller.js?v=20260914-155140-60135fd"></script>
+  <script src="js/config.js?v=20260914-173255-6070e29"></script>
+  <script src="js/util.js?v=20260914-173255-6070e29"></script>
+  <script src="js/api.js?v=20260914-173255-6070e29"></script>
+  <script src="js/auth.js?v=20260914-173255-6070e29"></script>
+  <script src="js/store.js?v=20260914-173255-6070e29"></script>
+  <script src="js/view.js?v=20260914-173255-6070e29"></script>
+  <script src="js/controller.js?v=20260914-173255-6070e29"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

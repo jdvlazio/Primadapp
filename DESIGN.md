@@ -543,6 +543,19 @@ Cuatro señales, todas **presentación pura** (los cálculos no cambian; `saldoD
 | **Lista de cobro completa** | Recaudo (Balance), acorde "Debe" | **nadie desaparece**: PENDIENTES (`saldo>0`) arriba con monto que falta en **ámbar** (`.kv b.pend`); SALDADAS (terceros `pagado`, `saldo 0`) al **final**, `.kv.saldada` = check teal + nombre **gris** (`--ink-soft`) + **el monto que pagó** (su total) en **teal** (`.kv b.pagado`, `--accent` = saldado, NO ámbar). El **valor nunca desaparece**: se lee cuánto debe / cuánto aportó cada quien. Jerarquía pendiente→saldado |
 | **Check en el PNG** | `informeTemplateHTML` | pendientes (saldo>0) primero; saldadas (saldo 0) al **final** con `✓` (`.informe-check`, teal) delante del nombre. El total sigue teal. El documento refleja el estado COMPLETO del cobro |
 
+> **ESTRUCTURA DEL INFORME COMPARTIDO (sep 2026).** Tarjeta de **940px** (ver §5). De arriba abajo: marca +
+> **fecha exacta** · nombre · **banda** con el héroe *Ganancia* a la izquierda y la *composición* a la derecha
+> (el ancho paga el alto) · *Reparto a ahorradores* (cuántos + `$X c/u`, **sin nombres**) · **COBRO agrupado por
+> estado**: `Ahorradores N · Cover $X` / `Invitados N · Cover $Y`, cada grupo en **2 columnas** (3 si pasa de 15),
+> repartidas con una **partición exacta** que minimiza la columna más alta. Reglas que lo sostienen:
+> · **El Cover se dice UNA vez por grupo**, no en cada persona (se repetía idéntico 15 veces); solo se marca la
+>   excepción con el tag `sin cover`.
+> · **Los nombres aparecen UNA sola vez** en el documento: el grupo *Ahorradores* ES el padrón del reparto, por eso
+>   arriba ya no se listan. Para que eso sea cierto, **el grupo incluye a TODOS los ahorradores aunque su total sea
+>   0** (un co-organizador sin consumo antes desaparecía del documento y aun así recibe plata).
+> · **El desglose por producto se conserva ÍNTEGRO** (requisito del PM) y **no se elide**: en 3 columnas envuelve.
+> · **Sin hairlines por fila** (§1): los recibos se separan por aire.
+
 - El check usa el mismo criterio en app y PNG: `saldoDe === 0 && total > 0` (incluye al **principal**, auto-saldado).
 - La lista del Recaudo **excluye al principal** (`personaId !== prinId`): es la palanca de "quién debe / quién pagó" de **terceros**.
 
@@ -629,6 +642,7 @@ Desviaciones **intencionales** del canónico, con razón. Aprobadas por el PO.
 | `.ti` / `.sel` / `.step` | `border:2px solid var(--line)` | Inputs y steppers: el borde es affordance de control, permitido (§2.3) |
 | ~~`.tabbar` / `.tab.active`~~ | **ELIMINADO** (IA list→detalle): ya no hay tab bar inferior. El alto de la app sigue anclado por `.app{height:100vh}` con `.app-scroll` como único hijo flex. Ver "App shell y scroll — fix del cold-start" |
 | `.toast` opacidad/blur raw | sombras y alphas a negro | Componentes flotantes (toast, sync-indicator); profundidad sobre oscuro |
+| `.informe-*` — **ESCALA PROPIA en px** (940px de ancho, tipografía ~2,5× la de la app) | no usa `--space-*` ni la escala tipográfica de §2 | **No es una pantalla, es un RASTER de ancho fijo.** La escala de la app está construida para 390px; el informe se rasteriza a 940px y se mira **ajustado al ancho** en un chat. Lo que decide su legibilidad es la **fracción del ancho** que ocupa el texto, no el tamaño absoluto → sus medidas son propias y se expresan en px. *(Ya era así antes de sep 2026: el componente nunca usó los tokens de espaciado.)* **Por qué 940:** a 380px la relación era **4,5:1** y el teléfono ajustaba la imagen **por ALTO** (se veía a 166pt en una pantalla de 390pt → había que hacer zoom y la vista previa recortaba la cabecera). **Por debajo de ~2,1:1 el ajuste pasa a ser por ANCHO.** Medido hoy: 15 personas **1,59:1** · 22 personas **1,66:1** · 30 personas y 20 productos **2,15:1** (caso extremo, justo en el borde: la natillera real ronda 12-15). ⚠️ **Cualquier cambio que suba la relación por encima de ~2,1:1 rompe la legibilidad del documento.** Dos trampas verificadas con el rasterizador real (html2canvas 1.4.1), no con el DOM: **(1)** los hijos flex de la banda necesitan `min-width:0` — sin él, como `.informe-kv` es `nowrap`, el mínimo intrínseco lo fija el texto y el bloque se sale de la tarjeta: con un nombre de anfitrión largo se salía **+325px** y las cifras de Cover/Margen/Reembolso **desaparecían del PNG**; **(2)** html2canvas mide mal un **nodo de texto suelto** dentro de un flex con `letter-spacing` (el rótulo salía "R EPARTOA A HORRADORES") y también `text-transform:capitalize` (la fecha salía "Sáb, 28  Feb2026") → todo texto en un flex va **envuelto en su propio `<span>`** y sin `capitalize` |
 | `.informe-*` (informe compartible PNG) | superficie **CLARA** con literales (`#fff`, `#0d1716`, `#e3e8e7`, …) | **Captura-only**: vive offscreen (`.informe-host`) solo para rasterizarse a imagen vía html2canvas; **no es UI de la app**. El tema es oscuro y no hay token de superficie clara → literales aprobados. Acento/ámbar sí salen de tokens (`--accent`/`--amber`). Fuente Instrument Sans + cola de emoji (`Apple Color Emoji`…) para color en el canvas. Trigger `data-act="compartir-informe"` (ícono `share-2`) en la cabecera, visible si hay consumo/cover. Comparte vía `navigator.share({files})`; fallback = descarga del PNG |
 
 **Badges con borde** (`.badge.warn/.good/.red`): **legado**. Permitidos **sólo** de forma

@@ -75,12 +75,23 @@
   // que el sistema ya usa (informe-kv / bal-row) → cero vocabulario visual nuevo; `rowClass` elige el sabor por
   // superficie. Reemplazó a una línea corrida "emoji ×N $x · emoji ×N $y" que no alineaba cifras ni decía el nombre.
   // Vacío si no hay nada que desglosar. El MISMO bloque va en Informe, Balance y hoja Pagar.
-  function desgloseHTML(p, a, rowClass, wrapClass) {
-    const L = desglosePartidas(p, a);
+  function desgloseHTML(p, a, rowClass, wrapClass, sinCover) {
+    // `sinCover`: el informe compartido sube el Cover al renglón del nombre (se repetía idéntico en TODAS las
+    // personas y costaba una línea entera cada vez). Balance y hoja Pagar lo siguen listando como partida.
+    const L = desglosePartidas(p, a).filter(x => !(sinCover && x.lbl === 'Cover'));
     if (!L.length) return '';
     const filas = L.map(x => `<div class="${rowClass}"><span>${x.lbl}${x.q ? ` <span class="q">${x.q}</span>` : ''}</span><b>${$peso(x.m)}</b></div>`).join('');
     return `<div class="${wrapClass}">${filas}</div>`;
   }
+  // Cover NOMINAL del grupo al que pertenece la asistencia (lo que paga alguien de ese estado en esta primada),
+  // sin mirar la exoneración individual. Mismo criterio que Store.coverDe para elegir snapshot vs vigente.
+  function coverGrupoDe(p, a) {
+    const st = S().state();
+    const vigente = st && st.settings && st.settings.cover;
+    const c = (p.estado === 'cerrada' || p.coverPropio) ? p.cover : (vigente || p.cover);
+    return (c && c[a.estadoEnEseMomento]) || 0;
+  }
+
   function informeTemplateHTML(p) {
     const sel = S();
     const inf = sel.informePrincipal(p);
@@ -105,19 +116,17 @@
     // (cada uno recibe parteIgual). El ANFITRIÓN también recibe (siempre es ahorrador) → va en la lista, marcado.
     // Los INVITADOS no reciben (generan ganancia pero no la cobran). Esto es lo que el Tesorero distribuye —
     // distinto del COBRO (quién paga). Anfitrión primero, luego por nombre.
-    const ahorrLista = ahorr.slice().sort((a, b) =>
-      (sel.esPrincipal(p, b) ? 1 : 0) - (sel.esPrincipal(p, a) ? 1 : 0)
-      || nombrePersona(a.personaId).localeCompare(nombrePersona(b.personaId)));
     // §0 "no repetir entre niveles": el MONTO (parteIgual) es igual para todos y se dice UNA vez (cabecera teal).
     // La lista aporta el dato NUEVO: los NOMBRES (a quiénes). NO se repite el monto por fila.
-    const repRows = ahorrLista.map(a =>
-      `<div class="informe-rep">${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div>`).join('');
+    // Los NOMBRES de los ahorradores ya NO se listan acá: el COBRO va agrupado por estado y su grupo
+    // "Ahorradores" ES el padrón de quiénes reciben (idea del PM: no repetir la misma información dos veces
+    // en el mismo documento). Acá queda solo el dato que el grupo no dice: cuántos son y cuánto toca c/u.
     const stat = ahorr.length
       ? `<div class="informe-stat">
-          <div class="informe-stat-k">Reparto a ahorradores<span class="informe-stat-sub">${ahorr.length} ${ahorr.length === 1 ? 'ahorrador' : 'ahorradores'}</span></div>
+          <div class="informe-stat-k"><span>Reparto a ahorradores</span><span class="informe-stat-sub">${ahorr.length}</span></div>
           <div class="informe-stat-v">${$peso(pi)} <span class="informe-stat-cu">c/u</span></div>
         </div>
-        <div class="informe-rep-list">${repRows}</div>`
+`
       : '';
 
     // COMPOSICIÓN — Cover · Margen (cómo se arma) · Reembolso de productos (atenuado, passthrough) · Sobrante (si > 0).
@@ -134,29 +143,103 @@
     // Reembolso de productos + Margen, no se oculta nada).
     const deud = (completa ? sel.deudores(p).filter(d => d.personaId !== principalId) : [])
       .slice().sort((a, b) => b.saldo - a.saldo);
-    const saldadas = (completa ? (p.asistencias || []) : [])
-      .filter(a => (sel.esPrincipal(p, a) || a.pagado) && sel.totalAsistencia(p, a) > 0)
-      .map(a => ({ a, total: sel.totalAsistencia(p, a) }))
-      .sort((x, y) => y.total - x.total);
-    // Cada fila lleva el DESGLOSE (cover + ítems con subtotal) en una línea atenuada bajo el nombre: la persona
-    // sabe qué se le cobra y la suma cuadra a ojo con el total de la derecha.
+    // Cada fila lleva el DESGLOSE (los ítems con su subtotal) bajo el nombre. OJO: acá las partidas NO suman
+    // el total de la derecha — el Cover se subió a la cabecera del GRUPO y no se repite por persona, así que
+    // `Σ partidas = total − cover`. El Balance y la hoja Pagar sí listan el cover como partida.
     const fila = (a, monto, cls, check, anf) => {
-      const desg = desgloseHTML(p, a, 'informe-kv', 'informe-desglose');
+      const desg = desgloseHTML(p, a, 'informe-kv', 'informe-desglose', true);
+      // El cover NO se repite por persona (se decía 15 veces, idéntico): vive en la cabecera del grupo.
+      // Solo se marca la EXCEPCIÓN — quien no lo paga (organizador o cortesía) — igual que en Configurar.
+      const sinCov = sel.coverDe(p, a) === 0 && coverGrupoDe(p, a) > 0;
       return `<div class="informe-asis${desg ? ' con-desglose' : ''}">
-        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div></div>
+        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}${sinCov ? ' <span class="informe-cov">sin cover</span>' : ''}</div></div>
         <div class="informe-total ${cls}">${$peso(monto)}</div>
       </div>${desg}`;
     };
-    const asisDe = pid => (p.asistencias || []).find(x => x.personaId === pid);
-    const pendRows = deud.map(d => fila(asisDe(d.personaId), d.saldo, 'pend', false, false)).join('');
-    const saldRows = saldadas.map(({ a, total }) => fila(a, total, 'ok', true, sel.esPrincipal(p, a))).join('');
+    // Recibos en COLUMNAS: es lo que paga el alto sin tocar el dato. El ancho de la tarjeta compartida (940px)
+    // alcanza para dos; cuando el grupo pasa de 15, tres. Se reparten BALANCEANDO CONTENIDO (no conteo): el
+    // alto de la sección lo fija la columna más larga, así que lo que pesa son los renglones, no las filas.
+    // Una entrada por ASISTENCIA (no solo por quien tiene total > 0): el grupo de Ahorradores debe ser el
+    // padrón COMPLETO de quiénes reciben el reparto —un co-organizador sin consumo tiene total 0 y antes
+    // desaparecía del documento—. Orden: primero los que deben (mayor a menor), después los saldados.
+    const ordenDeuda = new Map(deud.map((d, i) => [d.personaId, i]));
+    const entradas = (completa ? (p.asistencias || []) : []).slice().sort((x, y) => {
+      const dx = ordenDeuda.has(x.personaId), dy = ordenDeuda.has(y.personaId);
+      if (dx !== dy) return dx ? -1 : 1;
+      if (dx) return ordenDeuda.get(x.personaId) - ordenDeuda.get(y.personaId);
+      return sel.totalAsistencia(p, y) - sel.totalAsistencia(p, x);
+    });
+    const recibo = a => {
+      const debe = ordenDeuda.has(a.personaId);
+      const sinCov = sel.coverDe(p, a) === 0 && coverGrupoDe(p, a) > 0;
+      const monto = debe ? sel.saldoDe(p, a) : sel.totalAsistencia(p, a);
+      return { html: fila(a, monto, debe ? 'pend' : 'ok', !debe, sel.esPrincipal(p, a)),
+               n: 1 + sel.resumenConsumoDe(p, a).length,
+ };
+    };
+    const enColumnas = (recibosSinPeso) => {
+    // 3 columnas cuando el grupo es grande. El umbral se bajó a 15 porque ahora cada GRUPO se reparte por su
+    // cuenta: con 20 ahorradores en dos columnas la tarjeta se iba a 2,3:1 y el teléfono volvía a ajustar por
+    // alto (medido). A 940px, tres columnas dan ~290px cada una: alcanza para nombre + total.
+    const nCols = recibosSinPeso.length > 15 ? 3 : 2;
+    // Reparto EXACTO (no heurístico): se prueban todos los cortes posibles conservando el orden y se elige el
+    // que MINIMIZA la columna más alta —que es la que fija el alto de la sección—. Con ≤30 recibos y 2-3
+    // columnas el costo es trivial. Peso por recibo: MEDIDO en el render real, cada RENGLÓN de la cabecera
+    // (nombre+total, 26px) pesa 1,28 veces una línea de producto (21px); el 0,45 es el aire entre recibos.
+    // Contar los renglones del NOMBRE importa: uno de 3 líneas mide 179px y uno corto 90px, y tratarlos igual
+    // desbalanceaba las columnas (medido: 52px de más y un hueco de 143px al pie de la primera).
+    // Peso por recibo, MEDIDO en el render real: la cabecera (nombre + total, 26px) pesa 1,28 veces una línea
+    // de producto (21px) y el 0,45 es el aire entre recibos. Se probó afinarlo estimando los RENGLONES del
+    // nombre (por ancho de columna y largo del texto) y salió PEOR: el ancho real que le queda al nombre
+    // depende del monto que comparte renglón, de los tags y de los glifos, y el error de la estimación
+    // desbalanceaba más de lo que corregía (medido: 281px de dispersión contra 129px con este modelo simple).
+    const peso = r => 1.28 + (r.n - 1) + 0.45;
+    const recibos = recibosSinPeso;
+    const pesos = recibos.map(peso);
+    const suma = (i, j) => pesos.slice(i, j).reduce((t, x) => t + x, 0);
+    let mejor = null;
+    if (nCols === 2) {
+      for (let c = 1; c < recibos.length; c++) {
+        const alto = Math.max(suma(0, c), suma(c, recibos.length));
+        if (!mejor || alto < mejor.alto) mejor = { alto, cortes: [c] };
+      }
+    } else {
+      for (let c1 = 1; c1 < recibos.length - 1; c1++) for (let c2 = c1 + 1; c2 < recibos.length; c2++) {
+        const alto = Math.max(suma(0, c1), suma(c1, c2), suma(c2, recibos.length));
+        if (!mejor || alto < mejor.alto) mejor = { alto, cortes: [c1, c2] };
+      }
+    }
+    const cortes = (mejor && mejor.cortes) || [];
+    const grupos = [];
+    let desde = 0;
+    [...cortes, recibos.length].forEach(hasta => { grupos.push(recibos.slice(desde, hasta)); desde = hasta; });
+    // Se emiten SIEMPRE nCols columnas (alguna puede quedar vacía): con flex, un grupo de un solo recibo
+    // ocupaba el ancho completo y su total quedaba a 880px del nombre.
+    while (grupos.length < nCols) grupos.push([]);
+    return `<div class="informe-cols">${grupos.map(g => `<div class="informe-col">${g.map(r => r.html).join('')}</div>`).join('')}</div>`;
+    };
+    // AGRUPADO POR ESTADO (idea del PM): el cover —idéntico dentro del grupo— se dice UNA vez en la cabecera
+    // en vez de repetirse en cada persona, y el grupo de Ahorradores hace de padrón del reparto.
+    const grupoCobro = (estado, titulo) => {
+      const gs = entradas.filter(a => a.estadoEnEseMomento === estado);
+      if (!gs.length) return '';
+      // Solo se anuncia el Cover si ALGUIEN del grupo lo paga: con el anfitrión solo, o con todos exonerados,
+      // la cabecera decía "Cover $15.000" y lo cobrado era $0. (El cover nominal no depende de QUIÉN sea el
+      // primero del grupo: `coverGrupoDe` mira `estadoEnEseMomento`, que es constante dentro del grupo.)
+      const cov = gs.some(a => sel.coverDe(p, a) > 0) ? coverGrupoDe(p, gs[0]) : 0;
+      return `<div class="informe-grupo">
+        <div class="informe-grupo-head"><span class="informe-grupo-t">${titulo} <span class="informe-grupo-n">${gs.length}</span></span>${cov > 0 ? `<span class="informe-grupo-cov">Cover ${$peso(cov)}</span>` : ''}</div>
+        ${enColumnas(gs.map(recibo))}
+      </div>`;
+    };
+    const cobroCols = `${grupoCobro('ahorrador', 'Ahorradores')}${grupoCobro('invitado', 'Invitados')}`;
     const cobroTot = inf.saldoPendiente > 0
       ? `<div class="informe-cobro-tot pend">Por cobrar ${$peso(inf.saldoPendiente)}</div>`
       : `<div class="informe-cobro-tot ok">✓ Todo cobrado</div>`;
     // El TOTAL va en la CABECERA de la sección (como en el Balance), no al pie debajo de todos los recibos:
     // el Tesorero lee de una cuánto falta antes de bajar al detalle.
     const cobro = completa
-      ? `<div class="informe-cobro"><div class="informe-cobro-head"><span class="informe-sub">Cobro</span>${cobroTot}</div>${pendRows}${saldRows}</div>`
+      ? `<div class="informe-cobro"><div class="informe-cobro-head"><span class="informe-sub">Cobro</span>${cobroTot}</div>${cobroCols}</div>`
       : '';
 
     return `<div class="informe-card">
@@ -165,9 +248,8 @@
           <span class="informe-period">${e(p.fecha ? Util.fechaCompleta(p.fecha) : Util.monthYear(p.mesContable))}</span>
         </div>
         <div class="informe-title">${e(nombreCorto(p.nombre))}</div>
-        ${hero}
+        <div class="informe-banda">${hero}${comp}</div>
         ${stat}
-        ${comp}
         ${cobro}
       </div>`;
   }
