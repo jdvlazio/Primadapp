@@ -848,6 +848,36 @@ section('Estadísticas: agrega SOLO primadas cerradas; promedios (sin nombrar a 
   check('Una sola primada: núcleo fiel = null (≥2 requerido)', select.estadisticas('2026').nucleoFiel === null);
 }
 
+/* ---------- Orden de productos en los RECIBOS: del factor común al más particular ---------- */
+section('rankProductos: común (más personas) → particular; desempata por unidades, luego orden de catálogo');
+{
+  Store.actions.replaceState(null);
+  const rA = Store.actions.addPersona({ nombre: 'A', estado: 'ahorrador' });
+  const rB = Store.actions.addPersona({ nombre: 'B', estado: 'ahorrador' });
+  const rC = Store.actions.addPersona({ nombre: 'C', estado: 'invitado' });
+  const rp = Store.actions.createPrimada({ principalId: rA, organizadores: [rA], mesContable: '2026-09' });
+  Store.actions.addAsistencia(rp, rB); Store.actions.addAsistencia(rp, rC);
+  const prm = () => Store.select.state().primadas.find(p => p.id === rp);
+  const prods = prm().productos;                       // orden de CATÁLOGO (el que se quiere romper)
+  check('Precondición: el catálogo por defecto trae ≥4 productos', prods.length >= 4);
+  const [P0, P1, P2, P3] = prods.map(x => x.id);
+  // P3 = 3 personas × 1 (el COMÚN, aunque sea el ÚLTIMO del catálogo)
+  // P0 = 1 persona × 5 (muchas unidades, pero PARTICULAR)
+  // P1 y P2 = 1 persona × 1 cada uno (empate total → decide el catálogo)
+  [rA, rB, rC].forEach(pid => Store.actions.changeItem(rp, pid, P3, 1));
+  Store.actions.changeItem(rp, rA, P0, 5);
+  Store.actions.changeItem(rp, rB, P1, 1); Store.actions.changeItem(rp, rB, P2, 1);
+  const rank = Store.select.rankProductos(prm());
+  eq('El más COMÚN (3 personas) va PRIMERO aunque sea el último del catálogo', rank.get(P3), 0);
+  check('Más PERSONAS gana a más UNIDADES: P3 (3×1) antes que P0 (1×5)', rank.get(P3) < rank.get(P0));
+  check('Mismas personas → desempata por unidades: P0 (1×5) antes que P1 (1×1)', rank.get(P0) < rank.get(P1));
+  check('Empate total (1 persona, 1 und) → orden de catálogo: P1 antes que P2', rank.get(P1) < rank.get(P2));
+  // Estabilidad: el rank cubre TODOS los productos del catálogo (los no consumidos van al final, en orden de catálogo).
+  eq('Todos los productos del catálogo tienen posición', rank.size, prods.length);
+  // Y es determinista: la misma primada da el mismo orden.
+  check('Determinista (dos llamadas, mismo orden)', JSON.stringify([...Store.select.rankProductos(prm())]) === JSON.stringify([...rank]));
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);

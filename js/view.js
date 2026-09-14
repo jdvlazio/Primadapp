@@ -59,8 +59,12 @@
   function desglosePartidas(p, a) {
     const L = [];
     const cov = S().coverDe(p, a);
-    if (cov > 0) L.push({ lbl: 'Cover', q: '', m: cov });
-    S().resumenConsumoDe(p, a).forEach(({ prod, cantidad }) => {
+    if (cov > 0) L.push({ lbl: 'Cover', q: '', m: cov });   // el Cover es el factor común universal: siempre primero
+    // Productos del FACTOR COMÚN al más PARTICULAR (Store.select.rankProductos): así los recibos de varias personas
+    // quedan alineados entre sí — lo que todos tomaron arriba, lo raro al final — y el informe se lee ordenado.
+    const rank = S().rankProductos(p);
+    const pos = id => (rank.has(id) ? rank.get(id) : 0);
+    S().resumenConsumoDe(p, a).slice().sort((x, y) => pos(x.prod.id) - pos(y.prod.id)).forEach(({ prod, cantidad }) => {
       L.push({ lbl: `${e(prod.emoji)} ${e(prod.nombre)}`, q: `×${cantidad}`, m: (Number(prod.precioVenta) || 0) * cantidad });
     });
     return L;

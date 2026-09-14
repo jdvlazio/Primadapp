@@ -435,6 +435,20 @@
     disponiblesPara(primada, a) { return primada.productos.filter(prod => cantidadConsumo(primada, a.personaId, prod.id) === 0); },
     // VISTA POR DEFECTO (resumen sumado): [{prod, cantidad}] de lo consumido por la asistencia.
     resumenConsumoDe(primada, a) { return select.consumidosDe(primada, a).map(prod => ({ prod, cantidad: cantidadConsumo(primada, a.personaId, prod.id) })); },
+    // ORDEN de productos para los RECIBOS por persona: del FACTOR COMÚN (lo que más gente consumió) al más PARTICULAR
+    // (lo que solo uno pidió). Al leer varios recibos seguidos, las partidas comunes quedan alineadas arriba y las
+    // raras al final → el informe se lee ordenado de un vistazo. Criterio: nº de PERSONAS distintas que lo consumieron
+    // (desc) — "común" es cuánta gente, no cuántas unidades—, desempate por unidades totales (desc) y por último el
+    // orden del catálogo (estable, determinista). Devuelve Map productId → posición (0 = el más común).
+    rankProductos(primada) {
+      const stats = (primada.productos || []).map((prod, i) => {
+        const personas = new Set(); let unidades = 0;
+        (primada.consumos || []).forEach(c => { if (c.productoId === prod.id) { personas.add(c.personaId); unidades += (Number(c.cantidad) || 1); } });
+        return { id: prod.id, personas: personas.size, unidades, i };
+      });
+      stats.sort((a, b) => (b.personas - a.personas) || (b.unidades - a.unidades) || (a.i - b.i));
+      const rank = new Map(); stats.forEach((s, k) => rank.set(s.id, k)); return rank;
+    },
     // AUDITORÍA (bajo demanda): cada fila con su hora y quién la apuntó, ordenada por hora.
     detalleConsumoDe(primada, a) {
       return (primada.consumos || [])
