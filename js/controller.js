@@ -84,6 +84,8 @@
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'toggle-pagado', 'add-persona', 'set-estado-persona',
     'set-estado-momento', 'borrar-mi-cuenta', 'add-asis-nuevo',
   ]);
+  // Ventana corta tras un cambio de persona en el que la lista se movió: descarta consumos accidentales.
+  let bloqueoConsumoHasta = 0;
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
   // Acciones que vale la pena REPETIR tras iniciar sesión: frecuentes, de un toque y sin confirmación.
   // Las destructivas (cerrar/borrar) NO se repiten solas: el usuario vuelve a pedirlas a conciencia.
@@ -244,6 +246,11 @@
     // GATE INVERTIDO (decisión #5): la app carga en LECTURA para cualquiera con el link; el login salta
     // SOLO al intentar ESCRIBIR. La frontera real es RLS (rechaza al anon); esto es el aviso amable.
     if (WRITE_ACTS.has(act) && backendOn() && !sesionActiva) { pedirLogin(b, act); return; }
+
+    // GUARDA ANTI-TOQUE-FANTASMA: si la lista acaba de moverse bajo el dedo al cambiar de persona (ver
+    // 'activar-asis'), se descartan los consumos por un instante — el segundo toque de un doble toque
+    // accidental no apunta nada. Ventana mínima y solo en ese caso.
+    if ((act === 'item-plus' || act === 'item-minus') && Date.now() < bloqueoConsumoHasta) return;
 
     switch (act) {
       // ----- auth (hoja de login, opt-in desde el ícono de perfil) -----
@@ -427,8 +434,16 @@
 
       // ----- Lista viva: activar/colapsar la persona (UNA a la vez). Tap otra reemplaza (colapsa la anterior). -----
       case 'activar-asis': {
+        // Se mide ANTES del re-render dónde estaba la fila tocada; después la Vista compensa el scroll para
+        // que no se mueva (al colapsar la ficha anterior, ~716px, la fila saltaba hacia arriba bajo el dedo).
+        const topAntes = b.getBoundingClientRect().top;
         ui.activaPid = (ui.activaPid === pid) ? null : pid;
-        rerender(); return;
+        rerender();
+        // Si el ancla NO pudo compensar (no había scroll arriba), la fila se movió igual y bajo el dedo puede
+        // quedar un `+1`. Se ignoran los consumos por un instante: el segundo toque de un doble toque
+        // accidental no apunta nada. Es una ventana mínima y SOLO tras un cambio de persona que se movió.
+        if (View.anclarFila(pid, topAntes)) bloqueoConsumoHasta = Date.now() + 300;
+        return;
       }
       // ----- Auditoría (C2): detalle por evento bajo demanda (lectura; carga quién→email una vez) -----
       case 'toggle-auditoria': {

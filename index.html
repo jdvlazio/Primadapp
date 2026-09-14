@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-150622-ad7aac5">
+<meta name="build" content="20260914-155140-60135fd">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -535,7 +535,9 @@
   .asis-pay.on .circ{background:transparent;border-color:var(--accent)}
   .asis-pay .circ .icon{width:14px;height:14px}
   .asis-pay:active{transform:scale(.9)}
-  .asis-pay-sp{flex:none;width:var(--tap-row)}   /* columna vacía: mantiene la columna de montos alineada */
+  /* Columna vacía (anfitrión / quien no debe): reserva el MISMO ancho Y el mismo alto que el check real, si
+     no la fila queda de 21px contra 48px de las demás y el ritmo de la lista se rompe. */
+  .asis-pay-sp{flex:none;width:var(--tap-row);min-height:var(--tap-row)}
   /* REVEAL de la persona activa: chips (apuntar) ARRIBA + pago (footer). */
   .asis-reveal{padding:0 var(--space-3) var(--space-3);animation:accIn .18s ease}
   .chips-viva{display:flex;flex-wrap:wrap;gap:var(--space-2)}
@@ -545,22 +547,39 @@
      (auditoría visual, sep 2026). Ahora el `+` queda anclado al borde derecho: el gesto más repetido de la
      app se hace en el mismo sitio, a ciegas. Los dos controles suben de 36px a 44px (--tap-input): se apunta
      de noche, con una mano, en una fiesta. El BORDE vuelve a gris: el teal queda SOLO en el `+`, que es lo
-     que significa algo (antes 5 cajas teal por pantalla diluían el acento). */
+     que significa algo. (Desde sep 2026 el acento vive en el ×N, no en el `+`: ver DESIGN.md §2.1.2.) */
   .chip.has{padding:0;overflow:hidden;border-color:var(--line);display:flex;width:100%;min-height:var(--tap-input)}
   .chip.has .chip-plus{display:inline-flex;align-items:center;gap:var(--space-1);flex:1;min-width:0;min-height:var(--tap-input);background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:var(--space-2) var(--space-3);text-align:left}
   .chip-nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .chip.has .chip-minus{display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--tap-input);width:var(--tap-input);min-height:var(--tap-input);background:transparent;border:none;border-right:1px solid var(--line);cursor:pointer;color:var(--ink-soft);font-size:17px;line-height:1}
-  /* + EXPLÍCITO a la derecha (gesto universal de agregar): en teal para que resalte sobre el − tenue. */
-  .chip.has .chip-add{display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--tap-input);width:var(--tap-input);min-height:var(--tap-input);background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--accent);font-size:18px;font-weight:700;line-height:1}
+  /* + EXPLÍCITO a la derecha: el gesto universal de agregar. YA NO va en teal (antes había 11 `+` teal por
+     pantalla y el acento quedaba diluido): el acento se mudó al DATO, el ×N. Ver DESIGN.md §2.1.2. */
+  .chip.has .chip-add{display:inline-flex;align-items:center;justify-content:center;flex:0 0 var(--tap-input);width:var(--tap-input);min-height:var(--tap-input);background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--ink-soft);font-size:18px;font-weight:400;line-height:1}
   .chip.has .chip-minus:active,.chip.has .chip-plus:active,.chip.has .chip-add:active{transform:scale(.9)}
   .chip-q{font-variant-numeric:tabular-nums;flex:none}
-  /* Fila en CERO: misma caja y mismas 3 columnas que una con N (para que 0→1 tampoco mueva nada). Cambia
-     solo el contenido: precio tenue en vez de ×N, y el − inerte (no hay nada que corregir). */
-  .chip.has.cero .chip-plus{color:var(--ink)}
-  .chip.has.cero .chip-minus{opacity:.25;pointer-events:none}
-  .chip-precio{flex:none;font-style:normal;font-weight:400;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-  /* DESTELLO de confirmación: apuntar no avisaba nada. Corto y sin desplazar nada (transform, no layout). */
-  @keyframes flashNum{0%{transform:scale(1)}35%{transform:scale(1.22);color:var(--accent)}100%{transform:scale(1)}}
+  /* TINTA INVERTIDA — el cero deja de gritar (auditoría de densidad, sep 2026). La fila en CERO conserva
+     EXACTAMENTE la misma caja y las mismas 3 columnas que una con N (0→1 no mueve ni un píxel: solo cambia
+     el peso de la tinta). Antes el nombre se pintaba idéntico en los dos estados —mismo color, tamaño y peso
+     700, 14,09:1 los dos— así que con 9 de 11 filas en cero, lo consumido se PERDÍA entre lo demás. Ahora la
+     fila en cero pierde borde y fondo y baja a `--ink-soft` (6,8:1 sobre --paper: atenúa sin volverse
+     ilegible de noche), y el `−` va inerte. Se atenúa con `border-color:transparent`, NUNCA `border:none`:
+     el borde sigue ocupando su píxel y la altura no cambia. */
+  .chip.has.cero{border-color:transparent;background:transparent}
+  .chip.has.cero .chip-plus{color:var(--ink-soft);font-weight:400}
+  .chip.has.cero .chip-minus{opacity:.25;pointer-events:none;border-right-color:transparent}
+  /* El `+` de la fila en cero va ATENUADO como todo lo demás de la fila: es el mockup que aprobó el PM y su
+     criterio manda. (Una revisión visual propuso devolverle `--ink` por affordance; con eso el `+` de una fila
+     VACÍA quedaba más brillante que el de una con consumo — al revés de la jerarquía. Si en uso real cuesta
+     descubrir el toque, se revisa entonces, no antes.) */
+  .chip.has.cero .chip-add{border-left-color:transparent}
+  .chip.has:not(.cero):not(.ro) .chip-q{font-size:16px;color:var(--accent)}   /* .ro = cerrada, solo lectura: no crece ni se tiñe */
+  /* `.chip-precio` es un <i> dentro de `.chip`, así que `.chip i` (más específica) le ganaba y lo pintaba a
+     11px en vez de los 12 declarados. Se sube la especificidad para que mande la regla propia. */
+  .chip .chip-precio{flex:none;font-style:normal;font-weight:400;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  /* DESTELLO de confirmación: apuntar no avisaba nada. Corto y sin desplazar nada (transform, no layout).
+     Va HACIA --ink (no hacia el acento): el ×N ya es teal en reposo, así que animar al acento no se veía
+     —medido: mismo color en reposo y en pleno flash, quedaba solo la escala—. */
+  @keyframes flashNum{0%{transform:scale(1)}35%{transform:scale(1.22);color:var(--ink)}100%{transform:scale(1)}}
   .chip-q.flash,.chip-precio.flash,.acc-amt.flash{animation:flashNum .35s ease-out}
   @media (prefers-reduced-motion: reduce){ .chip-q.flash,.chip-precio.flash,.acc-amt.flash{animation:none} }
   /* cerrada = solo lectura: nada que tocar → vuelve a pill compacto (más denso, sin controles). */
@@ -874,13 +893,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-150622-ad7aac5"></script>
-  <script src="js/util.js?v=20260914-150622-ad7aac5"></script>
-  <script src="js/api.js?v=20260914-150622-ad7aac5"></script>
-  <script src="js/auth.js?v=20260914-150622-ad7aac5"></script>
-  <script src="js/store.js?v=20260914-150622-ad7aac5"></script>
-  <script src="js/view.js?v=20260914-150622-ad7aac5"></script>
-  <script src="js/controller.js?v=20260914-150622-ad7aac5"></script>
+  <script src="js/config.js?v=20260914-155140-60135fd"></script>
+  <script src="js/util.js?v=20260914-155140-60135fd"></script>
+  <script src="js/api.js?v=20260914-155140-60135fd"></script>
+  <script src="js/auth.js?v=20260914-155140-60135fd"></script>
+  <script src="js/store.js?v=20260914-155140-60135fd"></script>
+  <script src="js/view.js?v=20260914-155140-60135fd"></script>
+  <script src="js/controller.js?v=20260914-155140-60135fd"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

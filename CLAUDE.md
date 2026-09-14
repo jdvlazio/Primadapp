@@ -258,7 +258,14 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     hay saldo pendiente** —los deudores la miran para pagar, abierta o cerrada; se oculta al estar todo cobrado— +
     lista = **registro TRANSPARENTE del consumo de cada quien**: deudores ámbar / saldados check teal, y el
     **ANFITRIÓN aparece SIEMPRE como saldado** (consumo en mano, marcado "Anfitrión"): su total se ve igual que el de
-    todos —el cruce de cuentas ya está en Reembolso + Margen—). **Bre-B: Balance SÍ (operativo), informe PNG NO (resumen financiero).**
+    todos —el cruce de cuentas ya está en Reembolso + Margen—.
+    ⚠️ **ORDEN ESTABLE, igual que la lista viva (revisión táctil, sep 2026):** es **UNA sola lista** de todas las
+    asistencias con total > 0, ordenada por **total DESCENDENTE** —criterio que **no depende de si pagó**— y
+    chulear un pago **solo cambia la tinta**. Antes se partía en dos grupos (deudores arriba, saldados abajo) y al
+    marcar un pago la persona **MIGRABA de grupo**: medido con el scroll quieto, **tres toques en el mismo punto
+    marcaron como pagadas a TRES PERSONAS DISTINTAS**. Acá cuesta plata de verdad (se salda a quien no pagó).
+    **Nunca volver a agrupar por estado de pago.** *(El monto mostrado no cambia: con pago binario el saldo de un
+    deudor ES su total.)*). **Bre-B: Balance SÍ (operativo), informe PNG NO (resumen financiero).**
     **Un solo divisor** (composición | cobro). Se quitaron:
     **ACTA DE CIERRE (cerrada con deuda):** bajo el héroe "Ganancia · al Tesorero" va la nota ámbar
     **"$X aún por cobrar"** (`.bal-note.pend` / `.informe-hero-note.pend`) — la ganancia es la cifra contable y el
@@ -408,10 +415,21 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   **"Un toque = +1" se CONSERVA** (es lo mejor del patrón; la causa del error nunca fue esa).
   Cuesta alto de pantalla (11 productos ≈ 608px) y se acepta: a cambio, la posición de cada producto es
   **predecible** y la memoria muscular funciona.
+- **ANCLA DE SCROLL al cambiar de persona activa (`View.anclarFila`):** al activar a alguien, la ficha de la
+  persona ANTERIOR se colapsa (~716px con 11 productos) → todo lo de abajo SUBE y la fila que tocaste se va
+  **bajo el dedo** (medido: 202px, 360px, 681px según el scroll; en un recorrido real, **7 de 12** cambios
+  dejaban un `item-plus` bajo el punto tocado). El controller mide el `top` ANTES del re-render y la Vista
+  compensa `scrollTop` después. **Devuelve el RESIDUAL**: si no se pudo compensar (no había scroll arriba, el
+  navegador clampea), la fila se **fija en un sitio determinista** (`scrollTop = fila.offsetTop − 8`, pegada
+  arriba) para que el resultado sea siempre el mismo, y el controller activa `bloqueoConsumoHasta = now + 300`
+  → durante 300ms se **descartan `item-plus`/`item-minus`** (el segundo toque de un doble toque accidental no
+  apunta nada). El guarda va justo después del gate de escritura y **solo** se arma tras un cambio de persona
+  que se movió: apuntar rápido varias veces seguidas no se ve afectado.
 - **CONFIRMACIÓN IMPLÍCITA al apuntar:** `View.flashConsumo(pid, prodId)` — destello corto (`transform`, no
   toca layout) sobre la cifra que cambió y sobre el total de la persona. Apuntar **no avisaba NADA** (ni toast
   ni animación) y un consumo fantasma quedaba con aspecto de dato legítimo. Es **quirúrgico** (la Vista dibuja
-  → MVC intacto, igual que `actualizarCoverGrupo`), lo llama el controller **justo después** de la acción
+  → MVC intacto, igual que `actualizarCoverGrupo`). ⚠️ El keyframe anima el color hacia **`--ink`**, NO hacia el
+  acento: el `×N` ya es teal en reposo, así que animar al acento no se veía. Lo llama el controller **justo después** de la acción
   —cuando el commit ya re-renderizó— y así no mete estado de animación en el Store. Respeta
   `prefers-reduced-motion`. **NO se usó toast con "Deshacer"** (descartado: dispararía en cada cerveza y tapa
   justo la zona donde se apunta).

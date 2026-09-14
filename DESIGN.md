@@ -220,9 +220,12 @@ productos aparecen **inline** como chips + el bloque de **pago** debajo.
 | **Identidad** (`.asis-fila-id`) | igual que §2.1 (nombre primario, rol tenue, dot+palabra del principal). **SALDADA**: `.saldado` → **nombre en teal** (`--accent`) + check (`.asis-check`) — refuerzo del registro "resuelto" (§1) |
 | **Total** (`.acc-amt`) | a la derecha, siempre visible; se actualiza EN VIVO al apuntar |
 | **Reveal** (`.asis-reveal`) | solo en la activa: chips (arriba, apuntar = frecuente) + pago (footer, saldar = menos frecuente). Entra con `accIn` |
-| **Chip CONSUMIDO** (`.chip.has`) | stepper compacto `[− 🍺×N +]`, borde **teal**: **`+` explícito a la derecha** (`.chip-add`, en **teal** = gesto universal de agregar, resalta) = **+1**; cuerpo `emoji ×N` (`.chip-plus`) TAMBIÉN suma (target grande, menos fricción); `−` chico subordinado a la izquierda (`.chip-minus`, gris) = **−1**. Todos `item-plus`/`item-minus` |
-| **Chip DISPONIBLE** (`.chip`) | emoji + nombre + precio; tap = **+1** (0→1, pasa a consumido). Mismo `item-plus` (ya no hay "add-item" ni picker aparte) |
-| **Cerrada** | chips de **solo lectura** (`.chip.has.ro`, sin +/−); pago SIGUE activo (INVARIANTE #4) |
+| **Fila de producto** (`.chip.has`) | stepper a **ancho completo**, columnas FIJAS `[− | emoji nombre ×N | +]` de 44px: el `+` de la derecha (`.chip-add`) y el cuerpo (`.chip-plus`) suman **+1**; el `−` de la izquierda (`.chip-minus`) resta. Todos `item-plus`/`item-minus` |
+| **ORDEN ESTABLE** (sep 2026) | Se dibuja **una fila por CADA producto del catálogo, SIEMPRE, en orden de catálogo**. Ya **no** hay dos grupos (consumidos / disponibles) ni chip "disponible" suelto: al saltar de grupo, el producto **se movía bajo el dedo** y el punto recién tocado pasaba a ser el `+1` de otro (error medido de $64.000 en un triple toque). ⚠️ **Nunca reordenar ni agrupar esta lista.** |
+| **Fila en CERO** (`.chip.has.cero`) | Misma caja y mismas columnas que una con N —**0→1 no mueve ni un píxel**— pero **atenuada**: sin borde ni fondo (`border-color:transparent`, nunca `border:none`), nombre `--ink-soft`/400 (6,8:1), **precio** en vez de `×N`, `−` inerte. El **`+` conserva `--ink`**: es el único glifo accionable de la fila. |
+| **El acento vive en el DATO, no en el control** | El `×N` de una fila consumida va **teal a 16px**; el `+` es `--ink-soft`/400. *(Antes el `+` era teal: con 11 productos quedaban 11 controles teal por pantalla y el acento se diluía —contra §1, donde teal = **valor logrado**—. Lo que cambia entre filas es la cantidad, y era lo único sin jerarquía propia.)* |
+| **Confirmación al apuntar** | Destello corto (`flashNum`, `transform` + color hacia `--ink`) sobre el `×N` y sobre el total de la persona. Respeta `prefers-reduced-motion`. |
+| **Cerrada** | chips de **solo lectura** (`.chip.has.ro`, sin +/−, pill compacto, **sin** el `×N` teal de 16px); el pago SIGUE activo (INVARIANTE #4) pero **se marca desde el Balance**, no desde acá |
 | **Auditoría** (ⓘ) | `toggle-auditoria` dentro del reveal (igual que antes) |
 
 **Orden:** por mayor consumo (`asistenciasPorConsumo`, DESC). **Decisión:** se **acepta el re-orden en vivo** — al

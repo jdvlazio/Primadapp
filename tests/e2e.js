@@ -245,6 +245,11 @@ check('Orden estable: hay una fila por CADA producto del catálogo, consumido o 
 check('Los NO consumidos son la MISMA fila, en cero (.chip.has.cero con precio y − inerte)',
   !!q('.chip.has.cero .chip-precio') && q('.chip.has.cero .chip-minus').disabled === true);
 check('Ya NO existe la pastilla suelta de "disponible" (.chip sin .has)', !q('.chips-viva .chip:not(.has)'));
+// ANCLA DE SCROLL al cambiar de persona: la ficha anterior se colapsa (~716px con 11 productos) y la fila que
+// tocaste saltaba hacia ARRIBA bajo el dedo (medido: 202px y 360px). La Vista compensa el scroll.
+check('View.anclarFila existe y tolera datos faltantes (no rompe sin scroller)',
+  typeof window.View.anclarFila === 'function'
+  && (window.View.anclarFila('no-existe', 100), window.View.anclarFila(beto.id, null), true));
 // Stepper [− 🍺×N +]: − a la izquierda, + EXPLÍCITO a la derecha (gesto universal), + cuerpo tappable.
 check('Chip consumido: + explícito a la derecha (.chip-add) y − a la izquierda (.chip-minus)',
   !!q('.chip.has .chip-add') && !!q('.chip.has .chip-minus'));
@@ -1040,8 +1045,8 @@ eq('Quitar el día (vacío) → fecha SIN día', st().primadas.find(p => p.id ==
 eq('Al quitar el día, el mes (ancla) se conserva', st().primadas.find(p => p.id === idF).mesContable, '2026-11');
 click('[data-act="close-overlay"]');
 
-/* ---------- 17. Balance: orden de MAYOR a MENOR en Debe y en saldados ---------- */
-section('Balance: Debe (pendientes) y saldados, ambos ordenados de mayor a menor monto');
+/* ---------- 17. Balance › Cobro: UNA lista estable por TOTAL (pagar no mueve a nadie de sitio) ---------- */
+section('Balance › Cobro: orden ESTABLE por total; chulear un pago NO reordena la lista');
 const ordZoe = Store.actions.addPersona({ nombre: 'Zoe', estado: 'invitado' });   // addPersona devuelve el ID
 const ordYago = Store.actions.addPersona({ nombre: 'Yago', estado: 'invitado' });
 const ordVera = Store.actions.addPersona({ nombre: 'Vera', estado: 'invitado' });
@@ -1057,11 +1062,27 @@ Store.actions.setPagado(idO, ordUri, true);
 Store.actions.seleccionarPrimada(idO); entrarDetalle(idO); abrirBalance();
 const bal = q('.balance-panel').innerHTML;   // SOLO el Balance (los nombres también salen en Consumos, arriba)
 const iZoe = bal.indexOf('Zoe'), iYago = bal.indexOf('Yago'), iVera = bal.indexOf('Vera'), iUri = bal.indexOf('Uri');
-check('Debe: Zoe y Yago presentes como pendientes', iZoe > -1 && iYago > -1);
-check('Debe ordenado MAYOR→MENOR: Zoe (3 cervezas) antes que Yago (1)', iZoe < iYago);
-check('Saldados: Vera y Uri presentes (check)', iVera > -1 && iUri > -1 && /bal-row saldada/.test(bal));
-check('Saldados ordenados MAYOR→MENOR: Vera (brownie 9.000) antes que Uri (2 cervezas 7.000)', iVera < iUri);
-check('Pendientes (Debe) van ANTES que los saldados', iYago < iVera);
+check('Cobro: los cuatro presentes (deudores y saldados en UNA sola lista)',
+  iZoe > -1 && iYago > -1 && iVera > -1 && iUri > -1 && /bal-row saldada/.test(bal));
+// El orden es por TOTAL desc y NO depende de si pagó: Zoe 10.500 · Vera 9.000 · Uri 7.000 · Yago 3.500.
+const totalDe = pid => Store.select.totalAsistencia(prm(), prm().asistencias.find(x => x.personaId === pid));
+check('Orden por TOTAL desc, mezclando deudores y saldados (Zoe · Vera · Uri · Yago)',
+  totalDe(ordZoe) > totalDe(ordVera) && totalDe(ordVera) > totalDe(ordUri) && totalDe(ordUri) > totalDe(ordYago)
+  && iZoe < iVera && iVera < iUri && iUri < iYago);
+// LO CRÍTICO: chulear un pago NO puede mover a nadie. Antes la persona MIGRABA del grupo "debe" al de
+// "saldados" y la lista se reacomodaba BAJO EL DEDO: con el scroll quieto, tres toques en el mismo punto
+// marcaron como pagadas a TRES PERSONAS DISTINTAS (medido con datos reales). Acá cuesta plata.
+// Solo la CABECERA de cada persona (no las filas del recibo): .bal-persona > .bal-linea > .bal-row > span
+const ordenCobro = () => [...q('.balance-panel').querySelectorAll('.bal-persona > .bal-linea > .bal-row > span')]
+  .map(x => x.textContent.replace(/\s+/g, ' ').trim());
+const antesDePagar = ordenCobro();
+Store.actions.setPagado(idO, ordZoe, true);          // el que MÁS debe pasa a saldado
+const despuesDePagar = ordenCobro();
+check('Chulear un pago NO reordena la lista (mismas personas, mismo orden)',
+  antesDePagar.length === despuesDePagar.length
+  && antesDePagar.every((n, i) => n.replace(/^✓?\s*/, '') === despuesDePagar[i].replace(/^✓?\s*/, '')));
+check('…y Zoe sigue en la MISMA posición, ahora como saldada', despuesDePagar[0].includes('Zoe'));
+Store.actions.setPagado(idO, ordZoe, false);         // restaurar
 cerrarBalance();
 
 /* ---------- 18. Estadísticas en el HOME (tarjeta colapsable, solo cerradas) ---------- */

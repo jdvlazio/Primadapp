@@ -1010,9 +1010,22 @@
         ${desgloseHTML(p, a, 'bal-row', 'bal-desglose')}
       </div>`;
       };
-      const asisDe = pid => (p.asistencias || []).find(x => x.personaId === pid);
-      const pendRows = deud.map(d => persona(asisDe(d.personaId), d.saldo, 'pend', false, false)).join('');
-      const saldRows = saldadas.map(({ a, total }) => persona(a, total, 'pagado', true, sel.esPrincipal(p, a))).join('');
+      // ══ ORDEN ESTABLE TAMBIÉN ACÁ (revisión de estabilidad táctil, sep 2026) ══════════════════════════
+      // La lista se partía en DOS grupos (deudores arriba, saldados abajo). Al chulear un pago, esa persona
+      // MIGRABA de grupo y la lista se reacomodaba **bajo el dedo**: medido con datos reales, con el scroll
+      // quieto, tres toques en el MISMO punto marcaron como pagadas a TRES PERSONAS DISTINTAS. Es el mismo
+      // bug del reflow de los chips, pero acá cuesta plata de verdad (se salda a quien no pagó).
+      // Ahora es UNA sola lista, ordenada por TOTAL descendente —criterio que NO depende de si pagó— y
+      // pagar solo cambia la TINTA (ámbar → check teal). Nadie cambia de sitio nunca.
+      // El monto mostrado no cambia: con pago binario, el saldo de un deudor ES su total.
+      const filasCobro = (p.asistencias || [])
+        .filter(a => sel.totalAsistencia(p, a) > 0)
+        .map(a => ({ a, total: sel.totalAsistencia(p, a), saldada: sel.esPrincipal(p, a) || !!a.pagado }))
+        .sort((x, y) => y.total - x.total);
+      const pendRows = filasCobro
+        .map(({ a, total, saldada }) => persona(a, total, saldada ? 'pagado' : 'pend', saldada, sel.esPrincipal(p, a)))
+        .join('');
+      const saldRows = '';
       const head = inf.saldoPendiente > 0
         ? `Por cobrar <b class="pend">${$peso(inf.saldoPendiente)}</b>`
         : `<span class="bal-cobro-ok">${icon('check', 'sm')}Todo cobrado</span>`;
@@ -1465,6 +1478,33 @@
     });
   }
 
+  // ANCLA DE SCROLL al cambiar de persona activa (auditoría de interacción, sep 2026). Al activar a alguien,
+  // la ficha de la persona ANTERIOR se colapsa (mide ~716px con 11 productos) → todo lo que estaba debajo
+  // SUBE de golpe y la fila que acabás de tocar se va hacia arriba **bajo el dedo** (medido: saltos de 202px
+  // y 360px según el scroll). Es el mismo bug del reflow, un nivel más arriba. Acá se corrige compensando el
+  // scroll: la fila tocada se queda donde estaba. Es la Vista ajustando su propio scroll → MVC intacto.
+  // Si el scroll ya está en 0 no hay margen para compensar (queda clampeado): mejora igual, no puede empeorar.
+  // Devuelve el RESIDUAL: los px que NO se pudieron compensar (0 = la fila quedó clavada donde estaba).
+  function anclarFila(personaId, topAntes) {
+    const sc = document.querySelector('.app-scroll');
+    const fila = document.querySelector(`.asis-fila[data-pid="${personaId}"]`);
+    if (!sc || !fila || topAntes == null) return 0;
+    const delta = fila.getBoundingClientRect().top - topAntes;
+    if (delta) sc.scrollTop += delta;
+    let residual = Math.round(fila.getBoundingClientRect().top - topAntes);
+    // CLAMPEO: si arriba no había suficiente scroll para devolver, la fila igual se movió. En vez de dejarla
+    // donde caiga (medido: hasta 500px de salto, con un `item-plus` quedando bajo el dedo), se la FIJA en un
+    // sitio DETERMINISTA —pegada arriba— para que el resultado sea siempre el mismo y el usuario lo aprenda.
+    if (residual) {
+      // OJO: `offsetTop` es relativo al `offsetParent`, que HOY es el body y coincide con el scroller por
+      // geometría, no por construcción. Si algún día aparece un `position:relative/sticky` entre `.app-scroll`
+      // y la fila, esto hay que recalcularlo (p. ej. con getBoundingClientRect contra el rect del scroller).
+      sc.scrollTop = Math.max(0, fila.offsetTop - 8);
+      residual = Math.round(fila.getBoundingClientRect().top - topAntes);
+    }
+    return residual;
+  }
+
   function actualizarCoverGrupo(estado, monto) {
     const el = els.overlay && els.overlay.querySelector(`.grp-cover[data-cover-grp="${estado}"]`);
     if (!el) return false;
@@ -1472,6 +1512,6 @@
     return true;
   }
 
-  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML, actualizarCoverGrupo, flashConsumo };
+  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML, actualizarCoverGrupo, flashConsumo, anclarFila };
   if (typeof module !== 'undefined' && module.exports) module.exports = { View: root.View };
 })(typeof window !== 'undefined' ? window : globalThis);
