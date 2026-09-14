@@ -331,8 +331,13 @@ const informe = window.View.informeTemplateHTML(prm());
 check('Informe: UNA marca wordmark "Primad"+"app" (acento) + período', /informe-brand">Primad<span class="informe-brand-ac">app/.test(informe) && informe.includes('informe-period">' + window.Util.monthYear(prm().mesContable)));
 // DESGLOSE por persona (cover + ítems con subtotal, UNA línea atenuada bajo el nombre): cada quien sabe QUÉ se
 // le cobra y la suma cuadra a ojo con el total de la derecha. No reemplaza nada; el nombre y el total siguen mandando.
-check('Informe: cada fila de Cobro lleva su desglose (.informe-desglose con ítem ×N $subtotal)',
-  /informe-desglose">[^<]*×\d+ \$[\d.]+/.test(informe));
+// Cada fila de Cobro lleva su MINI RECIBO: partidas en filas (.informe-desglose > .informe-kv) con el NOMBRE del
+// producto, la cantidad (.q) y el subtotal en columna. Reemplazó a la línea corrida sin nombre ni cifras alineadas.
+const czInf = prm().productos.find(x => x.id === 'cerveza');
+check('Informe: cada fila de Cobro lleva su mini recibo (NOMBRE de producto, ×N y subtotal en columna)',
+  /class="informe-desglose"/.test(informe)
+  && informe.includes('informe-kv"><span>' + czInf.emoji + ' ' + czInf.nombre + ' <span class="q">×')
+  && /<span class="q">×\d+<\/span><\/span><b>\$[\d.]+<\/b>/.test(informe));
 // El título quita la palabra "Primada" (nombreCorto): deja SOLO los organizadores ("Primada Ana + Beto" → "Ana + Beto").
 const nombreOrig = prm().nombre;
 Store.actions.renombrarPrimada(prm().id, 'Primada Ana + Beto');
@@ -340,9 +345,11 @@ const tituloHTML = window.View.informeTemplateHTML(prm());
 check('Informe: título sin "Primada", solo los organizadores ("Ana + Beto")',
   /informe-title">Ana \+ Beto</.test(tituloHTML) && !/informe-title">Primada/.test(tituloHTML));
 Store.actions.renombrarPrimada(prm().id, nombreOrig);   // restaurar para el resto del flujo
-// El informe es un RESUMEN FINANCIERO (espejo del Balance), NO la lista de consumos → SIN detalle de productos.
-check('Informe: SIN detalle de productos (resumen financiero, no consumos)',
-  !informe.includes('informe-prods') && !informe.includes('Costeñita'));
+// El informe sigue siendo un RESUMEN FINANCIERO: NO lleva un LISTADO de consumos (informe-prods). Lo que SÍ lleva
+// (decisión de producto, sep 2026) es el MINI RECIBO por persona en Cobro: ahí el nombre del producto aparece como
+// PARTIDA de lo que se le cobra a cada quien — no como catálogo. (Antes este test prohibía el nombre; cambió la regla.)
+check('Informe: SIN listado de consumos (informe-prods); el nombre del producto solo como partida del recibo',
+  !informe.includes('informe-prods') && /informe-desglose[^]*Costeñita/.test(informe));
 // HÉROE = Ganancia (banda teal "gan") con el monto; ABIERTA lleva nota "Provisional". Ya NO "Por cobrar" en el héroe.
 check('Informe ABIERTA: héroe "Ganancia" (gan) con la ganancia + nota Provisional',
   informe.includes('informe-hero gan') && informe.includes('informe-hero-lbl">Ganancia')
@@ -514,8 +521,12 @@ click(`[data-act="open-pagar"][data-pid="${beto.id}"]`);   // abre la hoja "Paga
 check('Hoja Pagar abierta (aún cerrada la primada)', !q('#overlay').hidden && /sheet-title">Pagar a/.test(q('#overlay').innerHTML));
 // La hoja Pagar dice QUÉ está pagando (desglose bajo el monto): es el momento en que más importa saberlo.
 // Beto está exonerado → SIN "Cover"; sus 2 cervezas = $7.000 = el total.
-check('Hoja Pagar: desglose bajo el monto (🍺 ×2 $7.000, sin Cover por exonerado)',
-  !!q('.pagar-desglose') && /×2 \$7\.000/.test(q('.pagar-desglose').textContent) && !/Cover/.test(q('.pagar-desglose').textContent));
+// La hoja Pagar trae el MINI RECIBO bajo el monto: filas con nombre de producto, ×N y subtotal. Beto está
+// exonerado → SIN fila "Cover"; sus 2 cervezas = $7.000 = el total.
+const czPag = prm().productos.find(x => x.id === 'cerveza');
+const filasPag = [...document.querySelectorAll('.pagar-desglose .bal-row')].map(r => r.textContent);
+check('Hoja Pagar: mini recibo (una fila "🍺 Costeñita ×2 $7.000"), sin Cover por exonerado',
+  filasPag.length === 1 && filasPag[0].includes(czPag.nombre) && /×2/.test(filasPag[0]) && /\$7\.000/.test(filasPag[0]) && !filasPag.some(t => /Cover/.test(t)));
 click(`[data-act="marcar-pagado"][data-pid="${beto.id}"]`); // "Ya pagué"
 eq('Beto marcado pagado', betoAsis().pagado, true);
 eq('Saldo de Beto = 0 tras pagar', Store.select.saldoDe(prm(), betoAsis()), 0);
@@ -524,6 +535,11 @@ eq('Informe: saldo pendiente = 0', Store.select.informePrincipal(prm()).saldoPen
 check('La hoja Pagar se cerró al marcar', q('#overlay').hidden);
 check('Pagar al último también colapsa la ficha (incluso cerrada): "Deshacer" deja de estar inline',
   !q(`[data-act="set-no-pagado"][data-pid="${beto.id}"]`));
+// El Balance se abrió solo al saldar al último: la fila de Beto trae su MINI RECIBO (.bal-desglose), el mismo
+// bloque del informe y de la hoja Pagar — nombre de producto y ×N, sin salir del Balance.
+const balDesg = q('.balance-panel .bal-persona .bal-desglose');
+check('Balance › Cobro: la persona lleva su mini recibo (.bal-desglose) con nombre de producto y ×N',
+  !!balDesg && balDesg.textContent.includes(prm().productos.find(x => x.id === 'cerveza').nombre) && /×2/.test(balDesg.textContent));
 // Deshacer (vuelve a deber) y re-marcar (queda pagado para la persistencia) — re-abro la ficha colapsada
 activar(beto.id);
 click(`[data-act="set-no-pagado"][data-pid="${beto.id}"]`);

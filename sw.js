@@ -10,7 +10,7 @@
    ============================================================ */
 'use strict';
 
-const CACHE_VERSION = '20260914-092457-9c0471e';
+const CACHE_VERSION = '20260914-100035-d9c52ff';
 const CACHE_NAME = 'primadapp-' + CACHE_VERSION;
 
 // Núcleo a precachear (todo servido por GitHub Pages, rutas relativas al scope).

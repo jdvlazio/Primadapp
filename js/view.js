@@ -55,14 +55,27 @@
   // que SUMA exactamente el total (cover + subtotal por ítem): resuelve el "¿y esto por qué?" sin quitarle
   // protagonismo al nombre y al total. Reusa el lenguaje de los chips (🍺 ×2). Cover 0 (organizador/exonerado)
   // se omite. Vacío si no hay nada que desglosar. Se usa en el INFORME y en la hoja PAGAR (el momento de pagar).
-  function desgloseLinea(p, a) {
-    const partes = [];
+  // PARTIDAS de lo que paga una persona (datos puros): cover (si >0) + cada producto con cantidad y subtotal.
+  function desglosePartidas(p, a) {
+    const L = [];
     const cov = S().coverDe(p, a);
-    if (cov > 0) partes.push(`Cover ${$peso(cov)}`);
+    if (cov > 0) L.push({ lbl: 'Cover', q: '', m: cov });
     S().resumenConsumoDe(p, a).forEach(({ prod, cantidad }) => {
-      partes.push(`${e(prod.emoji)} ×${cantidad} ${$peso((Number(prod.precioVenta) || 0) * cantidad)}`);
+      L.push({ lbl: `${e(prod.emoji)} ${e(prod.nombre)}`, q: `×${cantidad}`, m: (Number(prod.precioVenta) || 0) * cantidad });
     });
-    return partes.join(' · ');
+    return L;
+  }
+  // MINI RECIBO por persona — el patrón universal de "qué me están cobrando". Partidas en FILAS indentadas bajo
+  // el nombre: etiqueta a la izquierda (con el NOMBRE del producto: el emoji es decoración, no identidad) y cifra
+  // a la derecha en COLUMNA con números tabulares, para sumar a ojo contra el total. Reusa las filas etiqueta/cifra
+  // que el sistema ya usa (informe-kv / bal-row) → cero vocabulario visual nuevo; `rowClass` elige el sabor por
+  // superficie. Reemplazó a una línea corrida "emoji ×N $x · emoji ×N $y" que no alineaba cifras ni decía el nombre.
+  // Vacío si no hay nada que desglosar. El MISMO bloque va en Informe, Balance y hoja Pagar.
+  function desgloseHTML(p, a, rowClass, wrapClass) {
+    const L = desglosePartidas(p, a);
+    if (!L.length) return '';
+    const filas = L.map(x => `<div class="${rowClass}"><span>${x.lbl}${x.q ? ` <span class="q">${x.q}</span>` : ''}</span><b>${$peso(x.m)}</b></div>`).join('');
+    return `<div class="${wrapClass}">${filas}</div>`;
   }
   function informeTemplateHTML(p) {
     const sel = S();
@@ -122,11 +135,11 @@
     // Cada fila lleva el DESGLOSE (cover + ítems con subtotal) en una línea atenuada bajo el nombre: la persona
     // sabe qué se le cobra y la suma cuadra a ojo con el total de la derecha.
     const fila = (a, monto, cls, check, anf) => {
-      const desg = desgloseLinea(p, a);
-      return `<div class="informe-asis">
-        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div>${desg ? `<div class="informe-desglose">${desg}</div>` : ''}</div>
+      const desg = desgloseHTML(p, a, 'informe-kv', 'informe-desglose');
+      return `<div class="informe-asis${desg ? ' con-desglose' : ''}">
+        <div class="informe-left"><div class="informe-nombre">${check ? '<span class="informe-check">✓</span> ' : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="informe-rep-anf">Anfitrión</span>' : ''}</div></div>
         <div class="informe-total ${cls}">${$peso(monto)}</div>
-      </div>`;
+      </div>${desg}`;
     };
     const asisDe = pid => (p.asistencias || []).find(x => x.personaId === pid);
     const pendRows = deud.map(d => fila(asisDe(d.personaId), d.saldo, 'pend', false, false)).join('');
@@ -457,10 +470,10 @@
          </div>`
       : `<div class="muted small">El anfitrión aún no tiene una llave Bre-B.
            <button class="link-inline" data-act="open-personas">Agregar en Personas</button></div>`;
-    const desg = desgloseLinea(p, a);   // qué está pagando, justo cuando va a transferir
+    const desg = desgloseHTML(p, a, 'bal-row', 'pagar-desglose');   // qué está pagando, justo cuando va a transferir
     const cuerpo = `
       <div class="pagar-amount">${$peso(total)}</div>
-      ${desg ? `<div class="pagar-desglose">${desg}</div>` : ''}
+      ${desg}
       <div class="pagar-to">Transfiere por Bre-B a <b>${e(nombrePrin)}</b></div>
       ${llaveBlock}
       <button class="btn" data-act="marcar-pagado" data-pid="${a.personaId}">${icon('check')}Ya pagué</button>`;
@@ -888,8 +901,15 @@
     if (!completa) {
       cobro = `<div class="bal-sep"></div><div class="bal-group"><div class="bal-row"><span class="muted small">Asigná un anfitrión para el cobro</span></div></div>`;
     } else if (deud.length || saldadas.length) {
-      const pendRows = deud.map(d => `<div class="bal-row"><span>${e(nombrePersona(d.personaId))}</span><b class="pend">${$peso(d.saldo)}</b></div>`).join('');
-      const saldRows = saldadas.map(({ a, total }) => `<div class="bal-row saldada"><span><span class="asis-check">${icon('check', 'sm')}</span>${e(nombrePersona(a.personaId))}${sel.esPrincipal(p, a) ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</span><b class="pagado">${$peso(total)}</b></div>`).join('');
+      // Cada persona = cabecera (nombre + total, ámbar si debe / teal si pagó) + su MINI RECIBO indentado debajo
+      // (mismo bloque que el informe y la hoja Pagar): ve QUÉ se le cobra sin salir del Balance.
+      const persona = (a, monto, cls, check, anf) => `<div class="bal-persona">
+        <div class="bal-row${check ? ' saldada' : ''}"><span>${check ? `<span class="asis-check">${icon('check', 'sm')}</span>` : ''}${e(nombrePersona(a.personaId))}${anf ? ' <span class="bal-rep-anf">Anfitrión</span>' : ''}</span><b class="${cls}">${$peso(monto)}</b></div>
+        ${desgloseHTML(p, a, 'bal-row', 'bal-desglose')}
+      </div>`;
+      const asisDe = pid => (p.asistencias || []).find(x => x.personaId === pid);
+      const pendRows = deud.map(d => persona(asisDe(d.personaId), d.saldo, 'pend', false, false)).join('');
+      const saldRows = saldadas.map(({ a, total }) => persona(a, total, 'pagado', true, sel.esPrincipal(p, a))).join('');
       const head = inf.saldoPendiente > 0
         ? `Por cobrar <b class="pend">${$peso(inf.saldoPendiente)}</b>`
         : `<span class="bal-cobro-ok">${icon('check', 'sm')}Todo cobrado</span>`;
