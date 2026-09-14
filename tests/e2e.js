@@ -169,6 +169,32 @@ click('[data-act="open-add-asis"]');   // abre la HOJA simple del directorio (ov
 check('Hoja Agregar asistente abierta', !q('#overlay').hidden && /Agregar asistente/.test(q('#overlay').innerHTML));
 // Agregar = UN solo gesto: cada fila tiene SOLO "Agregar" (la cortesía salió de acá; era confuso).
 check('Hoja Agregar: NO hay atajo "Sin cover" (solo Agregar)', !q('[data-act="add-asistencia-cortesia"]') && !!q('[data-act="add-asistencia"]'));
+// ALTA EN LÍNEA (auditoría de producto, sep 2026): alguien que NO está en el directorio se crea SIN salir
+// de la hoja. Antes: 9 toques y 3 pantallas hasta Ajustes, cuyo form trae "Ahorrador" preseleccionado → el
+// recién llegado entraba al REPARTO y pagaba el cover que no era, sin que nadie lo notara.
+check('Hoja Agregar: ofrece crear a alguien nuevo (ya no manda a Personas)',
+  !!q('[data-act="open-nuevo-asis"]') && !q('#overlay [data-act="open-personas"]'));
+click('[data-act="open-nuevo-asis"]');
+check('Alta en línea: el estado por defecto es INVITADO (no Ahorrador)',
+  !!q('[data-act="set-nuevo-asis-estado"][data-estado="invitado"]').classList.contains('on')
+  && !q('[data-act="set-nuevo-asis-estado"][data-estado="ahorrador"]').classList.contains('on'));
+// Cambiar de chip re-renderiza: lo tecleado NO se puede perder.
+q('#na-nombre').value = 'Tía Gloria';
+click('[data-act="set-nuevo-asis-estado"][data-estado="ahorrador"]');
+eq('Alta en línea: el nombre sobrevive al cambio de chip', q('#na-nombre').value, 'Tía Gloria');
+click('[data-act="set-nuevo-asis-estado"][data-estado="invitado"]');
+const personasAntesAlta = st().personas.length;
+click('[data-act="add-asis-nuevo"]');
+eq('Alta en línea: se creó 1 persona', st().personas.length, personasAntesAlta + 1);
+const gloria = st().personas.find(x => x.nombre === 'Tía Gloria');
+eq('Alta en línea: nace INVITADA (no entra al reparto ni paga cover de ahorrador)', gloria.estado, 'invitado');
+check('Alta en línea: queda agregada a ESTA primada de una',
+  !!prm().asistencias.find(x => x.personaId === gloria.id));
+eq('Alta en línea: el snapshot de la asistencia también es invitado',
+  prm().asistencias.find(x => x.personaId === gloria.id).estadoEnEseMomento, 'invitado');
+check('Alta en línea: el form queda abierto y limpio para sumar otro', !!q('#na-nombre') && q('#na-nombre').value === '');
+// Se saca del flujo: el resto de la suite cuenta asistencias y totales.
+Store.actions.removeAsistencia(prm().id, gloria.id);
 click(`[data-act="add-asistencia"][data-pid="${ana.id}"]`);   // un toque agrega
 click(`[data-act="add-asistencia"][data-pid="${beto.id}"]`);
 click('[data-act="close-overlay"]');
@@ -644,6 +670,26 @@ check('Cerrada: SIN nota "Provisional"', !/[Pp]rovisional/.test(q('#screen').inn
 check('Cerrada: el pie del Balance ofrece "Reabrir la cuenta"',
   !!q('.balance-panel .cerrar-link[data-act="reabrir-primada"]')
   && /Reabrir la cuenta/.test(q('.balance-panel .cerrar-link').textContent));
+// POR COBRAR en el HOME: una CERRADA con saldo pendiente ya no desaparece del radar. Con el dot gris se veía
+// idéntica a una cobrada al 100% y la deuda se olvidaba al mes siguiente (auditoría de producto, sep 2026).
+{
+  const pid0 = prm().id;
+  Store.actions.setPagado(pid0, beto.id, false);          // la cerrada queda debiendo
+  click('[data-act="volver-home"]');
+  const home = q('#screen').innerHTML;
+  const pend0 = Store.select.informePrincipal(prm()).saldoPendiente;
+  check('Home: aparece el bloque "Por cobrar" con el total en ámbar',
+    !!q('.cobrar-card') && /Por cobrar/.test(home) && home.includes('cobrar-tot">' + window.Util.peso(Store.select.deudaTotal())));
+  check('Home: una fila por primada que entra a cobrar', !!q(`.cobrar-fila[data-act="entrar-primada"][data-id="${pid0}"]`));
+  check('Home: la fila nombra a quien debe', new RegExp('cobrar-quien">[^<]*' + beto.nombre).test(home));
+  check('Home: la CERRADA con deuda lleva dot ÁMBAR (.dot.idle), no gris',
+    !!q(`.hist-fila[data-id="${pid0}"] .dot.idle`) || !!q('.hero-row .dot.idle'));
+  Store.actions.setPagado(pid0, beto.id, true);           // restaurar: sin deuda
+  check('Home: saldada la deuda, el bloque DESAPARECE (no se pinta la regla)',
+    Store.select.deudaTotal() === 0 && !q('.cobrar-card'));
+  click(`[data-act="entrar-primada"][data-id="${pid0}"]`);
+  abrirBalance();
+}
 check('Cerrada: héroe "Ganancia · al Tesorero" (sin "Por cobrar" ni "Entregado al Tesorero" como 2º héroe)',
   /class="bal-label">[^]*?Ganancia · al Tesorero/.test(q('#screen').innerHTML) && !/Por cobrar/.test(q('#screen').innerHTML)
   && !/Entregado al Tesorero/.test(q('#screen').innerHTML));

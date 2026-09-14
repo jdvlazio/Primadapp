@@ -525,6 +525,26 @@
         .filter(d => d.saldo > 0);
     },
 
+    // DEUDA VIVA DE TODA LA APP — la plata que todavía no entra, en cualquier primada.
+    // Una primada CERRADA con saldo pendiente quedaba INVISIBLE en el home: su fila se veía idéntica a una
+    // cobrada al 100% (dot gris + ganancia), y la única forma de acordarse era entrar y desplegar el Balance
+    // (auditoría de producto, sep 2026). Cerrar NO cobra (INVARIANTE #4), así que esa deuda tiene que vivir
+    // en algún lado. Devuelve una fila por primada con saldo > 0, de la más reciente a la más vieja.
+    // Las INCOMPLETAS (sin anfitrión) se excluyen: sin principal no hay cobro que reclamar.
+    // Y se excluye la ACTIVA mientras esté ABIERTA: la fiesta está corriendo, todo el mundo "debe" y la cifra
+    // cambia a cada rato — ahí no es plata por cobrar, es la cuenta en curso (y su chip de Balance ya la
+    // muestra, a un toque del hero). Al CERRARLA la cuenta queda congelada: esa deuda sí es real y olvidable,
+    // y entonces sí entra, aunque siga siendo la activa.
+    deudasPendientes() {
+      return (state.primadas || [])
+        .filter(p => !select.primadaIncompleta(p))
+        .filter(p => !(p.id === state.activePrimadaId && p.estado === 'abierta'))
+        .map(p => ({ primada: p, saldo: select.informePrincipal(p).saldoPendiente, deudores: select.deudores(p).filter(d => d.personaId !== p.organizadorPrincipalId) }))
+        .filter(x => x.saldo > 0)
+        .sort((a, b) => String(mesAncla(b.primada)).localeCompare(String(mesAncla(a.primada))));
+    },
+    deudaTotal() { return select.deudasPendientes().reduce((t, x) => t + x.saldo, 0); },
+
     primadaIncompleta(primada) { return primada.organizadorPrincipalId == null; },
     // Nombre automático: "Primada {N1} + {N2}" con el PRIMER token del nombre de cada persona.
     // N1 = principal (primero de la lista). N2 = segundo organizador. Solo los dos primeros entran

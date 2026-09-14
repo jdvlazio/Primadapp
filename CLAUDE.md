@@ -320,6 +320,10 @@ Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   //
   `margenProducto`, `ventaProductos`, `costoNetoTotal`, `coverCobrado`, `margenTotal`, `ganancia`,
   `asistenciasAhorradoras`, `parteIgual`, `sobranteFondo`, `repartoPorPersona`, `recuperaDe`, `informePrincipal`,
   `deudores`, `recaudado`, `primadaIncompleta`, `nombreSugerido`, `anioContable`, `primadasPorAnio`,
+  **`deudasPendientes()`** / **`deudaTotal()`** (la plata que falta por entrar en TODAS las primadas; una fila
+  por primada con saldo > 0, de la más reciente a la más vieja; excluye las **incompletas** —sin anfitrión no
+  hay a quién pagarle— y la **ACTIVA mientras esté ABIERTA** —la fiesta corriendo no es "por cobrar": la cifra
+  cambia a cada rato y su chip de Balance ya la muestra; al CERRARLA sí entra),
   `aniosEstadisticas`, `estadisticas(anio)` (agregado ANUAL del HOME: **Ganancia** + promedio, asistencia promedio,
   "Más vendido"/"Más rentable" (producto) y "Mayor consumo" (persona) — sin encabezados "estrella" (revisión UX) —
   **solo primadas CERRADAS del año**; `anio` opcional = todas;
@@ -528,6 +532,31 @@ Casos clave del salto a v4 (siguen vigentes dentro del normalizador):
   **estado EN ESE MOMENTO por asistente** (`setEstadoEnEseMomento` corrige el snapshot histórico de una asistencia —
   p.ej. alguien que era invitado y hoy es ahorrador; respeta INV#2, **no toca el directorio** → INV#1 intacta). UI:
   sección **"Cómo fue en su momento"** en Configurar, visible SOLO si `mesContable < Util.currentMonth()` (mes pasado).
+- **ALTA EN LÍNEA DE UN ASISTENTE NUEVO — el default es INVITADO (auditoría de producto, sep 2026).** Agregar
+  a alguien que no está en el directorio costaba **9 toques y 3 pantallas** (hoja → Ajustes → alta → volver),
+  en el momento de **mayor presión** del anfitrión (alguien parado al frente pidiendo cerveza). Peor: el form
+  de Ajustes trae **"Ahorrador" preseleccionado** en un `<select>` que nadie abre → el recién llegado entraba
+  al **REPARTO** y pagaba el **cover equivocado**, sin que nadie lo notara (único hallazgo con consecuencia
+  económica). Hoy la hoja "Agregar asistente" lleva `altaInline`: **nombre + estado en CHIPS (Invitado por
+  defecto) + Agregar**, sin salir de la hoja, y la persona **entra a esa primada de una**. El estado va en
+  chips **porque la elección tiene que VERSE**. *(El alta de Ajustes conserva su default ahorrador: ahí se dan
+  de alta los de la natillera.)* ⚠️ El campo se **limpia ANTES** de mutar: cada acción commitea y el commit ya
+  dispara render con el `ui` de ese momento.
+- **POR COBRAR EN EL HOME — la deuda no puede desaparecer al cerrar (auditoría de producto, sep 2026).** Una
+  primada **cerrada con saldo pendiente** se veía en el home **idéntica** a una cobrada al 100% (dot gris +
+  ganancia): la única forma de acordarse era entrar y desplegar el Balance, y al mes siguiente esa plata se
+  olvidaba. Dos piezas: **(a)** el **dot** de una cerrada con deuda es **ÁMBAR** (`.dot.idle`, "pendiente"),
+  no gris; **(b)** bloque **`POR COBRAR`** (`porCobrarCard`) sobre Próximas: **total** + **una fila por
+  primada** (tap = entrar a cobrar) con los deudores de subtexto (**≤3 nombres, si no "N personas"** — mismo
+  criterio que "Núcleo fiel"). **Sin deuda no se pinta nada** (muestra la excepción, no la regla).
+- **EL LOGIN DICE A QUÉ VENÍA Y NO SE COME EL TOQUE (auditoría de producto, sep 2026).** El gate invertido
+  abría una hoja **muda** ("Entrar · Te enviamos un código") y **descartaba la acción**: el anfitrión tocaba
+  `🍺 +` en la fiesta, veía una pantalla de correo sin explicación y, al volver, la cerveza **no estaba
+  apuntada**. Hoy `pedirLogin(b, act)` guarda **por qué** saltó (`ui.loginMotivo` → título **"Entrá para
+  apuntar"** + copy *"La primada se ve sin cuenta; para apuntar necesitás entrar…"*) y **cómo repetirlo**
+  (`ui.intentoSel`, un **selector** —no el nodo: tras el login la app recarga y re-renderiza—). Al volver con
+  sesión, `reanudarIntento()` **re-dispara el click real**. Solo se repiten las **frecuentes y de un toque**
+  (`item-plus`, `item-minus`, `toggle-pagado`, `add-asistencia`): las **destructivas NO** se repiten solas.
 - **CERRAR LA CUENTA SE PUEDE SIEMPRE, DESDE EL DETALLE (auditoría de producto, sep 2026).** El único cerrar
   del detalle era el banner verde **"Todos pagaron · Cerrar primada"**, que exige `saldoPendiente === 0` → **con
   deuda no había forma de cerrar sin volver al home**. El caso real del anfitrión a la 1 a.m. es el CONTRARIO

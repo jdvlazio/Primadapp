@@ -209,7 +209,10 @@
   // abierta SIN consumos = ámbar (`idle`, creada/organizada pero sin actividad → "pendiente", escalera §1);
   // con consumos = verde (`open`, en operación). Ver DESIGN.md §1 / ciclo de vida.
   function dotClase(p) {
-    if (!p || p.estado === 'cerrada') return 'closed';
+    if (!p) return 'closed';
+    // CERRADA con deuda → ÁMBAR, no gris: cerrar congela la cuenta pero NO cobra (INV#4). Con el dot gris,
+    // una cerrada a la que todavía le deben se veía IDÉNTICA a una cobrada al 100% (auditoría, sep 2026).
+    if (p.estado === 'cerrada') return (S().informePrincipal(p).saldoPendiente > 0) ? 'idle' : 'closed';
     return ((p.consumos || []).length > 0) ? 'open' : 'idle';
   }
 
@@ -529,8 +532,28 @@
       </div>
       <div class="sheet-body">
         <div class="addrow-list">${filas}</div>
-        <div class="note">¿Falta alguien? <button class="link-inline" data-act="open-personas">Agregar en Personas</button></div>
+        ${altaInline(ui)}
       </div>
+    </div>`;
+  }
+
+  // ALTA EN LÍNEA de alguien que NO está en el directorio (auditoría de producto, sep 2026).
+  // ANTES el pie decía "¿Falta alguien? Agregar en Personas" y llevaba a Ajustes: 9 toques y 3 pantallas,
+  // en el momento de mayor presión del anfitrión (alguien parado al frente pidiendo cerveza). Y el form de
+  // Ajustes trae "Ahorrador" preseleccionado → el recién llegado entraba al REPARTO y pagaba el cover
+  // equivocado, sin que nadie lo notara. Aquí el default es INVITADO (quien llega de sorpresa casi siempre
+  // lo es) y la elección se ve, en chips, en vez de esconderse en un <select> que nadie abre.
+  function altaInline(ui) {
+    const abierta = !!(ui && ui.nuevoAsis);
+    if (!abierta) return `<div class="alta-foot"><button class="add-link" data-act="open-nuevo-asis">${icon('plus-circle')}Agregar a alguien nuevo</button></div>`;
+    const est = (ui && ui.nuevoAsisEstado) || 'invitado';
+    const nom = (ui && ui.nuevoAsisNombre) || '';
+    const chip = (v, txt) => `<button class="chip ${est === v ? 'on' : ''}" data-act="set-nuevo-asis-estado" data-estado="${v}">${txt}</button>`;
+    return `<div class="alta-foot alta-inline">
+      <input class="ti" id="na-nombre" placeholder="Nombre" maxlength="40" autocomplete="off" value="${e(nom)}">
+      <div class="alta-chips">${chip('invitado', 'Invitado')}${chip('ahorrador', 'Ahorrador')}</div>
+      <button class="mini alta-go" data-act="add-asis-nuevo">${icon('plus-circle')}Agregar</button>
+      <div class="alta-hint">Se guarda en el directorio para las próximas primadas.</div>
     </div>`;
   }
 
@@ -763,7 +786,30 @@
       ? `<div class="home-sub">Pasadas</div>` + pasadas.map(g =>
           `<div class="home-anio">${e(g.anio)}</div><div class="hist-list">${g.primadas.map(historialFila).join('')}</div>`).join('')
       : '';
-    return `<div class="home">${activa ? heroCard(activa) : ''}${secProx}${secPas}${estadisticasCard(state, ui)}</div>`;
+    return `<div class="home">${activa ? heroCard(activa) : ''}${porCobrarCard()}${secProx}${secPas}${estadisticasCard(state, ui)}</div>`;
+  }
+
+  // POR COBRAR — la plata que falta por entrar, de TODAS las primadas. Sin esto, una cerrada con saldo
+  // pendiente desaparecía del radar: su fila se veía igual que una cobrada al 100% y la deuda se olvidaba
+  // al mes siguiente (auditoría de producto, sep 2026). UNA fila por primada (tap = entrar a cobrar); los
+  // nombres van de subtexto hasta 3 —el mismo criterio de "Núcleo fiel"— y arriba de eso, el conteo.
+  // Si no hay deuda, NO se pinta nada: muestra la excepción, no la regla.
+  function porCobrarCard() {
+    const filas = S().deudasPendientes();
+    if (!filas.length) return '';
+    const fila = ({ primada, saldo, deudores }) => {
+      const nombres = deudores.map(d => nombrePersona(d.personaId)).sort((a, b) => a.localeCompare(b, (root.CONFIG || {}).locale, { sensitivity: 'base' }));
+      const quien = nombres.length <= 3 ? nombres.join(', ') : `${nombres.length} personas`;
+      const cuando = primada.fecha ? Util.diaMes(primada.fecha) : Util.monthName(primada.mesContable);
+      return `<button class="cobrar-fila" data-act="entrar-primada" data-id="${primada.id}">
+        <span class="cobrar-id"><span class="cobrar-name">${e(nombreCorto(primada.nombre))} <span class="hist-mes">${e(cuando)}</span></span><span class="cobrar-quien">${e(quien)}</span></span>
+        <span class="cobrar-monto">${$peso(saldo)}</span>
+      </button>`;
+    };
+    return `<div class="cobrar-card">
+      <div class="cobrar-head"><span class="home-sub">Por cobrar</span><b class="cobrar-tot">${$peso(S().deudaTotal())}</b></div>
+      <div class="cobrar-list">${filas.map(fila).join('')}</div>
+    </div>`;
   }
 
   // Botón "···" de opciones administrativas de una primada (Reabrir / Eliminar). Abre primadaMenuSheet.
@@ -1326,13 +1372,17 @@
            <button class="btn ghost" data-act="login-reset">Otro correo</button>
          </div>`
       : `<div class="login-form">
-           <p class="muted small">Te enviamos un código al correo para pegarlo aquí.</p>
+           <p class="muted small">${(ui && ui.loginMotivo)
+              ? 'La primada se ve sin cuenta; para ' + e(ui.loginMotivo) + ' necesitás entrar. Te mandamos un código al correo.'
+              : 'Te enviamos un código al correo para pegarlo aquí.'}</p>
            <input class="ti" id="login-email" type="email" inputmode="email" autocomplete="email"
                   placeholder="tu@correo.com" value="${e(email)}" aria-label="Correo">
            <button class="btn" data-act="login-enviar">Enviar código</button>
          </div>`;
     return `<div class="sheet login-sheet">
-        <div class="sheet-head"><div class="sheet-title">${enviado ? 'Escribe el código' : 'Entrar'}</div>
+        <div class="sheet-head"><div class="sheet-title">${enviado
+            ? 'Escribe el código'
+            : ((ui && ui.loginMotivo) ? 'Entrá para ' + e(ui.loginMotivo) : 'Entrar')}</div>
           <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
         <div class="sheet-body">${cuerpo}
           <p class="login-legal muted small">Al entrar aceptas nuestra

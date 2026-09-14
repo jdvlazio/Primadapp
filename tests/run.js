@@ -910,6 +910,57 @@ section('asistenciasLista: ABIERTA = alfabético ESTABLE (la fila no salta al ap
     deepEqual(nombres(Store.select.asistenciasLista(prm())), nombres(Store.select.asistenciasPorConsumo(prm()))));
 }
 
+/* ---------- Deuda viva de TODA la app (la que sobrevive al cierre) ---------- */
+section('deudasPendientes: la plata que falta por entrar, en cualquier primada (cerrar NO cobra, INV#4)');
+{
+  Store.actions.replaceState(null);
+  const anf = Store.actions.addPersona({ nombre: 'Andrés', estado: 'ahorrador' });
+  const d1 = Store.actions.addPersona({ nombre: 'Samuel', estado: 'invitado' });
+  const d2 = Store.actions.addPersona({ nombre: 'Lucía', estado: 'invitado' });
+  // Primada VIEJA (agosto), se CIERRA con Samuel debiendo: es el caso que quedaba invisible en el home.
+  const vieja = Store.actions.createPrimada({ principalId: anf, organizadores: [anf], mesContable: '2026-08' });
+  Store.actions.addAsistencia(vieja, d1);
+  Store.actions.changeItem(vieja, d1, Store.select.state().primadas.find(p => p.id === vieja).productos[0].id, 2);
+  Store.actions.cerrarPrimada(vieja);
+  const pVieja = () => Store.select.state().primadas.find(p => p.id === vieja);
+  check('La primada cerrada SIGUE con saldo pendiente (cerrar congela, no cobra)',
+    pVieja().estado === 'cerrada' && Store.select.informePrincipal(pVieja()).saldoPendiente > 0);
+  let deu = Store.select.deudasPendientes();
+  check('deudasPendientes la incluye aunque esté CERRADA', deu.length === 1 && deu[0].primada.id === vieja);
+  check('Trae a los deudores, sin el anfitrión (auto-saldado)',
+    deu[0].deudores.length === 1 && deu[0].deudores[0].personaId === d1);
+  check('deudaTotal = el saldo de esa primada', Store.select.deudaTotal() === deu[0].saldo);
+  // Segunda primada, más RECIENTE (septiembre) y ABIERTA, también con deuda.
+  const nueva = Store.actions.createPrimada({ principalId: anf, organizadores: [anf], mesContable: '2026-09' });
+  Store.actions.addAsistencia(nueva, d2);
+  Store.actions.changeItem(nueva, d2, Store.select.state().primadas.find(p => p.id === nueva).productos[0].id, 1);
+  // La recién creada queda ACTIVA y ABIERTA = la fiesta en curso: NO es "por cobrar" todavía (su cifra cambia
+  // a cada rato y su chip de Balance ya la muestra). La cerrada de agosto sí.
+  deu = Store.select.deudasPendientes();
+  check('La ACTIVA mientras está ABIERTA no cuenta como "por cobrar"',
+    deu.length === 1 && deu[0].primada.id === vieja);
+  // Al mover la activa a otra, la de septiembre (abierta, ya no activa) sí entra.
+  Store.actions.seleccionarPrimada(vieja);
+  deu = Store.select.deudasPendientes();
+  check('Una ABIERTA que ya no es la activa sí entra', deu.length === 2);
+  check('Ordena de la más RECIENTE a la más vieja', deu[0].primada.id === nueva && deu[1].primada.id === vieja);
+  check('deudaTotal = suma de ambas', Store.select.deudaTotal() === deu[0].saldo + deu[1].saldo);
+  // La activa CERRADA sí entra: la cuenta quedó congelada y esa plata es la que se olvida (INV#4).
+  check('La activa CERRADA sí cuenta (es la deuda que se olvida)',
+    Store.select.state().activePrimadaId === vieja && !!deu.find(x => x.primada.id === vieja));
+  // Al pagar, la deuda DESAPARECE de la lista (el pago sigue vivo con la primada cerrada, INV#4).
+  Store.actions.setPagado(vieja, d1, true);
+  deu = Store.select.deudasPendientes();
+  check('Pagar en una CERRADA la saca de la lista', deu.length === 1 && deu[0].primada.id === nueva);
+  Store.actions.setPagado(nueva, d2, true);
+  check('Sin deuda: lista vacía y total 0', Store.select.deudasPendientes().length === 0 && Store.select.deudaTotal() === 0);
+  // Una primada INCOMPLETA (sin anfitrión) no reclama cobro: no hay a quién pagarle.
+  const huerf = Store.actions.createPrimada({ mesContable: '2026-07' });
+  Store.actions.addAsistencia(huerf, d1);
+  Store.actions.changeItem(huerf, d1, Store.select.state().primadas.find(p => p.id === huerf).productos[0].id, 2);
+  check('Las INCOMPLETAS (sin anfitrión) no entran', Store.select.deudasPendientes().length === 0);
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);

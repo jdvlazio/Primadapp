@@ -82,10 +82,32 @@
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
     'add-asistencia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus',
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'toggle-pagado', 'add-persona', 'set-estado-persona',
-    'set-estado-momento', 'borrar-mi-cuenta',
+    'set-estado-momento', 'borrar-mi-cuenta', 'add-asis-nuevo',
   ]);
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
-  function pedirLogin() { ui.overlay = 'login'; ui.loginEstado = 'form'; rerender(); }
+  // Acciones que vale la pena REPETIR tras iniciar sesión: frecuentes, de un toque y sin confirmación.
+  // Las destructivas (cerrar/borrar) NO se repiten solas: el usuario vuelve a pedirlas a conciencia.
+  const REPETIBLES = { 'item-plus': 'apuntar', 'item-minus': 'apuntar', 'toggle-pagado': 'marcar pagos', 'add-asistencia': 'agregar asistentes' };
+  // El login saltaba MUDO ("Entrar · Te enviamos un código") y además se COMÍA el toque: el anfitrión tocaba
+  // 🍺 + en la fiesta, veía una pantalla de correo sin explicación y, al volver, la cerveza no estaba apuntada
+  // (auditoría de producto, sep 2026). Ahora la hoja dice a qué venía y el toque se reanuda solo.
+  function pedirLogin(b, act) {
+    ui.overlay = 'login'; ui.loginEstado = 'form';
+    ui.loginMotivo = REPETIBLES[act] || null;
+    // El intento se guarda como SELECTOR, no como nodo: tras el login la app recarga y re-renderiza, así que
+    // el botón original ya no existe. Se vuelve a buscar y se dispara el camino real (mismo click).
+    ui.intentoSel = (b && REPETIBLES[act])
+      ? `[data-act="${act}"]` + ['pid', 'prod', 'id'].map(k => (b.dataset && b.dataset[k]) ? `[data-${k}="${b.dataset[k]}"]` : '').join('')
+      : null;
+    rerender();
+  }
+  // Reanuda el toque que disparó el login (si el elemento sigue existiendo tras recargar).
+  function reanudarIntento() {
+    const sel = ui.intentoSel; ui.intentoSel = null; ui.loginMotivo = null;
+    if (!sel || !sesionActiva) return;
+    const el = document.querySelector(sel);
+    if (el) el.click();
+  }
 
   // Indicador offline/sync: solo visible mientras se OPERA (detalle). Guardamos el último estado de sync
   // y lo re-pintamos en cada render para que el cambio de vista (home↔detalle) lo oculte/muestre.
@@ -221,7 +243,7 @@
 
     // GATE INVERTIDO (decisión #5): la app carga en LECTURA para cualquiera con el link; el login salta
     // SOLO al intentar ESCRIBIR. La frontera real es RLS (rechaza al anon); esto es el aviso amable.
-    if (WRITE_ACTS.has(act) && backendOn() && !sesionActiva) { pedirLogin(); return; }
+    if (WRITE_ACTS.has(act) && backendOn() && !sesionActiva) { pedirLogin(b, act); return; }
 
     switch (act) {
       // ----- auth (hoja de login, opt-in desde el ícono de perfil) -----
@@ -355,7 +377,31 @@
 
       // ----- asistencias -----
       // "+ Agregar" abre la hoja simple del directorio (overlay 'add-asis').
-      case 'open-add-asis': ui.overlay = 'add-asis'; rerender(); return;
+      case 'open-add-asis': ui.overlay = 'add-asis'; ui.nuevoAsis = false; ui.nuevoAsisNombre = ''; ui.nuevoAsisEstado = 'invitado'; rerender(); return;
+      // ALTA EN LÍNEA de alguien que no está en el directorio, SIN salir de la hoja (antes: 9 toques y 3
+      // pantallas hasta Ajustes). Default INVITADO: el que llega de sorpresa casi siempre lo es, y marcarlo
+      // ahorrador por descuido lo mete al REPARTO y le cobra el cover que no es.
+      case 'open-nuevo-asis': ui.nuevoAsis = true; ui.nuevoAsisEstado = ui.nuevoAsisEstado || 'invitado'; rerender(); return;
+      // Al cambiar de chip se RE-RENDERIZA: hay que preservar lo ya tecleado o se pierde el nombre.
+      case 'set-nuevo-asis-estado': {
+        const inp = document.getElementById('na-nombre');
+        ui.nuevoAsisNombre = inp ? inp.value : (ui.nuevoAsisNombre || '');
+        ui.nuevoAsisEstado = (b.dataset.estado === 'ahorrador') ? 'ahorrador' : 'invitado';
+        rerender(); return;
+      }
+      case 'add-asis-nuevo': {
+        const inp = document.getElementById('na-nombre');
+        const nombre = ((inp && inp.value) || '').trim();
+        if (!nombre) { View.toast('Escribí el nombre', 'err'); return; }
+        const estado = (ui.nuevoAsisEstado === 'ahorrador') ? 'ahorrador' : 'invitado';
+        // El campo se limpia ANTES de mutar: cada acción commitea y el commit YA dispara un render con el
+        // `ui` que haya en ese momento (si se limpia después, el input se repinta con el nombre viejo).
+        ui.nuevoAsisNombre = '';                 // el form queda abierto para sumar varios
+        const nuevoId = A.addPersona({ nombre, estado });
+        A.addAsistencia(prm, nuevoId);           // entra a ESTA primada de una: es a lo que se vino
+        View.toast(nombre + ' agregado');
+        rerender(); return;
+      }
       // "+ Exonerar cover" (cortesía): hoja para elegir a quién no cobrarle cover (toggle por asistente).
       case 'open-exonerar': ui.overlay = 'exonerar'; rerender(); return;
       // En la hoja: cada fila lleva data-pid → agregar y quedarse en la hoja para sumar varios.
@@ -493,7 +539,7 @@
     }
     const t = ev.target.closest('[data-ch]'); if (!t) return;
     // Todo data-ch es EDICIÓN (escritura): sin sesión, abre el login en vez de aplicar (gate invertido).
-    if (backendOn() && !sesionActiva) { pedirLogin(); return; }
+    if (backendOn() && !sesionActiva) { pedirLogin(null, null); return; }
     const ch = t.dataset.ch;
     const pid = t.dataset.pid;
     const id  = t.dataset.id;
@@ -656,7 +702,9 @@
         cargarMiEmail();                        // para la presencia ("quién está apuntando")
         if (View.renderAuthButton) View.renderAuthButton(sesionActiva ? 'in' : 'out');
         if (ui.overlay === 'login' && sesionActiva) ui.overlay = null;   // cerrar la hoja al iniciar sesión
-        appIniciada = false; iniciarApp();     // recargar (la escritura recién habilitada puede traer más)
+        appIniciada = false;
+        // Recargar y, YA con los datos frescos pintados, repetir el toque que disparó el login.
+        Promise.resolve(iniciarApp()).then(() => { if (sesionActiva) reanudarIntento(); });
       });
       const session = await Auth.getSession();
       sesionActiva = !!session;

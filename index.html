@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-122135-d2ac12d">
+<meta name="build" content="20260914-123607-5764ad4">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -174,6 +174,19 @@
   .asis-toggle-ok .icon{width:16px;height:16px}
   .asis-add{display:flex;justify-content:center;margin-bottom:var(--space-4)}
   /* enlace de acción en texto (sin caja): teal, con su ícono */
+  /* POR COBRAR (home) — la deuda viva de TODAS las primadas. Ámbar (pendiente) y una fila por primada;
+     si no hay deuda no se pinta (muestra la excepción, no la regla). */
+  .cobrar-card{margin-top:var(--space-5)}
+  .cobrar-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-3)}
+  .cobrar-head .home-sub{margin:0}
+  .cobrar-tot{color:var(--amber);font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  .cobrar-list{display:flex;flex-direction:column}
+  .cobrar-fila{display:flex;align-items:center;gap:var(--space-3);width:100%;min-height:var(--tap-row);padding:var(--space-2) 0;background:transparent;border:none;cursor:pointer;color:var(--ink);font-family:inherit;text-align:left}
+  .cobrar-fila:active{opacity:.7}
+  .cobrar-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  .cobrar-name{font-size:14px;font-weight:700}
+  .cobrar-quien{font-size:12px;color:var(--ink-soft)}
+  .cobrar-monto{flex:none;min-width:84px;text-align:right;font-weight:700;font-size:14px;color:var(--amber);font-variant-numeric:tabular-nums}
   .add-link{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-2)}
   .add-link:active{opacity:.6}
   /* punto de estado discreto (sin badge con borde) */
@@ -181,7 +194,7 @@
   .dot.closed{background:var(--ink-soft)}
   .dot.prin{background:var(--accent)}                 /* punto del principal (teal) */
   .dot.neutral{background:var(--ink-soft)}            /* bullet neutro (no-principal en la lista compacta) */
-  .dot.idle{background:var(--amber)}                  /* abierta SIN consumos (creada, sin actividad aún) — ámbar = pendiente (§1) */
+  .dot.idle{background:var(--amber)}                  /* pendiente (§1): abierta SIN consumos, o CERRADA a la que todavía le deben */
   /* etiqueta de rol / estado en texto tenue (reemplaza los badges con borde en la identidad) */
   .rol-tag{color:var(--ink-soft);font-weight:400;font-size:12px}
   /* estado vacío SIN caja: solo texto centrado con aire */
@@ -751,6 +764,16 @@
   /* Fila "Agregar asistente": nombre a la izq + DOS acciones a la der (Sin cover · Agregar). Ya no es un
      botón de ancho completo (decisión: la exoneración se elige al agregar). */
   .addrow{display:flex;align-items:center;gap:var(--space-3);min-height:var(--tap-row);padding:var(--space-2) var(--space-1)}
+  /* ALTA EN LÍNEA en la hoja "Agregar asistente": nombre + estado en CHIPS + Agregar, sin salir de la hoja.
+     El estado va en chips (no en <select>) porque la elección debe VERSE: el select traía "Ahorrador" por
+     defecto y nadie lo abría → el recién llegado entraba al reparto y pagaba el cover que no era. */
+  .alta-foot{margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--line)}
+  .alta-inline{display:flex;flex-direction:column;gap:var(--space-3)}
+  .alta-chips{display:flex;gap:var(--space-2)}
+  .alta-chips .chip{flex:1;justify-content:center}
+  .alta-chips .chip.on{border-color:var(--accent);color:var(--accent)}
+  .alta-go{align-self:flex-start;min-height:var(--tap-btn)}
+  .alta-hint{font-size:12px;color:var(--ink-soft)}
   .addrow:last-child{border-bottom:none}
   .addrow .acc-id{flex:1;min-width:0}
   .addrow-acc{flex:none;display:flex;align-items:center;gap:var(--space-2)}
@@ -841,13 +864,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-122135-d2ac12d"></script>
-  <script src="js/util.js?v=20260914-122135-d2ac12d"></script>
-  <script src="js/api.js?v=20260914-122135-d2ac12d"></script>
-  <script src="js/auth.js?v=20260914-122135-d2ac12d"></script>
-  <script src="js/store.js?v=20260914-122135-d2ac12d"></script>
-  <script src="js/view.js?v=20260914-122135-d2ac12d"></script>
-  <script src="js/controller.js?v=20260914-122135-d2ac12d"></script>
+  <script src="js/config.js?v=20260914-123607-5764ad4"></script>
+  <script src="js/util.js?v=20260914-123607-5764ad4"></script>
+  <script src="js/api.js?v=20260914-123607-5764ad4"></script>
+  <script src="js/auth.js?v=20260914-123607-5764ad4"></script>
+  <script src="js/store.js?v=20260914-123607-5764ad4"></script>
+  <script src="js/view.js?v=20260914-123607-5764ad4"></script>
+  <script src="js/controller.js?v=20260914-123607-5764ad4"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
