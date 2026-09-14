@@ -413,33 +413,20 @@
     const esPrin = S().esPrincipal(p, a);
     const activa = ui && ui.activaPid === a.personaId;
     const saldado = S().saldoDe(p, a) === 0 && total > 0;
-    // CHECK DE PAGO EN LA FILA (patrón universal "marcar completado"): círculo vacío = debe, ✓ teal = pagó.
-    // UN toque marca/desmarca sin abrir nada — es el gesto del ANFITRIÓN al cerrar la cuenta ("¿quién pagó?").
-    // La hoja "Pagar" (llave Bre-B + monto) se CONSERVA para el que VA A PAGAR: son dos trabajos distintos
-    // (el que paga necesita la llave; el anfitrión solo necesita chulear). Sigue viva con la primada CERRADA
-    // (INVARIANTE #4: la cuenta se congela, los pagos llegan después). No lo llevan el anfitrión (auto-saldado)
-    // ni quien no debe nada. Va FUERA del <button> de la fila (no se anidan botones) → la línea es un flex.
-    const checkable = !esPrin && total > 0;
-    // El que DEBE lleva el monto en ÁMBAR (DESIGN.md §1: ámbar = pendiente). Antes la lista solo marcaba a
-    // los SALDADOS (teal) y los pendientes no tenían color: el ojo iba al revés de la tarea del anfitrión
-    // ("¿quién falta por pagar?"). El anfitrión está auto-saldado → nunca va en ámbar.
-    const debe = checkable && !a.pagado;
-    const check = checkable
-      ? `<button class="asis-pay ${a.pagado ? 'on' : ''}" data-act="toggle-pagado" data-pid="${a.personaId}" aria-pressed="${a.pagado ? 'true' : 'false'}" aria-label="${e(nombrePersona(a.personaId))}: ${a.pagado ? 'pagado, tocar para deshacer' : 'marcar como pagado'}"><span class="circ">${a.pagado ? icon('check', 'sm') : ''}</span></button>`
-      // Sin círculo (anfitrión auto-saldado / quien no debe nada) se reserva la MISMA columna vacía: si no,
-      // su monto quedaba 48px por fuera de la columna de todos los demás y la lista dejaba de leerse como tabla.
-      : '<span class="asis-pay-sp" aria-hidden="true"></span>';
-    // El check inline junto al nombre solo cuando NO hay círculo tocable (evita dos chulos en la misma fila).
-    const checkInline = (saldado && !checkable) ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : '';
-    const fila = `<div class="asis-linea ${activa ? 'on' : ''}">
-        <button class="asis-fila ${activa ? 'on' : ''}" data-act="activar-asis" data-pid="${a.personaId}" aria-expanded="${activa ? 'true' : 'false'}">
+    // AQUÍ NO SE COBRA (decisión del PM, sep 2026): esta lista es para APUNTAR el consumo. El check de pago
+    // vivía también en la fila y quedaba DUPLICADO con el del Balance; se quitó de acá. Pagar es un momento
+    // distinto del consumo —pasa mirando el Balance, casi siempre al día siguiente— y ahí vive su control.
+    // La fila SÍ sigue DICIENDO quién saldó (nombre en teal + chulo inline) y quién debe (monto en ámbar):
+    // informar es lectura, cobrar es acción, y son dos trabajos distintos.
+    const debe = !esPrin && total > 0 && !a.pagado;
+    const checkInline = saldado ? ` <span class="asis-check" title="Saldado">${icon('check', 'sm')}</span>` : '';
+    const fila = `<button class="asis-fila ${activa ? 'on' : ''}" data-act="activar-asis" data-pid="${a.personaId}" aria-expanded="${activa ? 'true' : 'false'}">
           <span class="asis-fila-stack">
             <span class="asis-fila-id ${saldado ? 'saldado' : ''}"><b>${e(nombrePersona(a.personaId))}</b>${checkInline}</span>
             <span class="asis-sub">${rolTag(a.estadoEnEseMomento)}${esPrin ? '<span class="dot prin"></span><span class="rol-tag">Anfitrión</span>' : ''}</span>
           </span>
           <span class="acc-amt${debe ? ' debe' : ''}">${$peso(total)}</span>
-        </button>${check}
-      </div>`;
+        </button>`;
     if (!activa) return `<div class="asis">${fila}</div>`;
     // REVEAL de la persona activa: chips (apuntar) ARRIBA, PAGO abajo (saldar = menos frecuente). El rol,
     // el cover y "Quitar" son CONFIGURACIÓN (overlay Configurar › Asistentes), no aquí.

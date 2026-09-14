@@ -565,12 +565,15 @@ eq('Consumo congelado tras cerrar (changeItem no-op en cerrada)', cervezas(), be
 section('Pago: "Pagar" → hoja con llave → "Ya pagué", con la primada cerrada');
 // Beto exonerado, 2 cervezas → total 7.000, saldo 7.000 (no pagado)
 eq('Saldo de Beto antes de pagar = 7.000', Store.select.saldoDe(prm(), betoAsis()), 7000);
-// CHECK DE PAGO EN LA FILA (un toque, sin abrir nada): el gesto del ANFITRIÓN chuleando quién pagó. Vive en la
-// FILA (no hay que desplegar a la persona) y sigue activo con la primada CERRADA (INVARIANTE #4).
+// CHECK DE PAGO (un toque, sin abrir nada): el gesto del anfitrión chuleando quién pagó. Vive en el BALANCE
+// —no en la lista de consumo— porque pagar es un momento distinto del consumo, casi siempre al día siguiente
+// y mirando el Balance. Sigue activo con la primada CERRADA (INVARIANTE #4).
 abrirAsis();
-const chkBeto = () => q(`[data-act="toggle-pagado"][data-pid="${beto.id}"]`);
-check('Fila: Beto lleva check de pago, sin marcar', !!chkBeto() && !chkBeto().classList.contains('on'));
-check('Fila: el anfitrión NO lleva check (está auto-saldado)', !q(`[data-act="toggle-pagado"][data-pid="${ana.id}"]`));
+check('Consumos: la lista NO tiene check de pago (cobrar no se hace acá)', !q('.asis-list [data-act="toggle-pagado"]'));
+abrirBalance();
+const chkBeto = () => q(`.balance-panel [data-act="toggle-pagado"][data-pid="${beto.id}"]`);
+check('Balance: Beto lleva check de pago, sin marcar', !!chkBeto() && !chkBeto().classList.contains('on'));
+check('Balance: el anfitrión NO lleva check (está auto-saldado)', !q(`.balance-panel [data-act="toggle-pagado"][data-pid="${ana.id}"]`));
 click(chkBeto());
 eq('Un toque en el check marca pagado (sin desplegar la ficha)', betoAsis().pagado, true);
 check('El check NO abrió la hoja "Pagar"', q('#overlay').hidden);
@@ -613,14 +616,13 @@ eq('Re-marcado pagado (persistencia)', betoAsis().pagado, true);
 
 /* ---------- 8b·3. Feedback del pago: check en Consumos + el saldado SALE del cobro del Balance ---------- */
 section('Pago saldado: check en Consumos; el Balance muestra solo quién DEBE (el saldado sale del cobro)');
-// Beto saldado (saldo 0, total 7.000>0). En la cara Consumos su fila lo muestra con el CÍRCULO de pago
-// marcado (.asis-pay.on) + el nombre en teal. El chulo INLINE (.asis-check) ya no se pinta en filas que
-// tienen círculo tocable: serían dos chulos en la misma fila. Queda solo para quien NO lo lleva (anfitrión).
+// La lista de Consumos INFORMA quién saldó (chulo inline + nombre en teal) pero NO COBRA: el check de pago
+// se quitó de la fila (decisión del PM, sep 2026) — pagar pasa mirando el BALANCE, no durante el consumo.
 cerrarBalance(); activar(beto.id);
-check('Consumos: Beto saldado lleva el círculo de pago marcado (.asis-pay.on)',
-  !!q(`[data-act="toggle-pagado"][data-pid="${beto.id}"]`) && q(`[data-act="toggle-pagado"][data-pid="${beto.id}"]`).classList.contains('on'));
-check('Consumos: sin chulo inline duplicado en la fila con círculo',
-  !/asis-check/.test(q('#screen').querySelector(`[data-act="activar-asis"][data-pid="${beto.id}"]`).innerHTML));
+check('Consumos: la fila NO lleva check de pago (cobrar no se hace acá)',
+  !q(`[data-act="toggle-pagado"][data-pid="${beto.id}"]`) && !q('.asis-list [data-act="toggle-pagado"]'));
+check('Consumos: el saldado SÍ se ve, con chulo inline (.asis-check)',
+  /asis-check/.test(q('#screen').querySelector(`[data-act="activar-asis"][data-pid="${beto.id}"]`).innerHTML));
 check('Consumos: la fila saldada lleva el nombre en teal (.asis-fila-id.saldado)',
   !!q('#screen').querySelector(`.asis-fila[data-pid="${beto.id}"] .asis-fila-id.saldado`));
 // PESO INVERTIDO: el ÁMBAR marca a quien DEBE (no a quien ya pagó). Beto está saldado → su monto NO lleva
