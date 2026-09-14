@@ -265,7 +265,10 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     marcar un pago la persona **MIGRABA de grupo**: medido con el scroll quieto, **tres toques en el mismo punto
     marcaron como pagadas a TRES PERSONAS DISTINTAS**. Acá cuesta plata de verdad (se salda a quien no pagó).
     **Nunca volver a agrupar por estado de pago.** *(El monto mostrado no cambia: con pago binario el saldo de un
-    deudor ES su total.)*). **Bre-B: Balance SÍ (operativo), informe PNG NO (resumen financiero).**
+    deudor ES su total.)*). **Bre-B: en el Balance Y en el informe PNG** *(se revirtió la regla vieja "informe NO", sep 2026: el PNG es lo
+    que circula por el chat familiar y el que debe lo mira JUSTO para pagar — sin la llave tenía que abrir la app).
+    En ambos sitios aparece **solo si hay saldo pendiente** y solo si hay llave cargada (snapshot `pago.breB`, con
+    respaldo en la persona vigente).*
     **Un solo divisor** (composición | cobro). Se quitaron:
     **ACTA DE CIERRE (cerrada con deuda):** bajo el héroe "Ganancia · al Tesorero" va la nota ámbar
     **"$X aún por cobrar"** (`.bal-note.pend` / `.informe-hero-note.pend`) — la ganancia es la cifra contable y el
@@ -394,7 +397,8 @@ trampas de html2canvas (`min-width:0` en los hijos flex · texto suelto en flex 
 `DESIGN.md` §5. **Reglas del documento:** el **Cover** se dice UNA vez por grupo (no por persona); los
 **nombres aparecen UNA sola vez** (el grupo *Ahorradores* del cobro ES el padrón del reparto, y por eso
 **incluye a los ahorradores con total 0** —un co-organizador sin consumo recibe plata y antes no figuraba—);
-el **desglose por producto se conserva íntegro** y **no se elide**; el Cover del grupo **solo se anuncia si
+el **desglose por producto se conserva íntegro** y **no se elide**; la **llave Bre-B del anfitrión** va
+destacada bajo la cabecera de Cobro (solo si alguien debe); el Cover del grupo **solo se anuncia si
 alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cover de $0 cobrados).
 ⚠️ En el recibo del informe, **Σ partidas = total − cover** (el cover subió a la cabecera del grupo); en el
 **Balance y la hoja Pagar el cover SIGUE siendo una partida** y ahí la suma sí cuadra con el total.

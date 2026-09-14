@@ -486,7 +486,9 @@ la topbar del detalle → el panel **no repite cabecera**.
    saldado** (su consumo está en mano, auto-saldado), marcado `.bal-rep-anf` "Anfitrión" → **su total se ve, igual que
    el de todos** (transparencia; el cruce de cuentas ya está en Reembolso + Margen, no se oculta nada). Si la primada es
    incompleta → "Asigná un anfitrión".
-   > **Bre-B: Balance SÍ, informe PNG NO.** El **Balance in-app es operativo** → muestra la llave para que el deudor
+   > **Bre-B: Balance SÍ, informe PNG TAMBIÉN** *(revertido sep 2026: el PNG es lo que circula por el chat y el
+   > deudor lo abre JUSTO para pagar; sin la llave tenía que entrar a la app. En el informe va bajo la cabecera de
+   > Cobro, en caja teal `.informe-breb`, y como en el Balance **solo si hay saldo pendiente**).* El **Balance in-app es operativo** → muestra la llave para que el deudor
    > pague. El **informe compartible** (§5, `informeTemplateHTML`) es el **resumen financiero del evento para todos**
    > → SIN llave (no es un medio de cobro, es el documento de cierre).
 

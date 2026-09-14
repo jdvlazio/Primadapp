@@ -465,15 +465,25 @@ check('Informe: "Por cobrar $X" (= saldo pendiente) en la cabecera de Cobro',
 check('Informe ABIERTA: sin nota "aún por cobrar" en el héroe', !/aún por cobrar/.test(informe));
 // SIN footer "Generado con Primadapp" (se quitó: la marca aparecía de más). El wordmark de arriba basta.
 check('Informe: SIN footer "Generado con Primadapp"', !/Generado con Primadapp/.test(informe) && !/informe-foot/.test(informe));
-// SIN llave Bre-B: el informe es el documento ejecutivo del Tesorero; el cómo-pagar vive en la hoja Pagar.
-// NO aparece ni aunque el snapshot pago.breB la tenga.
-check('Informe: SIN llave Bre-B (ni 🔑 ni informe-llave ni "Bre-B")',
-  !/informe-llave/.test(informe) && !/🔑/.test(informe) && !/Bre-B/.test(informe));
+// 🔑 LLAVE BRE-B EN EL INFORME (decisión del PM REVERTIDA, sep 2026). Antes se excluía a propósito; en la
+// práctica el PNG es lo que circula por el chat y quien debe lo mira JUSTO para pagar. Se muestra SOLO si hay
+// saldo pendiente (con todo cobrado sobra) y solo si hay llave.
 const prevBreB = prm().pago.breB;
 prm().pago.breB = 'ana@bre-b';
 const conSnap = window.View.informeTemplateHTML(prm());
-check('Informe: aunque el snapshot tenga Bre-B, el informe NO la muestra',
-  !/Bre-B/.test(conSnap) && !/ana@bre-b/.test(conSnap));
+check('Informe: con deuda y llave, el informe SÍ muestra la Bre-B del anfitrión',
+  Store.select.informePrincipal(prm()).saldoPendiente > 0
+  && /informe-breb/.test(conSnap) && /🔑/.test(conSnap)
+  && new RegExp('informe-breb-k">Bre-B de ' + ana.nombre).test(conSnap)
+  && /informe-breb-val">ana@bre-b/.test(conSnap));
+// Sin llave en NINGÚN lado (ni el snapshot de la primada ni la persona vigente, que es el respaldo) no se
+// pinta el bloque: nada de un 🔑 vacío en el documento.
+prm().pago.breB = '';
+const prevBreBPersona = Store.select.persona(ana.id).breB;
+Store.actions.setBreBPersona(ana.id, '');
+check('Informe: sin llave en ningún lado, no se pinta el bloque (ni 🔑 vacío)',
+  !/informe-breb/.test(window.View.informeTemplateHTML(prm())));
+Store.actions.setBreBPersona(ana.id, prevBreBPersona || '');
 prm().pago.breB = prevBreB || null;   // restaurar el snapshot
 // View.shareInforme existe y es invocable (la captura/share real se prueba en navegador, no en jsdom).
 check('View.shareInforme expuesta', typeof window.View.shareInforme === 'function');

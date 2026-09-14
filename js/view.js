@@ -233,13 +233,21 @@
       </div>`;
     };
     const cobroCols = `${grupoCobro('ahorrador', 'Ahorradores')}${grupoCobro('invitado', 'Invitados')}`;
+    // 🔑 LLAVE BRE-B EN EL INFORME (decisión del PM revertida, sep 2026). Antes se excluía a propósito ("el
+    // informe es el resumen financiero del Tesorero; el cómo-pagar vive en la hoja Pagar"). En la práctica el
+    // PNG es lo que circula por el chat familiar y quien debe lo mira JUSTO para pagar: sin la llave tiene que
+    // abrir la app. Se muestra SOLO si alguien debe (si está todo cobrado, sobra) y si hay llave.
+    const breB = ((p.pago && p.pago.breB) || (principalId ? (sel.persona(principalId) || {}).breB : null) || '').toString().trim();
+    const breBLine = (inf.saldoPendiente > 0 && breB)
+      ? `<div class="informe-breb">🔑 <span class="informe-breb-k">Bre-B de ${e(nombrePersona(principalId))}</span><span class="informe-breb-val">${e(breB)}</span></div>`
+      : '';
     const cobroTot = inf.saldoPendiente > 0
       ? `<div class="informe-cobro-tot pend">Por cobrar ${$peso(inf.saldoPendiente)}</div>`
       : `<div class="informe-cobro-tot ok">✓ Todo cobrado</div>`;
     // El TOTAL va en la CABECERA de la sección (como en el Balance), no al pie debajo de todos los recibos:
     // el Tesorero lee de una cuánto falta antes de bajar al detalle.
     const cobro = completa
-      ? `<div class="informe-cobro"><div class="informe-cobro-head"><span class="informe-sub">Cobro</span>${cobroTot}</div>${cobroCols}</div>`
+      ? `<div class="informe-cobro"><div class="informe-cobro-head"><span class="informe-sub">Cobro</span>${cobroTot}</div>${breBLine}${cobroCols}</div>`
       : '';
 
     return `<div class="informe-card">

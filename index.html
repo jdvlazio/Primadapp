@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20260914-173255-6070e29">
+<meta name="build" content="20260914-175812-da1edcf">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -460,6 +460,12 @@
   .informe-cobro-tot.ok{color:var(--accent)}
   /* Detalle por persona (lo que paga): dos columnas — izquierda (nombre + productos), TOTAL a la derecha. */
   .informe-list{margin-top:var(--space-1)}
+  /* 🔑 LLAVE BRE-B: cómo paga el que debe. Va bajo la cabecera de Cobro, destacada, porque es la razón por la
+     que muchos abren la imagen. Solo aparece si hay saldo pendiente (ver informeTemplateHTML). */
+  .informe-breb{display:flex;align-items:baseline;gap:12px;margin-top:10px;padding:12px 18px;border-radius:14px;
+    background:rgba(45,212,191,.10);border:2px solid rgba(45,212,191,.22)}
+  .informe-breb-k{font-size:20px;font-weight:700;color:var(--ink-soft);white-space:nowrap}
+  .informe-breb-val{font-size:26px;font-weight:800;color:var(--accent);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* GRUPOS del cobro (Ahorradores / Invitados): el cover se dice UNA vez acá en vez de repetirse en cada
      persona, y el grupo de Ahorradores hace de padrón del reparto (por eso arriba ya no van los nombres). */
   .informe-grupo{margin-top:18px}
@@ -924,13 +930,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20260914-173255-6070e29"></script>
-  <script src="js/util.js?v=20260914-173255-6070e29"></script>
-  <script src="js/api.js?v=20260914-173255-6070e29"></script>
-  <script src="js/auth.js?v=20260914-173255-6070e29"></script>
-  <script src="js/store.js?v=20260914-173255-6070e29"></script>
-  <script src="js/view.js?v=20260914-173255-6070e29"></script>
-  <script src="js/controller.js?v=20260914-173255-6070e29"></script>
+  <script src="js/config.js?v=20260914-175812-da1edcf"></script>
+  <script src="js/util.js?v=20260914-175812-da1edcf"></script>
+  <script src="js/api.js?v=20260914-175812-da1edcf"></script>
+  <script src="js/auth.js?v=20260914-175812-da1edcf"></script>
+  <script src="js/store.js?v=20260914-175812-da1edcf"></script>
+  <script src="js/view.js?v=20260914-175812-da1edcf"></script>
+  <script src="js/controller.js?v=20260914-175812-da1edcf"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
