@@ -96,7 +96,9 @@
     const hero = `<div class="informe-hero gan">
         <span class="informe-hero-lbl">Ganancia${cerrada ? ' · al Tesorero' : ''}</span>
         <span class="informe-hero-val">${$peso(gan)}</span>
-        ${cerrada ? '' : '<span class="informe-hero-note">Provisional — se confirma al cerrar</span>'}
+        ${cerrada
+          ? (inf.saldoPendiente > 0 ? `<span class="informe-hero-note pend">${$peso(inf.saldoPendiente)} aún por cobrar</span>` : '')
+          : '<span class="informe-hero-note">Provisional — se confirma al cerrar</span>'}
       </div>`;
 
     // REPARTO — A QUIÉNES se distribuye: la ganancia se reparte en partes iguales entre los AHORRADORES
@@ -122,7 +124,7 @@
     const comp = `<div class="informe-comp">
         <div class="informe-kv"><span>Cover</span><b>${$peso(sel.coverCobrado(p))}</b></div>
         <div class="informe-kv"><span>Margen</span><b>${$peso(sel.margenTotal(p))}</b></div>
-        ${completa ? `<div class="informe-kv dim"><span>Reembolso de productos</span><b>${$peso(inf.recuperaPrincipal)}</b></div>` : ''}
+        ${completa ? `<div class="informe-kv dim"><span>Reembolso a ${e(nombrePersona(principalId))} <span class="informe-rep-anf">Anfitrión</span></span><b>${$peso(inf.recuperaPrincipal)}</b></div>` : ''}
         ${sob > 0 ? `<div class="informe-kv"><span>Sobrante al fondo</span><b>${$peso(sob)}</b></div>` : ''}
       </div>`;
 
@@ -151,14 +153,16 @@
     const cobroTot = inf.saldoPendiente > 0
       ? `<div class="informe-cobro-tot pend">Por cobrar ${$peso(inf.saldoPendiente)}</div>`
       : `<div class="informe-cobro-tot ok">✓ Todo cobrado</div>`;
+    // El TOTAL va en la CABECERA de la sección (como en el Balance), no al pie debajo de todos los recibos:
+    // el Tesorero lee de una cuánto falta antes de bajar al detalle.
     const cobro = completa
-      ? `<div class="informe-cobro"><div class="informe-sub">Cobro</div>${pendRows}${saldRows}${cobroTot}</div>`
+      ? `<div class="informe-cobro"><div class="informe-cobro-head"><span class="informe-sub">Cobro</span>${cobroTot}</div>${pendRows}${saldRows}</div>`
       : '';
 
     return `<div class="informe-card">
         <div class="informe-head">
           <span class="informe-brand">Primad<span class="informe-brand-ac">app</span></span>
-          <span class="informe-period">${e(Util.monthYear(p.mesContable))}</span>
+          <span class="informe-period">${e(p.fecha ? Util.fechaCompleta(p.fecha) : Util.monthYear(p.mesContable))}</span>
         </div>
         <div class="informe-title">${e(nombreCorto(p.nombre))}</div>
         ${hero}
@@ -883,7 +887,9 @@
     const hero = `<div class="bal-hero">
         <div class="bal-label"><span class="dot ${cerrada ? 'closed' : ''}"></span>Ganancia${cerrada ? ' · al Tesorero' : ''}</div>
         <div class="bal-amount entregado">${$peso(gan)}</div>
-        ${cerrada ? '' : `<div class="bal-note">Provisional — se confirma al cerrar</div>`}
+        ${cerrada
+          ? (inf.saldoPendiente > 0 ? `<div class="bal-note pend">${$peso(inf.saldoPendiente)} aún por cobrar</div>` : '')
+          : `<div class="bal-note">Provisional — se confirma al cerrar</div>`}
       </div>`;
 
     // 2) REPARTO — A QUIÉNES se distribuye: los AHORRADORES (cada uno recibe parteIgual). El ANFITRIÓN también
@@ -908,7 +914,7 @@
     const comp = `<div class="bal-group">
         <div class="bal-row"><span>Cover</span><b>${$peso(sel.coverCobrado(p))}</b></div>
         <div class="bal-row"><span>Margen</span><b>${$peso(sel.margenTotal(p))}</b></div>
-        ${completa ? `<div class="bal-row dim"><span>Reembolso de productos</span><b>${$peso(inf.recuperaPrincipal)}</b></div>` : ''}
+        ${completa ? `<div class="bal-row dim"><span>Reembolso a ${e(nombrePersona(prinId))} <span class="bal-rep-anf">Anfitrión</span></span><b>${$peso(inf.recuperaPrincipal)}</b></div>` : ''}
         ${sob > 0 ? `<div class="bal-row"><span>Sobrante al fondo</span><b>${$peso(sob)}</b></div>` : ''}
       </div>`;
 

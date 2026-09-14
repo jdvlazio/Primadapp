@@ -298,10 +298,10 @@ check('Balance: REPARTO nombra a los ahorradores, Anfitrión (Ana) incluido; mon
 // COMPOSICIÓN sin líneas por fila (.bal-group): Cover · Margen · Reembolso (atenuado .bal-row.dim).
 check('Composición: Cover · Margen · Reembolso atenuado (.bal-row.dim)',
   /<span>Cover<\/span>/.test(cuerpo) && /<span>Margen<\/span>/.test(cuerpo)
-  && /class="bal-row dim"><span>Reembolso de productos<\/span>/.test(cuerpo));
+  && /class="bal-row dim"><span>Reembolso a Ana <span class="bal-rep-anf">Anfitrión<\/span><\/span>/.test(cuerpo));
 // Reembolso ($5.000 = 2×2.500) puede ser > Ganancia ($2.000): por eso va ATENUADO (.bal-row.dim), NO como ingreso.
-check('Reembolso de productos = $5.000, atenuado (.bal-row.dim)',
-  /class="bal-row dim"><span>Reembolso de productos<\/span><b>\$5\.000/.test(cuerpo));
+check('Reembolso a Ana (nombra al destinatario) = $5.000, atenuado (.bal-row.dim)',
+  /class="bal-row dim"><span>Reembolso a Ana <span class="bal-rep-anf">Anfitrión<\/span><\/span><b>\$5\.000/.test(cuerpo));
 // COBRO: cabecera "Por cobrar $7.000" (ámbar) + 🔑 Bre-B del anfitrión (cómo pagan los deudores) + el deudor (Beto).
 check('Cobro: cabecera "Por cobrar $7.000" + 🔑 Bre-B (teal) + deudor Beto',
   /class="bal-cobro-head">Por cobrar <b class="pend">\$7\.000/.test(cuerpo)
@@ -328,7 +328,7 @@ check('Trigger ya NO está en la topbar', !q('#topbar [data-act="compartir-infor
 const informe = window.View.informeTemplateHTML(prm());
 // El PERÍODO se deriva del mesContable de la primada (NO se hardcodea un mes: el test corría verde solo
 // mientras el reloj estuviera en ese mes — era una bomba de tiempo que estalló al cambiar de mes).
-check('Informe: UNA marca wordmark "Primad"+"app" (acento) + período', /informe-brand">Primad<span class="informe-brand-ac">app/.test(informe) && informe.includes('informe-period">' + window.Util.monthYear(prm().mesContable)));
+check('Informe: UNA marca wordmark "Primad"+"app" (acento) + período', /informe-brand">Primad<span class="informe-brand-ac">app/.test(informe) && informe.includes('informe-period">' + (prm().fecha ? window.Util.fechaCompleta(prm().fecha) : window.Util.monthYear(prm().mesContable))));
 // DESGLOSE por persona (cover + ítems con subtotal, UNA línea atenuada bajo el nombre): cada quien sabe QUÉ se
 // le cobra y la suma cuadra a ojo con el total de la derecha. No reemplaza nada; el nombre y el total siguen mandando.
 // Cada fila de Cobro lleva su MINI RECIBO: partidas en filas (.informe-desglose > .informe-kv) con el NOMBRE del
@@ -366,15 +366,19 @@ check('Informe: REPARTO nombra a los ahorradores, Anfitrión (Ana) incluido; mon
 // COMPOSICIÓN: Cover · Margen · Reembolso de productos (atenuado .informe-kv.dim) — como el Balance.
 check('Informe: composición Cover · Margen · Reembolso atenuado (.informe-comp / .informe-kv.dim)',
   /informe-comp/.test(informe) && /<span>Cover<\/span>/.test(informe) && /<span>Margen<\/span>/.test(informe)
-  && /informe-kv dim"><span>Reembolso de productos<\/span>/.test(informe));
+  && /informe-kv dim"><span>Reembolso a Ana <span class="informe-rep-anf">Anfitrión<\/span><\/span>/.test(informe));
 // COBRO (registro de consumo de cada quien): Beto pendiente con su saldo ($7.000, .pend). Ana (principal) NO
 // aparece aquí porque consumió $0 (no por ser principal); el anfitrión SÍ sale cuando consume (ver test dedicado).
 check('Informe: bloque Cobro con Beto pendiente $7.000 (.pend); Ana sin consumo no aparece',
   informe.includes('informe-sub">Cobro') && /informe-total pend">\$7\.000<\/div>/.test(informe)
   && new RegExp('informe-nombre">' + beto.nombre).test(informe) && !new RegExp('informe-nombre">' + ana.nombre).test(informe));
-// Total de cobro: "Por cobrar $X" (= saldo pendiente) en ámbar.
-check('Informe: cobro-tot "Por cobrar $X" (= saldo pendiente)',
-  informe.includes('informe-cobro-tot pend">Por cobrar ' + window.Util.peso(Store.select.informePrincipal(prm()).saldoPendiente)));
+// Total de cobro: "Por cobrar $X" (= saldo pendiente) en ámbar, en la CABECERA de la sección (no al pie).
+check('Informe: "Por cobrar $X" (= saldo pendiente) en la cabecera de Cobro',
+  /informe-cobro-head"><span class="informe-sub">Cobro<\/span><div class="informe-cobro-tot pend">Por cobrar /.test(informe)
+  && informe.includes('informe-cobro-tot pend">Por cobrar ' + window.Util.peso(Store.select.informePrincipal(prm()).saldoPendiente))
+  && /informe-cobro-tot pend">[^<]*<\/div>[\s\S]*informe-asis/.test(informe) && !/informe-asis[\s\S]*informe-cobro-tot/.test(informe));
+// ABIERTA con deuda: el héroe sigue diciendo "Provisional", NO la nota ámbar (esa es de la cerrada).
+check('Informe ABIERTA: sin nota "aún por cobrar" en el héroe', !/aún por cobrar/.test(informe));
 // SIN footer "Generado con Primadapp" (se quitó: la marca aparecía de más). El wordmark de arriba basta.
 check('Informe: SIN footer "Generado con Primadapp"', !/Generado con Primadapp/.test(informe) && !/informe-foot/.test(informe));
 // SIN llave Bre-B: el informe es el documento ejecutivo del Tesorero; el cómo-pagar vive en la hoja Pagar.
@@ -606,6 +610,28 @@ check('Cerrada: héroe Ganancia en teal (.bal-amount.entregado — regla global 
   /class="bal-amount entregado"/.test(q('#screen').innerHTML));
 check('Cerrada saldada: cobro "✓ Todo cobrado", sin "Por cobrar"/"Falta cobrar"',
   /Todo cobrado/.test(q('#screen').innerHTML) && !/Por cobrar/.test(q('#screen').innerHTML) && !/Falta cobrar/.test(q('#screen').innerHTML));
+// ACTA DE CIERRE con deuda (INV#4: cerrada sigue aceptando pagos → también puede "des-pagarse"): el héroe deja
+// de mentir por omisión — bajo "Ganancia · al Tesorero" va la nota ámbar "$X aún por cobrar" (Balance e informe),
+// y el informe lleva la fecha exacta en la cabecera.
+Store.actions.setPagado(prm().id, beto.id, false);
+{
+  const html = q('#screen').innerHTML;
+  const pend = window.Util.peso(Store.select.informePrincipal(prm()).saldoPendiente);
+  check('Cerrada con deuda: héroe del Balance lleva nota ámbar "$X aún por cobrar" (.bal-note.pend)',
+    html.includes('bal-note pend">' + pend + ' aún por cobrar') && !/[Pp]rovisional/.test(html));
+  const infC = window.View.informeTemplateHTML(prm());
+  check('Cerrada con deuda: informe con "· al Tesorero" + nota ámbar "$X aún por cobrar" (.informe-hero-note.pend)',
+    /Ganancia · al Tesorero/.test(infC) && infC.includes('informe-hero-note pend">' + pend + ' aún por cobrar'));
+  // Cabecera = fecha EXACTA si hay día ("Sáb, 12 sept 2026"); si no, el mes. Se prueba con ambas ramas.
+  check('Informe: sin día → el mes en la cabecera',
+    !prm().fecha && infC.includes('informe-period">' + window.Util.monthYear(prm().mesContable)));
+  const conDia = Object.assign({}, prm(), { fecha: prm().mesContable + '-12' });
+  check('Informe: con día → fecha EXACTA en la cabecera (Util.fechaCompleta)',
+    window.View.informeTemplateHTML(conDia).includes('informe-period">' + window.Util.fechaCompleta(conDia.fecha)));
+  check('Cerrada con deuda: "Por cobrar" en la cabecera de Cobro del informe', /informe-cobro-head"><span class="informe-sub">Cobro<\/span><div class="informe-cobro-tot pend">/.test(infC));
+}
+Store.actions.setPagado(prm().id, beto.id, true);   // restaurar
+check('Cerrada sin deuda: la nota ámbar desaparece del héroe', !/aún por cobrar/.test(q('#screen').innerHTML));
 cerrarBalance();           // la cara Consumos sigue accesible…
 check('Cara Consumos accesible con la cuenta cerrada', /Asistentes/.test(q('#screen').innerHTML));
 activar(beto.id);                                                // activar para ver sus chips (solo lectura)
