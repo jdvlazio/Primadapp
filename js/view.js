@@ -92,6 +92,18 @@
     return (c && c[a.estadoEnEseMomento]) || 0;
   }
 
+  // "sáb 25 oct · 9:40 p. m." — momento en que se genera la cuenta de una primada abierta.
+  function cuentaAhora() {
+    const d = new Date();
+    const loc = (root.CONFIG || {}).locale || 'es-CO';
+    const dia = d.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' })
+      .replace(/\./g, '').replace(',', '').replace(' de ', ' ');
+    // Hora SIN cero inicial ("9:40 p. m.") y con espacio duro antes de "p. m.": html2canvas partía la nota
+    // y dejaba "P. M." solo en la segunda línea.
+    const hora = d.toLocaleTimeString(loc, { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, '\u00a0');
+    return `${dia} · ${hora}`;
+  }
+
   function informeTemplateHTML(p) {
     const sel = S();
     const inf = sel.informePrincipal(p);
@@ -103,13 +115,15 @@
     const sob = sel.sobranteFondo(p);
     const gan = sel.ganancia(p);
 
-    // HÉROE = Ganancia (lo que va al Tesorero), teal. Provisional mientras esté abierta.
+    // HÉROE = Ganancia (lo que va al Tesorero), teal. Abierta: "Cuenta al {momento}".
     const hero = `<div class="informe-hero gan">
         <span class="informe-hero-lbl">Ganancia${cerrada ? ' · al Tesorero' : ''}</span>
         <span class="informe-hero-val">${$peso(gan)}</span>
         ${cerrada
           ? (inf.saldoPendiente > 0 ? `<span class="informe-hero-note pend">${$peso(inf.saldoPendiente)} aún por cobrar</span>` : '')
-          : '<span class="informe-hero-note">Provisional — se confirma al cerrar</span>'}
+          // Abierta: la cuenta DE ESE MOMENTO, con fecha y hora. Antes decía "Provisional — se confirma al
+          // cerrar", que el grupo leía como "todavía no paguen" — justo lo contrario de lo que se busca.
+          : `<span class="informe-hero-note">Cuenta al ${e(cuentaAhora())}</span>`}
       </div>`;
 
     // REPARTO — A QUIÉNES se distribuye: la ganancia se reparte en partes iguales entre los AHORRADORES
@@ -1010,23 +1024,30 @@
     }
     const chip = `<button class="balance-toggle ${abierto ? 'on' : ''}" data-act="toggle-balance-panel" aria-expanded="${abierto ? 'true' : 'false'}">
       <span>Balance</span>${kv}${icon(abierto ? 'chevron-down' : 'chevron-up')}</button>`;
-    // "Compartir informe" vive AL FINAL del panel (es lo que el informe muestra: Ganancia + Recaudo), no en la
-    // topbar (allí confundía / se tocaba sin querer en medio de operar). Solo si hay datos que compartir.
-    const compartir = hayDatosInforme(activa)
-      ? `<button class="compartir-link" data-act="compartir-informe">${icon('share-2')}Compartir informe</button>`
-      : '';
-    // CERRAR (o REABRIR) la cuenta, al pie del Balance. ANTES el único cerrar del detalle era el banner verde
-    // "Todos pagaron", que aparece SOLO con saldoPendiente 0 → con deuda pendiente no había forma de cerrar
-    // sin volver al home (auditoría de producto, sep 2026). El caso real del anfitrión a la 1 a.m. es el
-    // contrario: la fiesta se acabó, FALTA plata por cobrar, y quiere congelar la cuenta para que nadie
-    // apunte más. INVARIANTE #4 lo soporta: cerrar congela la cuenta pero SIGUE aceptando pagos. Va aquí
-    // —no en la topbar ni en Configurar— porque el Balance es la superficie del final de la noche, y queda
-    // justo debajo de "Por cobrar $X": se ve la deuda y se decide con ella a la vista.
+    // ENVIAR LA CUENTA (fricción en una primada real, oct 2026). "Compartir informe" vivía al FONDO del panel de
+    // Balance —que en una abierta arranca COLAPSADO— y junto a "Cerrar la cuenta", con el mismo aspecto: en
+    // plena fiesta nadie lo encontraba, ni entendía que sirve ANTES de cerrar. Ahora es un botón primario
+    // justo bajo el chip de Balance, visible aunque el panel esté cerrado, y su texto dice lo que hace según el
+    // momento: con deuda "Enviar cuenta de cobro · $X"; abierta sin deuda "Compartir cuenta"; cerrada
+    // "Compartir acta". (No vuelve a la topbar: ahí se tocaba sin querer mientras se operaba.)
+    let enviar = '';
+    if (hayDatosInforme(activa)) {
+      // Con DEUDA siempre "Enviar cuenta de cobro", abierta o cerrada: cerrar no cobra (INV#4) y después de
+      // cerrar es justo cuando más se manda la cuenta. SIN el monto: el chip de encima ya dice "Por cobrar $X".
+      const debe = infc && !infc.incompleta && infc.saldoPendiente > 0;
+      const lbl = debe ? 'Enviar cuenta de cobro'
+        : activa.estado === 'cerrada' ? 'Compartir acta'
+        : 'Compartir cuenta';
+      enviar = `<button class="cobro-cta" data-act="compartir-informe">${icon('share-2')}${lbl}</button>`;
+    }
+    // CERRAR (o REABRIR) la cuenta, al pie del Balance, SOLO y explicado: es otra cosa que enviar la cuenta.
+    // Cerrar congela los consumos pero SIGUE aceptando pagos (INV#4), así que no hace falta que todos hayan
+    // pagado. Se separa por AIRE (no por línea: DESIGN.md §1) y con una frase que dice qué hace.
     const cerrar = activa.estado === 'cerrada'
-      ? `<button class="cerrar-link" data-act="reabrir-primada" data-id="${activa.id}">${icon('rotate-ccw')}Reabrir la cuenta</button>`
-      : `<button class="cerrar-link" data-act="cerrar-primada" data-id="${activa.id}">${icon('check')}Cerrar la cuenta</button>`;
-    const panel = abierto ? `<div class="balance-panel">${balancePrimada(activa, ui)}${compartir}${cerrar}</div>` : '';
-    return `${primadaDetalle(activa, ui)}<div class="balance-dock">${chip}${panel}</div>`;
+      ? `<div class="cerrar-zona"><div class="cerrar-hint">Reabrir permite volver a apuntar consumos.</div><button class="cerrar-link" data-act="reabrir-primada" data-id="${activa.id}">${icon('rotate-ccw')}Reabrir la cuenta</button></div>`
+      : `<div class="cerrar-zona"><div class="cerrar-hint">¿Terminó la fiesta? Cerrar congela los consumos. Los pagos se siguen marcando después.</div><button class="cerrar-link" data-act="cerrar-primada" data-id="${activa.id}">${icon('check')}Cerrar la cuenta</button></div>`;
+    const panel = abierto ? `<div class="balance-panel">${balancePrimada(activa, ui)}${cerrar}</div>` : '';
+    return `${primadaDetalle(activa, ui)}<div class="balance-dock">${chip}${enviar}${panel}</div>`;
   }
 
   // Hoja "···" de configuración de la primada activa (re-wrap de configPrimadaBody: Asistentes | Productos).
@@ -1076,7 +1097,9 @@
         <div class="bal-amount entregado">${$peso(gan)}</div>
         ${cerrada
           ? (inf.saldoPendiente > 0 ? `<div class="bal-note pend">${$peso(inf.saldoPendiente)} aún por cobrar</div>` : '')
-          : `<div class="bal-note">Provisional — se confirma al cerrar</div>`}
+          // Antes "Provisional — se confirma al cerrar": se leía como "todavía no paguen". La app y la imagen
+          // ahora dicen lo mismo: la cuenta está en curso y ya se puede cobrar.
+          : `<div class="bal-note">Cuenta en curso · se puede cobrar ya</div>`}
       </div>`;
 
     // 2) REPARTO — A QUIÉNES se distribuye: los AHORRADORES (cada uno recibe parteIgual). El ANFITRIÓN también

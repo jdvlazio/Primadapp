@@ -236,7 +236,7 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
   - **Topbar del home:** **"+" Nueva primada** (ÚNICO punto de creación → wizard) · **⚙ Ajustes** (pantalla plana) · **👤 Cuenta**.
   - **"···" por primada** (hero + filas) → hoja con **Reabrir** (si cerrada) / **Eliminar** (con confirmación, sin swipe).
 - **DETALLE = espacio operativo de la primada activa.**
-  - **Topbar del detalle:** **← Inicio** (`volver-home`) · **nombre** · **🔗 compartir** (`shareInforme`) · **··· configurar**
+  - **Topbar del detalle:** **← Inicio** (`volver-home`) · **nombre** · **··· configurar**
     (`open-config-primada` → hoja `configPrimadaSheet`: Asistentes | Productos).
   - **Cuerpo:** **Lista viva** (Consumos, Modelo 3) **+ panel de Balance** debajo (mismo scroll, subordinado). Un chip
     **"Balance ▲/▼"** lo despliega/colapsa (`toggle-balance-panel`, `ui.balanceOpen`). Default por estado: ABIERTA =
@@ -638,6 +638,16 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
   (`ui.intentoSel`, un **selector** —no el nodo: tras el login la app recarga y re-renderiza—). Al volver con
   sesión, `reanudarIntento()` **re-dispara el click real**. Solo se repiten las **frecuentes y de un toque**
   (`item-plus`, `item-minus`, `toggle-pagado`, `add-asistencia`): las **destructivas NO** se repiten solas.
+- **ENVIAR LA CUENTA ≠ CERRAR LA CUENTA (fricción en una primada real, oct 2026).** Son dos acciones
+  independientes: **enviar** (`compartir-informe` → PNG por WhatsApp) sirve **en cualquier momento**, abierta o
+  cerrada; **cerrar** solo congela consumos y no envía nada. "Compartir informe" vivía **al fondo del panel de
+  Balance** —colapsado por defecto en una abierta— y **junto a "Cerrar la cuenta"** con el mismo aspecto: nadie lo
+  encontraba ni entendía que sirve antes de cerrar. Hoy es un **botón primario `.cobro-cta` bajo el chip de
+  Balance, visible con el panel colapsado**, con el texto según el momento: con deuda —abierta **o cerrada**, porque cerrar no cobra— **"Enviar cuenta de cobro"** (sin el monto: el chip de encima ya lo dice), abierta sin deuda **"Compartir cuenta"**, cerrada y cobrada **"Compartir acta"**. "Cerrar/Reabrir la cuenta" queda
+  **solo al pie del panel**, separado por aire (`.cerrar-zona`) y con una frase que dice qué hace. En la imagen, la
+  nota de una abierta pasó de "Provisional — se confirma al cerrar" (se leía "todavía no paguen") a **"Cuenta al
+  sáb 25 oct · 9:40 p. m."** (y en la app, el héroe dice **"Cuenta en curso · se puede cobrar ya"**) (`cuentaAhora()`, el momento en que se genera). No vuelve a la topbar: ahí se
+  tocaba sin querer mientras se operaba.
 - **CERRAR LA CUENTA SE PUEDE SIEMPRE, DESDE EL DETALLE (auditoría de producto, sep 2026).** El único cerrar
   del detalle era el banner verde **"Todos pagaron · Cerrar primada"**, que exige `saldoPendiente === 0` → **con
   deuda no había forma de cerrar sin volver al home**. El caso real del anfitrión a la 1 a.m. es el CONTRARIO

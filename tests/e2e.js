@@ -318,7 +318,7 @@ check('Balance: cifra héroe (.bal-amount) visible', !!q('.bal-amount'));
 check('Balance: resumen directo (Margen en .bal-row, sin segundo toque)', /<span>Margen<\/span>/.test(q('#screen').innerHTML));
 check('Balance: REPARTO a ahorradores (.bal-stat) visible', !!q('.bal-stat') && /Reparto a ahorradores/.test(q('#screen').innerHTML));
 // STATE-AWARE: primada ABIERTA → nota provisional bajo el héroe.
-check('Balance ABIERTA: nota "Provisional" bajo el héroe', /Provisional/.test(q('#screen').innerHTML));
+check('Balance ABIERTA: nota "Cuenta en curso" bajo el héroe (ya no "Provisional")', /Cuenta en curso/.test(q('#screen').innerHTML) && !/Provisional/.test(q('#screen').innerHTML));
 check('Resumen NO repite "Ganancia" como línea (vive solo en el héroe)', !/<span>Ganancia<\/span>/.test(q('#screen').innerHTML));
 // LOTE B · CERRAR DESDE EL DETALLE CON DEUDA (auditoría de producto, sep 2026). Antes el único cerrar del
 // detalle era el banner verde "Todos pagaron", que exige saldoPendiente 0 → con deuda había que volver al
@@ -404,8 +404,8 @@ check('Balance: UN solo divisor .bal-sep (composición | cobro)', (cuerpo.match(
 check('Resumen sin "Ganancia" repetida, sin "Recaudo teórico/de terceros/del principal"',
   !/<span>Ganancia<\/span>/.test(cuerpo) && !/Recaudo teórico/.test(cuerpo)
   && !/de terceros/.test(cuerpo) && !/del principal/.test(cuerpo) && !/Recuperás/.test(cuerpo));
-check('Balance: "provisional" aparece UNA sola vez (la nota del héroe)',
-  (cuerpo.match(/provisional/gi) || []).length === 1);
+check('Balance: la nota "Cuenta en curso" aparece UNA sola vez (la del héroe) y ya no dice "provisional"',
+  (cuerpo.match(/Cuenta en curso/g) || []).length === 1 && !/provisional/i.test(cuerpo));
 cerrarBalance();   // volver a operar (no contaminar tests siguientes)
 cerrarBalance();
 
@@ -414,7 +414,16 @@ section('Compartir informe: trigger AL PIE del panel de Balance + template HTML 
 // El botón "Compartir informe" se MOVIÓ de la topbar al final del panel de Balance (es lo que el informe muestra).
 // Hay datos (Beto consumió) → aparece al desplegar el Balance. NO debe estar en la topbar.
 abrirBalance();
-check('Trigger "Compartir informe" al pie del panel de Balance', !!q('.balance-panel [data-act="compartir-informe"].compartir-link'));
+// ENVIAR LA CUENTA: botón primario bajo el chip de Balance, FUERA del panel (visible con el panel colapsado),
+// con el texto según el momento. Ya no vive al pie del panel junto a "Cerrar la cuenta" (fricción, oct 2026).
+check('Enviar cuenta: botón primario bajo el chip de Balance, fuera del panel',
+  !!q('.balance-dock > .cobro-cta[data-act="compartir-informe"]') && !q('.balance-panel [data-act="compartir-informe"]'));
+check('Enviar cuenta: con deuda dice "Enviar cuenta de cobro" (sin repetir el monto del chip)',
+  /Enviar cuenta de cobro/.test(q('.cobro-cta').textContent) && !/\$/.test(q('.cobro-cta').textContent));
+check('Cerrar la cuenta: separado y explicado (.cerrar-zona con su frase)',
+  !!q('.balance-panel .cerrar-zona .cerrar-hint') && /Cerrar congela los consumos/.test(q('.cerrar-zona').textContent));
+check('Informe ABIERTA: la nota dice "Cuenta al …" (ya no "Provisional")',
+  /informe-hero-note">Cuenta al /.test(window.View.informeTemplateHTML(prm())) && !/Provisional/.test(window.View.informeTemplateHTML(prm())));
 check('Trigger ya NO está en la topbar', !q('#topbar [data-act="compartir-informe"]'));
 const informe = window.View.informeTemplateHTML(prm());
 // El PERÍODO se deriva del mesContable de la primada (NO se hardcodea un mes: el test corría verde solo

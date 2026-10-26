@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20261025-205835-a622058">
+<meta name="build" content="20261025-211230-cc6d7fe">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -426,6 +426,7 @@
   .informe-hero-lbl{font-size:19px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#a9c2bf}   /* 5,6:1 sobre el degradado (con --ink-soft daba 3,95:1) */
   .informe-hero-val{font-size:60px;font-weight:800;line-height:1.02;letter-spacing:-.02em;color:var(--accent)}
   .informe-hero-note{margin-top:2px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
+  .informe-hero-note{white-space:nowrap}
   .informe-hero-note.pend{color:var(--amber);text-transform:none;letter-spacing:0;font-size:21px}
   /* KPI Parte igual c/u — el segundo número clave (espejo del .bal-stat del Balance in-app). */
   .informe-stat{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:22px}
@@ -704,12 +705,15 @@
   .stats-anio-nav .icon{width:20px;height:20px}
   .stats-anio-lbl{min-width:64px;text-align:center;font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--ink)}
   /* "Compartir informe" al pie del panel de Balance (lo que se comparte = el informe: Ganancia + Recaudo). */
-  .compartir-link{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;min-height:var(--tap-row);margin-top:var(--space-5);background:transparent;border:1px solid var(--line);border-radius:var(--radius-md);cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px}
-  .compartir-link:active{opacity:.7}
-  .compartir-link:hover{border-color:var(--accent)}
-  .compartir-link .icon{width:18px;height:18px}
   /* CERRAR/REABRIR la cuenta: hermano de "Compartir informe" pero TENUE — es el final de la noche, no la
      acción principal. Queda justo debajo de "Por cobrar $X": se decide con la deuda a la vista. */
+  /* Enviar la cuenta: botón PRIMARIO bajo el chip de Balance, visible con el panel colapsado. */
+  .cobro-cta{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;min-height:var(--tap-btn);margin-top:var(--space-2);border:none;border-radius:var(--radius-md);background:var(--accent);color:var(--accent-ink);font-family:inherit;font-weight:700;font-size:15px;cursor:pointer}
+  .cobro-cta:active{transform:scale(.98)}
+  .cobro-cta .icon{width:18px;height:18px}
+  /* Cerrar / reabrir: separado por AIRE (DESIGN.md §1, sin líneas) y explicado. */
+  .cerrar-zona{margin-top:var(--space-6)}
+  .cerrar-hint{font-size:12px;color:var(--ink-soft);text-align:center;margin-bottom:var(--space-2)}
   .cerrar-link{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;min-height:var(--tap-row);margin-top:var(--space-2);background:transparent;border:1px solid var(--line);border-radius:var(--radius-md);cursor:pointer;color:var(--ink-soft);font-family:inherit;font-weight:700;font-size:14px}
   .cerrar-link:active{opacity:.7}
   .cerrar-link .icon{width:18px;height:18px}
@@ -933,13 +937,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20261025-205835-a622058"></script>
-  <script src="js/util.js?v=20261025-205835-a622058"></script>
-  <script src="js/api.js?v=20261025-205835-a622058"></script>
-  <script src="js/auth.js?v=20261025-205835-a622058"></script>
-  <script src="js/store.js?v=20261025-205835-a622058"></script>
-  <script src="js/view.js?v=20261025-205835-a622058"></script>
-  <script src="js/controller.js?v=20261025-205835-a622058"></script>
+  <script src="js/config.js?v=20261025-211230-cc6d7fe"></script>
+  <script src="js/util.js?v=20261025-211230-cc6d7fe"></script>
+  <script src="js/api.js?v=20261025-211230-cc6d7fe"></script>
+  <script src="js/auth.js?v=20261025-211230-cc6d7fe"></script>
+  <script src="js/store.js?v=20261025-211230-cc6d7fe"></script>
+  <script src="js/view.js?v=20261025-211230-cc6d7fe"></script>
+  <script src="js/controller.js?v=20261025-211230-cc6d7fe"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
