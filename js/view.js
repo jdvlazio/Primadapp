@@ -844,16 +844,15 @@
       </div>`;
   }
 
-  // DETALLE: ← Inicio · nombre de la primada · [ 🔗 compartir · ··· configurar ].
+  // DETALLE: ← Inicio · NOMBRE ›  — el nombre ES el botón de configurar esta primada (como "Info del grupo"
+  // en WhatsApp). Antes era un engranaje idéntico al de Ajustes de la app en el home → no se distinguían.
   function topbarDetalle(state, ui) {
     const p = S().activePrimada();
     if (!p) return topbarHome(state, ui);
     const inc = S().primadaIncompleta(p) ? ' ' + badge('sin anfitrión', 'warn') : '';
     return `<button class="topbar-back" data-act="volver-home" aria-label="Volver a inicio">${icon('chevron-left')}<span>Inicio</span></button>
-      <span class="topbar-name">${e(nombreCorto(p.nombre))}${inc}</span>
-      <div class="header-actions">
-        <button class="gear" data-act="open-config-primada" title="Configurar primada" aria-label="Configurar primada">${icon('settings-2')}</button>
-      </div>`;
+      <button class="topbar-name topbar-name-btn" data-act="open-config-primada" aria-label="Configurar ${e(nombreCorto(p.nombre))}${inc ? ', sin anfitrión' : ''}"><span class="topbar-name-row"><span class="topbar-name-txt">${e(nombreCorto(p.nombre))}</span>${icon('chevron-right', 'sm')}</span>${inc}</button>
+      <span class="topbar-sp" aria-hidden="true"></span>`;
   }
 
   /* ============================================================

@@ -20,7 +20,7 @@ const SEL = {
   histFila: '.hist-fila',                      // fila de historial en el HOME
   entrar: (id) => `[data-act="entrar-primada"][data-id="${id}"]`,
   volverHome: '[data-act="volver-home"]',      // ← Inicio en la topbar del DETALLE
-  configPrimada: '[data-act="open-config-primada"]',   // ··· en la topbar del DETALLE
+  configPrimada: '[data-act="open-config-primada"]',   // el NOMBRE de la primada en la topbar del DETALLE
   wizard: '.wz',
   wzPrincipal: '#wz-principal',
   wzSiguiente: '[data-act="wz-siguiente"]',

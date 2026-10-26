@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20261026-065415-394ac6e">
+<meta name="build" content="20261026-070332-cb99bc7">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -237,6 +237,15 @@
   .topbar-back:active{opacity:.6}
   .topbar-back .icon{width:20px;height:20px}
   .topbar-name{flex:1;min-width:0;font-weight:800;font-size:17px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;color:var(--ink)}
+  /* Nombre = botón de configurar. Envuelve a 2 líneas (la elipsis escondía lo que distingue "Juan Carlos");
+     el badge "sin anfitrión" va DEBAJO, no en la línea (corría el nombre −52px y el › lo señalaba a él). */
+  .topbar-name-btn{flex:0 1 auto;margin:0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:var(--tap-input);padding:2px var(--space-2);background:transparent;border:none;border-radius:var(--radius-md);font-family:inherit;cursor:pointer;white-space:normal;line-height:1.15}
+  .topbar-name-btn:active{background:var(--paper-2)}
+  .topbar-name-row{display:flex;align-items:center;justify-content:center;gap:2px;min-width:0;max-width:100%}
+  .topbar-name-txt{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:15px}
+  .topbar-name-btn .icon{flex:none;color:var(--ink-soft)}
+  .topbar-name-btn .badge{flex:none;white-space:nowrap;font-size:10px;padding:1px 6px}
+  .topbar-sp{flex:none;width:62px}   /* contrapeso del "‹ Inicio" (mide ~62px) para centrar el nombre */
 
   /* HOME — hero card de la activa + historial compacto (Próximas/Pasadas). */
   .home{display:flex;flex-direction:column;gap:var(--space-2)}
@@ -956,13 +965,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20261026-065415-394ac6e"></script>
-  <script src="js/util.js?v=20261026-065415-394ac6e"></script>
-  <script src="js/api.js?v=20261026-065415-394ac6e"></script>
-  <script src="js/auth.js?v=20261026-065415-394ac6e"></script>
-  <script src="js/store.js?v=20261026-065415-394ac6e"></script>
-  <script src="js/view.js?v=20261026-065415-394ac6e"></script>
-  <script src="js/controller.js?v=20261026-065415-394ac6e"></script>
+  <script src="js/config.js?v=20261026-070332-cb99bc7"></script>
+  <script src="js/util.js?v=20261026-070332-cb99bc7"></script>
+  <script src="js/api.js?v=20261026-070332-cb99bc7"></script>
+  <script src="js/auth.js?v=20261026-070332-cb99bc7"></script>
+  <script src="js/store.js?v=20261026-070332-cb99bc7"></script>
+  <script src="js/view.js?v=20261026-070332-cb99bc7"></script>
+  <script src="js/controller.js?v=20261026-070332-cb99bc7"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

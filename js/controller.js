@@ -309,7 +309,7 @@
       // ----- navegación list→detalle (IA Tricount) -----
       case 'entrar-primada':  entrarDetalle(id); return;     // tap en hero/historial del home → abre el detalle
       case 'volver-home':     volverHome(); return;          // ← Inicio en la topbar del detalle
-      case 'open-config-primada': ui.overlay = 'config-primada'; ui.configTab = 'asistentes'; rerender(); return;  // ··· del detalle
+      case 'open-config-primada': ui.overlay = 'config-primada'; ui.configTab = 'asistentes'; rerender(); return;  // nombre de la primada en la topbar del detalle
 
       // ----- panel de Balance del detalle (debajo de la Lista viva, mismo scroll): NO escritura -----
       case 'toggle-balance-panel': ui.balanceOpen = !View.balanceAbierto(Store.select.activePrimada(), ui); rerender(); return;

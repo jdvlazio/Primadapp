@@ -1320,6 +1320,17 @@ section('Wizard › Como {la anterior} · Home › Por persona › cuenta');
   click('[data-act="close-overlay"]');
 }
 
+section('Detalle: el nombre de la primada configura; el engranaje es solo de Ajustes');
+{
+  const pa = Store.select.activePrimada(); entrarDetalle(pa.id);
+  const nb = q('#topbar .topbar-name-btn[data-act="open-config-primada"]');
+  check('El nombre es el botón de configurar', !!nb && nb.textContent.includes(pa.nombre.replace(/^primada\s+/i, '')));
+  check('Sin engranaje en la topbar del detalle', !q('#topbar .gear'));
+  click(nb); check('Abre la hoja de la primada', !!q('#overlay .sheet'));
+  click('[data-act="close-overlay"]'); irHome();
+  check('En el home el engranaje abre Ajustes', !!q('#topbar [data-act="open-ajustes"]'));
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`E2E: ${pass} pasaron, ${fail} fallaron`);

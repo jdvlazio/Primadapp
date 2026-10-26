@@ -239,8 +239,10 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
   - **Topbar del home:** **"+" Nueva primada** (ÚNICO punto de creación → wizard) · **⚙ Ajustes** (pantalla plana) · **👤 Cuenta**.
   - **"···" por primada** (hero + filas) → hoja con **Reabrir** (si cerrada) / **Eliminar** (con confirmación, sin swipe).
 - **DETALLE = espacio operativo de la primada activa.**
-  - **Topbar del detalle:** **← Inicio** (`volver-home`) · **nombre** · **··· configurar**
-    (`open-config-primada` → hoja `configPrimadaSheet`: Asistentes | Productos).
+  - **Topbar del detalle:** **← Inicio** (`volver-home`) · **el NOMBRE "Ana + Caro ›" ES el botón de configurar**
+    (`open-config-primada` → hoja `configPrimadaSheet`: Asistentes | Productos). *(Oct 2026: antes era un engranaje
+    idéntico al de Ajustes de la app en el home y no se distinguían. Patrón "Info del grupo" de WhatsApp: lo que es
+    de algo se abre tocando ese algo. El engranaje vive SOLO en el home = Ajustes de la app.)*
   - **Cuerpo:** **Lista viva** (Consumos, Modelo 3) **+ panel de Balance** debajo (mismo scroll, subordinado). Un chip
     **"Balance ▲/▼"** lo despliega/colapsa (`toggle-balance-panel`, `ui.balanceOpen`). Default por estado: ABIERTA =
     colapsado; CERRADA = desplegado (documento final). Reusa `balancePrimada()` (resumen ejecutivo, state-aware).
