@@ -394,6 +394,24 @@ section('load() async contra Supabase (fake en memoria)');
     check('sin backend → deleteOwnAccount lanza (no hay nube)', threw);
   }
 
+  /* ====================== 11. Llave Bre-B por RPC (cualquiera con sesión) ====================== */
+  section('Llave Bre-B: commit {kind:"llave"} → RPC set_llave_persona (no el upsert solo-admin de personas)');
+  {
+    const fake = makeFakeSupabase();
+    Api.init({ client: fake });
+    fake._setRpcResult({ data: null, error: null });
+    const st = { personas: [{ id: 'per_ana', nombre: 'Ana', estado: 'ahorrador', breB: '3001234567' }], primadas: [], settings: {} };
+    await Api.commit(st, { kind: 'llave', id: 'per_ana' });
+    const ult = fake._rpcCalls[fake._rpcCalls.length - 1];
+    eq('llama al RPC set_llave_persona', ult && ult.name, 'set_llave_persona');
+    check('le pasa SOLO id y llave', ult && ult.params && ult.params.p_id === 'per_ana' && ult.params.p_breb === '3001234567' && Object.keys(ult.params).length === 2);
+    // Si la función no existe aún en el servidor, el error es DEFINITIVO: no debe bloquear la cola.
+    fake._setRpcResult({ data: null, error: { message: 'Could not find the function public.set_llave_persona', code: 'PGRST202' } });
+    await Api.commit(st, { kind: 'llave', id: 'per_ana' });
+    fake._setRpcResult({ data: null, error: null });
+    check('función inexistente: se descarta y la cola queda vacía (no se atasca)', Api._colaLen ? Api._colaLen() === 0 : true);
+  }
+
   /* ---------- Resumen ---------- */
   console.log(`\n${'='.repeat(50)}`);
   console.log(`API: ${pass} pasaron, ${fail} fallaron`);

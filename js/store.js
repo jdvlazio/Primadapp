@@ -686,7 +686,9 @@
     // INVARIANTE #1 (inmutabilidad histórica): solo cambia el estado VIGENTE; NUNCA toca estadoEnEseMomento de asistencias.
     setEstadoPersona(personaId, estado) { const per = select.persona(personaId); if (!per) return; per.estado = normEstado(estado); commit({ kind: 'persona', id: personaId }); },
     renombrarPersona(personaId, nombre) { const per = select.persona(personaId); if (!per) return; per.nombre = String(nombre || per.nombre).slice(0, 40); commitQuiet({ kind: 'persona', id: personaId }); },
-    setBreBPersona(personaId, breB) { const per = select.persona(personaId); if (!per) return; per.breB = (breB != null && breB !== '') ? String(breB) : null; commitQuiet({ kind: 'persona', id: personaId }); },
+    // La llave se persiste por su PROPIO canal ({kind:'llave'} → RPC set_llave_persona), no con el upsert de la
+    // persona: el directorio es UPDATE solo-admin (RLS), y la llave la puede cargar cualquiera con sesión.
+    setBreBPersona(personaId, breB) { const per = select.persona(personaId); if (!per) return; per.breB = (breB != null && String(breB).trim() !== '') ? String(breB).trim() : null; commitQuiet({ kind: 'llave', id: personaId }); },
 
     // ----- settings -----
     // Cover VIGENTE: solo guarda el valor (settings) + re-render. NO toca primadas: las ABIERTAS derivan

@@ -184,6 +184,8 @@
     if (kind === 'persona') { if (del) return { t: 'personas', op: 'delete', id }; const p = (state.personas || []).find(x => x.id === id); return p ? { t: 'personas', op: 'upsert', row: personaToRow(p) } : null; }
     if (kind === 'primada') { if (del) return { t: 'primadas', op: 'delete', id }; const p = (state.primadas || []).find(x => x.id === id); return p ? { t: 'primadas', op: 'upsert', row: primadaToRow(p) } : null; }
     if (kind === 'settings') return { t: 'settings', op: 'upsert', row: settingsToRow(state.settings) };
+    // Llave Bre-B: RPC que solo toca esa columna (cualquier autenticado). Autocontenida: lleva el valor.
+    if (kind === 'llave') { const p = (state.personas || []).find(x => x.id === id); return p ? { t: 'personas', op: 'rpc', fn: 'set_llave_persona', args: { p_id: id, p_breb: p.breB || '' } } : null; }
     if (kind === 'consumo') {
       if (target.op === 'delete') return { t: 'consumos', op: 'delete', id };
       if (target.op === 'delete-prod') return { t: 'consumos', op: 'delete-where', where: [['primada_id', target.primadaId], ['producto_id', target.prodId]] };
@@ -198,10 +200,11 @@
     if (o.op === 'upsert') return run(tbl.upsert(o.row), 'q.upsert.' + o.t);
     if (o.op === 'insert') return run(tbl.insert(o.row), 'q.insert.' + o.t);
     if (o.op === 'delete') return run(tbl.delete().eq('id', o.id), 'q.delete.' + o.t);
+    if (o.op === 'rpc') return run(client.rpc(o.fn, o.args), 'q.rpc.' + o.fn);
     if (o.op === 'delete-where') { let q = tbl.delete(); o.where.forEach(([c, v]) => { q = q.eq(c, v); }); return run(q, 'q.deletewhere.' + o.t); }
   }
   // Un error es DEFINITIVO (descartar) si es de RLS/validación/duplicado; si no, es de RED (reintentar).
-  function esDefinitivo(msg) { return /row-level|\bRLS\b|no autoriz|not authorized|unauthorized|permission denied|violates|duplicate|already exists|invalid input|42501|23505|23502|23503|22P02/i.test(String(msg || '')); }
+  function esDefinitivo(msg) { return /row-level|\bRLS\b|no autoriz|not authorized|unauthorized|permission denied|violates|duplicate|already exists|invalid input|42501|23505|23502|23503|22P02|PGRST202|could not find the function/i.test(String(msg || '')); }
   async function flush() {
     if (flushing || mode !== 'supabase' || !client) return;
     if (!cola.length) { if (colaError) { colaError = null; emitCola(); } return; }

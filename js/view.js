@@ -123,7 +123,7 @@
         <input class="ti" id="llave-breb" placeholder="Celular, correo o llave" autocomplete="off" maxlength="80" aria-label="Llave Bre-B">
         <button class="btn" data-act="guardar-llave-enviar">${icon('share-2')}Guardar y enviar</button>
         <button class="btn ghost" data-act="enviar-sin-llave">Enviar sin llave</button>
-        <div class="alta-hint">Se guarda en esta primada.</div>
+        <div class="alta-hint">Queda guardada para las próximas primadas.</div>
       </div>
     </div>`;
   }

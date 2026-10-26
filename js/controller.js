@@ -315,6 +315,9 @@
         const v = ((inp && inp.value) || '').trim();
         if (!v) { View.toast('Escribí la llave', 'err'); return; }
         A.setLlavePrimada(prm, v);
+        // …y también en la ficha del anfitrión, para que no se la vuelva a pedir en sus próximas primadas.
+        const apL = Store.select.activePrimada();
+        if (apL && apL.organizadorPrincipalId) A.setBreBPersona(apL.organizadorPrincipalId, v);
         ui.overlay = null; rerender();
         View.shareInforme(Store.select.activePrimada()); return;
       }

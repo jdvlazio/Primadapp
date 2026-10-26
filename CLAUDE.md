@@ -126,7 +126,10 @@ alrededor de cada primada mensual, no a diario.
 - **RLS = frontera real de seguridad** (no el frontend):
   - `SELECT`: **todos** los autenticados.
   - `INSERT / UPDATE / DELETE` de **datos de primadas**: **todos** los autenticados.
-  - **settings globales y `personas`** (directorio): control **adicional del admin**.
+  - **settings globales y `personas`** (directorio): control **adicional del admin**. **Excepción: la llave Bre-B**
+    la puede cargar **cualquier autenticado** vía la RPC `set_llave_persona(p_id, p_breb)` (SECURITY DEFINER, solo
+    toca `breb`; SQL en `supabase/set_llave_persona.sql`). Nombre y estado siguen solo-admin: deciden el reparto.
+    En el cliente, `setBreBPersona` commitea `{kind:'llave'}` → `Api` lo traduce a esa RPC (no al upsert de personas).
 - **`breB` visible para todos:** es la llave para **RECIBIR** pagos (pensada para compartirse), **no es dato sensible**.
 - La `anon key` pública en el bundle es **por diseño** (como las fuentes); **NUNCA** exponer la `service_role key`. RLS protege.
 
@@ -654,10 +657,9 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
   tocaba sin querer mientras se operaba.
 - **LA LLAVE SE PIDE ANTES DE ENVIAR LA CUENTA (oct 2026).** Si alguien debe y el anfitrión **no tiene llave
   Bre-B** (ni en la primada ni en su ficha, `View.llaveDe`), tocar "Enviar cuenta de cobro" abre primero la hoja
-  `llave` ("🔑 Llave Bre-B de {Anfitrión}") con **"Guardar y enviar"** y **"Enviar sin llave"**. Se guarda con
-  `setLlavePrimada` en el **snapshot de la primada** (`pago.breB`), NO en la persona: el directorio solo lo edita
-  el admin (RLS) y la primada la escribe cualquier autenticado; se acepta aun con la cuenta cerrada. Para que
-  quede en primadas futuras, el admin la carga en la ficha de la persona (Ajustes).
+  `llave` ("🔑 Llave Bre-B de {Anfitrión}") con **"Guardar y enviar"** y **"Enviar sin llave"**. Se guarda en la
+  **primada** (`setLlavePrimada`, snapshot `pago.breB`) **y en la ficha del anfitrión** (`setBreBPersona` → RPC
+  `set_llave_persona`), así no se la vuelve a pedir en sus próximas primadas. Se acepta aun con la cuenta cerrada.
 - **CERRAR LA CUENTA SE PUEDE SIEMPRE, DESDE EL DETALLE (auditoría de producto, sep 2026).** El único cerrar
   del detalle era el banner verde **"Todos pagaron · Cerrar primada"**, que exige `saldoPendiente === 0` → **con
   deuda no había forma de cerrar sin volver al home**. El caso real del anfitrión a la 1 a.m. es el CONTRARIO
