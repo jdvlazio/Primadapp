@@ -120,7 +120,7 @@
         <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
       <div class="sheet-body llave-body">
         <p class="muted small">Va en la cuenta de cobro para que cada quien pague directo, sin preguntar.</p>
-        <input class="ti" id="llave-breb" placeholder="Celular, correo o llave" autocomplete="off" maxlength="80" aria-label="Llave Bre-B">
+        <input class="ti" id="llave-breb" placeholder="Celular, correo o llave" autocomplete="off" enterkeyhint="send" autocapitalize="off" maxlength="80" aria-label="Llave Bre-B">
         <button class="btn" data-act="guardar-llave-enviar">${icon('share-2')}Guardar y enviar</button>
         <button class="btn ghost" data-act="enviar-sin-llave">Enviar sin llave</button>
         <div class="alta-hint">Queda guardada para las próximas primadas.</div>
@@ -413,7 +413,7 @@
   // la primada (no del directorio). Cerrada: lista visible, acciones deshabilitadas. Si la primada está
   // INCOMPLETA (sin principal, p.ej. migrada) → fix mínimo: botón "Hacer principal" en cada ahorrador.
   function asistentesListaCompacta(p, ui) {
-    if (!p.asistencias.length) return `<div class="empty-soft">Sin asistentes</div>${addAsisFoot(p)}`;
+    if (!p.asistencias.length) return `<div class="empty-soft">Nadie todavía. Agregá a quien llegue.</div>${addAsisFoot(p)}`;
     const cerrada = p.estado === 'cerrada';
     const incompleta = S().primadaIncompleta(p);
     const grupo = (estado, titulo) => {
@@ -501,7 +501,7 @@
       const vacioRO = cons.length ? '' : '<div class="muted small consumo-vacio">Sin consumo</div>';
       const auditOpenRO = ui && ui.auditPid === a.personaId;
       const auditBtnRO = cons.length
-        ? `<button class="xmini aud-btn ${auditOpenRO ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpenRO ? 'true' : 'false'}" aria-label="Detalle por evento">${icon('info', 'sm')}</button>`
+        ? `<button class="xmini aud-btn ${auditOpenRO ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpenRO ? 'true' : 'false'}" aria-label="Quién apuntó y a qué hora">${icon('info', 'sm')}</button>`
         : '';
       return `<div class="chips-viva">${ro}${vacioRO}</div>${auditBtnRO}${auditOpenRO ? auditoriaPanel(p, a, ui) : ''}`;
     }
@@ -530,7 +530,7 @@
     // AUDITORÍA (C2): el detalle por evento (hora + quién apuntó) NO se exhibe; se pide con el ⓘ.
     const auditOpen = ui && ui.auditPid === a.personaId;
     const auditBtn = consumidos.length
-      ? `<button class="xmini aud-btn ${auditOpen ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpen ? 'true' : 'false'}" aria-label="Detalle por evento">${icon('info', 'sm')}</button>`
+      ? `<button class="xmini aud-btn ${auditOpen ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpen ? 'true' : 'false'}" aria-label="Quién apuntó y a qué hora">${icon('info', 'sm')}</button>`
       : '';
     // PRODUCTO NUEVO desde la ficha (fricción reportada en primadas reales, oct 2026): agregar un ASISTENTE
     // era obvio ("+ Agregar" a la vista) pero agregar un PRODUCTO solo existía escondido en ⚙ Configurar ›
@@ -552,7 +552,7 @@
       const prod = ev.prod ? `${e(ev.prod.emoji)} ${e(ev.prod.nombre)}` : '—';
       return `<div class="aud-row"><span class="aud-hora">${Util.horaCorta(ev.createdAt)}</span><span class="aud-prod">${prod}</span><span class="aud-quien">${e(quien)}</span></div>`;
     }).join('');
-    return `<div class="aud-panel"><div class="aud-head">Detalle · hora · quién apuntó</div>${filas}</div>`;
+    return `<div class="aud-panel"><div class="aud-head">Quién apuntó cada cosa</div>${filas}</div>`;
   }
 
   // MODELO 3 — Lista viva: la fila del asistente está SIEMPRE visible (nombre + total), sin chevron ni
@@ -660,8 +660,8 @@
       <div class="sheet-body prod-new">
         ${prodIdInput('', '', 'id="pn-emoji"', 'id="pn-nombre"', false)}
         <div class="prod-new-bot">
-          <label class="prodrow-f"><span>costo</span><input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" aria-label="Costo neto"></label>
-          <label class="prodrow-f"><span>venta</span><input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" aria-label="Precio de venta"></label>
+          <label class="prodrow-f"><span>costo</span><input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" enterkeyhint="next" aria-label="Costo neto"></label>
+          <label class="prodrow-f"><span>venta</span><input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" enterkeyhint="done" aria-label="Precio de venta"></label>
         </div>
         <button class="btn" data-act="add-producto" data-pid="${pid || ''}">${icon('plus-circle')}${nom ? `Agregar y apuntar 1 a ${e(nom)}` : 'Agregar'}</button>
         <div class="alta-hint">Queda en los productos de esta primada para todos.</div>
@@ -710,7 +710,7 @@
     const nom = (ui && ui.nuevoAsisNombre) || '';
     const chip = (v, txt) => `<button class="chip ${est === v ? 'on' : ''}" data-act="set-nuevo-asis-estado" data-estado="${v}">${txt}</button>`;
     return `<div class="alta-foot alta-inline">
-      <input class="ti" id="na-nombre" placeholder="Nombre" maxlength="40" autocomplete="off" value="${e(nom)}">
+      <input class="ti" id="na-nombre" placeholder="Nombre" maxlength="40" autocomplete="off" autocapitalize="words" enterkeyhint="done" value="${e(nom)}">
       <div class="alta-chips">${chip('invitado', 'Invitado')}${chip('ahorrador', 'Ahorrador')}</div>
       <button class="mini alta-go" data-act="add-asis-nuevo">${icon('plus-circle')}Agregar</button>
       <div class="alta-hint">Se guarda en el directorio para las próximas primadas.</div>
@@ -747,7 +747,7 @@
       ? `<div class="asis-list">
           ${p.asistencias.length
             ? S().asistenciasLista(p).map(a => asistenteFilaViva(p, a, ui)).join('')   // abierta: alfabético ESTABLE (no salta al apuntar); cerrada: por total
-            : '<div class="empty-soft">Sin asistentes</div>'}
+            : '<div class="empty-soft">Nadie todavía. Agregá a quien llegue.</div>'}
         </div>${picker ? `<div class="asis-add">${picker}</div>` : ''}`
       : '';
     return `${cerrarCTA}${presenciaLinea(ui)}<div class="asis-dock">${chip}${body}</div>`;
@@ -763,7 +763,7 @@
     const nombres = otros.map(o => o.nombre);
     const txt = apuntando.length
       ? `${apuntando.join(', ')} apuntando…`
-      : `${nombres.join(', ')} ${nombres.length > 1 ? 'están' : 'está'} aquí`;
+      : `${nombres.join(', ')} ${nombres.length > 1 ? 'están' : 'está'} acá`;
     return `<div class="presencia ${apuntando.length ? 'apuntando' : ''}">${icon(apuntando.length ? 'edit' : 'eye', 'sm')}<span>${e(txt)}</span></div>`;
   }
 
@@ -792,12 +792,12 @@
     const alta = cerrada ? '' : `<div class="prod-new">
       ${prodIdInput('', '', 'id="pn-emoji"', 'id="pn-nombre"', false)}
       <div class="prod-new-bot">
-        <label class="prodrow-f"><span>costo</span><input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" aria-label="Costo neto"></label>
-        <label class="prodrow-f"><span>venta</span><input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" aria-label="Precio de venta"></label>
+        <label class="prodrow-f"><span>costo</span><input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" enterkeyhint="next" aria-label="Costo neto"></label>
+        <label class="prodrow-f"><span>venta</span><input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" enterkeyhint="done" aria-label="Precio de venta"></label>
         <button class="mini" data-act="add-producto">${icon('plus-circle')}Agregar</button>
       </div>
     </div>`;
-    return `${p.productos.length ? `<div class="prow-list">${filas}</div>` : '<div class="empty-soft">Sin productos</div>'}
+    return `${p.productos.length ? `<div class="prow-list">${filas}</div>` : '<div class="empty-soft">Sin productos: agregá lo que se va a vender.</div>'}
       <div class="prow-foot">${alta}</div>`;
   }
   function productoConfigRow(p, prod, ui) {
@@ -1246,7 +1246,7 @@
     const nueva = ui && ui.nuevaPersona;
     const alta = nueva
       ? `<div class="prow-new">
-          <input class="ti" id="np-nombre" placeholder="Nombre" maxlength="40">
+          <input class="ti" id="np-nombre" placeholder="Nombre" maxlength="40" autocapitalize="words" enterkeyhint="done">
           <select class="sel" id="np-estado">
             <option value="ahorrador">Ahorrador</option>
             <option value="invitado">Invitado</option>
@@ -1273,7 +1273,7 @@
     return `<button class="back-link" data-act="cerrar-persona-edit">${icon('chevron-left')}Personas</button>
       <div class="persona-edit">
         <label class="fld"><span>Nombre</span>
-          <input class="ti" data-ch="rename-persona" data-pid="${per.id}" value="${e(per.nombre)}" maxlength="40" aria-label="Nombre"></label>
+          <input class="ti" data-ch="rename-persona" data-pid="${per.id}" value="${e(per.nombre)}" maxlength="40" autocapitalize="words" aria-label="Nombre"></label>
         <div class="fld"><span>Estado</span>
           <div class="seg-nav sm">${seg('ahorrador')}${seg('invitado')}</div></div>
         <label class="fld"><span>Bre-B</span>
@@ -1299,9 +1299,9 @@
     // Cover / Legal / Versión como ACORDEONES (v): colapsados por defecto.
     const coverBody = `<div class="grid2">
         <label class="fld"><span>Ahorrador</span>
-          <input class="ti" type="number" min="0" step="500" data-ch="cover-ahorrador" value="${c.ahorrador}"></label>
+          <input class="ti" type="number" inputmode="numeric" min="0" step="500" data-ch="cover-ahorrador" value="${c.ahorrador}"></label>
         <label class="fld"><span>Invitado</span>
-          <input class="ti" type="number" min="0" step="500" data-ch="cover-invitado" value="${c.invitado}"></label>
+          <input class="ti" type="number" inputmode="numeric" min="0" step="500" data-ch="cover-invitado" value="${c.invitado}"></label>
       </div>`;
     const legalBody = `<a class="link-legal" href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a>`;
     const versionBody = `<div class="muted small">${e(build)}</div>`;
@@ -1350,7 +1350,7 @@
       </div>
     </div>`).join('');
     return `<div class="wz-step">
-      <div class="prodlist">${filas || '<div class="empty-soft">Sin productos</div>'}</div>
+      <div class="prodlist">${filas || '<div class="empty-soft">Sin productos: agregá lo que se va a vender.</div>'}</div>
       <button class="mini ghost mt-3" data-act="wz-prod-add">${icon('plus-circle')}Agregar</button>
     </div>`;
   }
@@ -1570,18 +1570,18 @@
       : `<div class="login-form">
            <p class="muted small">${(ui && ui.loginMotivo)
               ? 'La primada se ve sin cuenta; para ' + e(ui.loginMotivo) + ' necesitás entrar. Te mandamos un código al correo.'
-              : 'Te enviamos un código al correo para pegarlo aquí.'}</p>
+              : 'Te mandamos un código al correo; pegalo acá.'}</p>
            <input class="ti" id="login-email" type="email" inputmode="email" autocomplete="email"
                   placeholder="tu@correo.com" value="${e(email)}" aria-label="Correo">
            <button class="btn" data-act="login-enviar">Enviar código</button>
          </div>`;
     return `<div class="sheet login-sheet">
         <div class="sheet-head"><div class="sheet-title">${enviado
-            ? 'Escribe el código'
+            ? 'Escribí el código'
             : ((ui && ui.loginMotivo) ? 'Entrá para ' + e(ui.loginMotivo) : 'Entrar')}</div>
           <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
         <div class="sheet-body">${cuerpo}
-          <p class="login-legal muted small">Al entrar aceptas nuestra
+          <p class="login-legal muted small">Al entrar aceptás nuestra
             <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidad</a>.</p>
         </div>
       </div>`;

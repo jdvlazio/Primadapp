@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20261026-060709-38563da">
+<meta name="build" content="20261026-063508-9eb882c">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,7 +187,7 @@
   .cobrar-name{font-size:14px;font-weight:700}
   .cobrar-quien{font-size:12px;color:var(--ink-soft)}
   .cobrar-monto{flex:none;min-width:84px;text-align:right;font-weight:700;font-size:14px;color:var(--amber);font-variant-numeric:tabular-nums}
-  .add-link{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-sec);background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-2)}
+  .add-link{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-input);background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-2)}
   .add-link:active{opacity:.6}
   /* punto de estado discreto (sin badge con borde) */
   .dot{display:inline-block;width:var(--space-2);height:var(--space-2);border-radius:50%;background:var(--pos);margin-right:var(--space-1);vertical-align:middle}
@@ -216,7 +216,7 @@
      safe-area empuja los tabs sobre la barra de gestos; fondo = var(--paper) (= contenido), border
      superior tenue. */
   /* IA list→detalle: ya no hay tab bar. Topbar del DETALLE = ← Inicio · nombre · acciones. */
-  .topbar-back{flex:none;display:flex;align-items:center;gap:2px;background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-1) var(--space-1) 0;margin-left:-2px}
+  .topbar-back{flex:none;display:flex;align-items:center;gap:2px;background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-1) var(--space-1) 0;margin-left:-2px;min-height:var(--tap-input)}   /* medía 28px: es lo que más se toca para salir */
   .topbar-back:active{opacity:.6}
   .topbar-back .icon{width:20px;height:20px}
   .topbar-name{flex:1;min-width:0;font-weight:800;font-size:17px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;color:var(--ink)}
@@ -254,7 +254,7 @@
   .menu-item.danger{color:var(--alert)}
   .menu-item .icon{width:18px;height:18px;margin:0}
 
-  .toast{position:fixed;left:50%;bottom:calc(var(--space-5) + max(env(safe-area-inset-bottom), 20px));transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:1200;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+  .toast{position:fixed;left:50%;bottom:calc(var(--space-5) + max(env(safe-area-inset-bottom), 20px));transform:translateX(-50%) translateY(20px);background:var(--paper-2);color:var(--ink);padding:var(--space-3) var(--space-4);border-radius:var(--radius-xl);font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:1200;box-shadow:0 10px 30px -12px rgba(0,0,0,.5);width:max-content;max-width:calc(100vw - 32px);text-align:center}   /* con left:50% el ancho se encogía a media pantalla: un aviso con nombre largo salía en 3 líneas */
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.ok{background:var(--pos-bg);color:var(--pos)}   /* confirmación POSITIVA (pago saldado) — tokens existentes */
   /* registro de ERROR: validaciones y fallos. Antes TODO salía en el mismo chip gris — el éxito, el error y
@@ -749,6 +749,7 @@
   .wz-chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
   .wz-chips .chip i{color:var(--ink-soft);font-style:normal;font-size:10px;text-transform:uppercase}
   .wz-chips .chip.on{border-color:var(--accent);color:var(--accent)}
+  .wz-chips .chip{min-height:var(--tap-input)}   /* medían 36px y van pegados: era fácil marcar al vecino */
   /* Lista de productos del wizard: separación por AIRE (sin divisores, DESIGN.md §2.8 permite "sólo
      espacio"). Cada producto = identidad (emoji+nombre) arriba + costo/venta COMPACTOS abajo. */
   .wz .prodlist{display:flex;flex-direction:column;gap:var(--space-4)}
@@ -938,13 +939,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20261026-060709-38563da"></script>
-  <script src="js/util.js?v=20261026-060709-38563da"></script>
-  <script src="js/api.js?v=20261026-060709-38563da"></script>
-  <script src="js/auth.js?v=20261026-060709-38563da"></script>
-  <script src="js/store.js?v=20261026-060709-38563da"></script>
-  <script src="js/view.js?v=20261026-060709-38563da"></script>
-  <script src="js/controller.js?v=20261026-060709-38563da"></script>
+  <script src="js/config.js?v=20261026-063508-9eb882c"></script>
+  <script src="js/util.js?v=20261026-063508-9eb882c"></script>
+  <script src="js/api.js?v=20261026-063508-9eb882c"></script>
+  <script src="js/auth.js?v=20261026-063508-9eb882c"></script>
+  <script src="js/store.js?v=20261026-063508-9eb882c"></script>
+  <script src="js/view.js?v=20261026-063508-9eb882c"></script>
+  <script src="js/controller.js?v=20261026-063508-9eb882c"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

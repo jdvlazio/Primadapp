@@ -93,6 +93,13 @@
   // El login saltaba MUDO ("Entrar · Te enviamos un código") y además se COMÍA el toque: el anfitrión tocaba
   // 🍺 + en la fiesta, veía una pantalla de correo sin explicación y, al volver, la cerveza no estaba apuntada
   // (auditoría de producto, sep 2026). Ahora la hoja dice a qué venía y el toque se reanuda solo.
+  // Nombre visible de una persona; un nombre de puros espacios no puede dejar un aviso "✓    pagó".
+  function nomDe(pid, resp) { return String(((Store.select.persona(pid) || {}).nombre) || '').trim() || resp; }
+  function enfocar(id) { setTimeout(() => { const n = document.getElementById(id); if (n) n.focus(); }, 50); }
+  function totalDe(pid) {
+    const ap = Store.select.activePrimada(); const a = ap && (ap.asistencias || []).find(x => x.personaId === pid);
+    return a ? Store.select.totalAsistencia(ap, a) : 0;
+  }
   function pedirLogin(b, act) {
     ui.overlay = 'login'; ui.loginEstado = 'form';
     ui.loginMotivo = REPETIBLES[act] || null;
@@ -269,11 +276,16 @@
       case 'login-verificar': {
         const inp = document.getElementById('login-codigo');
         const code = (inp && inp.value || '').replace(/\s/g, '').trim();
-        if (!/^\d{4,10}$/.test(code)) { View.toast('Código no válido', 'err'); return; }   // Supabase OTP = 6–10 dígitos
+        if (!/^\d{4,10}$/.test(code)) { View.toast('Revisá el código: son los números del correo', 'err'); return; }   // Supabase OTP = 6–10 dígitos
         b.disabled = true;
         Promise.resolve(Auth && Auth.verifyOtp(ui.loginEmail, code))
           .then(() => { View.toast('Sesión iniciada'); /* onChange cierra y recarga */ })
-          .catch((err) => { b.disabled = false; View.toast(err && err.message ? err.message : 'Código inválido o vencido', 'err'); });
+          .catch((err) => {
+            b.disabled = false;
+            // Un fallo de RED no es un código vencido: decirlo distinto evita que pidan códigos sin sentido.
+            const red = /fetch|network|failed to|conexi/i.test(String((err && err.message) || ''));
+            View.toast(red ? 'No hay conexión. Probá de nuevo en un momento.' : 'Ese código no sirve o ya venció. Tocá «Otro correo» y pedí uno nuevo.', 'err');
+          });
         return;
       }
       case 'login-reset': ui.loginEstado = 'form'; rerender(); return;
@@ -282,7 +294,7 @@
       // (primadas/consumos) se CONSERVA. RPC delete_own_account. Tras el éxito, signOut → el onChange
       // del gate recarga en modo LECTURA. Distinto de "Cerrar primada" (saldar) y de "Cerrar cuenta".
       case 'borrar-mi-cuenta': {
-        if (root.confirm && !root.confirm('¿Borrar tu cuenta? Se elimina tu acceso (correo). Las cuentas de las primadas se conservan.')) return;
+        if (root.confirm && !root.confirm('¿Borrar tu cuenta? Se elimina tu acceso; las cuentas de las primadas se conservan. No se puede deshacer.')) return;
         b.disabled = true;
         Promise.resolve(root.Api && root.Api.deleteOwnAccount && root.Api.deleteOwnAccount())
           .then(() => { View.toast('Cuenta borrada'); if (Auth && Auth.signOut) Auth.signOut(); })
@@ -394,7 +406,9 @@
       }
       case 'reabrir-primada':  A.reabrirPrimada(id); resetBalancePanel(); ui.overlay = null; ui.primadaMenuId = null; View.toast('Cuenta reabierta'); rerender(); return;
       case 'borrar-primada':
-        if (!root.confirm || root.confirm('¿Borrar la primada?')) {
+        const pB = (Store.select.state().primadas || []).find(x => x.id === id);
+        const nB = pB ? String(pB.nombre || '').replace(/^primada\s+/i, '').trim() : '';
+        if (!root.confirm || root.confirm((nB ? '¿Borrar «' + nB + '»?' : '¿Borrar esta primada?') + ' Se pierden sus consumos y pagos. No se puede deshacer.')) {
           A.borrarPrimada(id); ui.overlay = null; ui.primadaMenuId = null; View.toast('Primada borrada'); rerender(); return;
         }
         break;
@@ -409,7 +423,7 @@
       // ALTA EN LÍNEA de alguien que no está en el directorio, SIN salir de la hoja (antes: 9 toques y 3
       // pantallas hasta Ajustes). Default INVITADO: el que llega de sorpresa casi siempre lo es, y marcarlo
       // ahorrador por descuido lo mete al REPARTO y le cobra el cover que no es.
-      case 'open-nuevo-asis': ui.nuevoAsis = true; ui.nuevoAsisEstado = ui.nuevoAsisEstado || 'invitado'; rerender(); return;
+      case 'open-nuevo-asis': ui.nuevoAsis = true; ui.nuevoAsisEstado = ui.nuevoAsisEstado || 'invitado'; rerender(); enfocar('na-nombre'); return;
       // Al cambiar de chip se RE-RENDERIZA: hay que preservar lo ya tecleado o se pierde el nombre.
       case 'set-nuevo-asis-estado': {
         const inp = document.getElementById('na-nombre');
@@ -428,7 +442,8 @@
         const nuevoId = A.addPersona({ nombre, estado });
         A.addAsistencia(prm, nuevoId);           // entra a ESTA primada de una: es a lo que se vino
         View.toast(nombre + ' agregado');
-        rerender(); return;
+        rerender(); enfocar('na-nombre');   // la hoja sigue abierta para sumar más: el teclado no se cierra
+        return;
       }
       // "+ Exonerar cover" (cortesía): hoja para elegir a quién no cobrarle cover (toggle por asistente).
       case 'open-exonerar': ui.overlay = 'exonerar'; rerender(); return;
@@ -444,7 +459,9 @@
       case 'set-estado-momento': tryAction(() => A.setEstadoEnEseMomento(prm, pid, b.dataset.estado)); break;
       // "Quitar" / [✕] vive en Configurar (no en operación) y pide confirmación.
       case 'remove-asistencia':
-        if (!root.confirm || root.confirm('¿Quitar al asistente?')) { A.removeAsistencia(prm, pid); if (ui.activaPid === pid) ui.activaPid = null; }
+        const apQ = Store.select.activePrimada();
+        const tieneCons = !!(apQ && (apQ.consumos || []).some(x => x.personaId === pid));
+        if (!root.confirm || root.confirm('¿Quitar a ' + nomDe(pid, 'esta persona') + ' de esta primada?' + (tieneCons ? ' Se borran sus consumos.' : ''))) { A.removeAsistencia(prm, pid); if (ui.activaPid === pid) ui.activaPid = null; }
         break;
       // MODELO 3 — Lista viva: el chip (consumido o disponible) usa item-plus/minus directo (changeItem).
       // El disponible 0→1 también es item-plus (ya no hay "add-item" ni picker aparte).
@@ -495,7 +512,8 @@
             View.toast(nombre + ' agregado · 1 a ' + ((Store.select.persona(pid) || {}).nombre || ''), 'ok');
             return;
           }
-          View.toast('Producto agregado');
+          View.toast(((emoji && emoji !== '•') ? emoji + ' ' : '') + (Util.titleCase ? Util.titleCase(nombre) : nombre) + ' agregado');
+          enfocar('pn-nombre');   // listo para cargar el siguiente
         } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo agregar', 'err'); }
         break;
       }
@@ -506,8 +524,8 @@
       case 'marcar-pagado': {
         const antes = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
         A.setPagado(prm, pid, true); ui.overlay = null; ui.pagarPid = null;
-        const nom = (Store.select.persona(pid) || {}).nombre || 'Pago';   // confirmación VISIBLE: saldó su cuenta
-        View.toast('✓ ' + nom + ' saldado', 'ok');
+        const nom = nomDe(pid, 'Alguien');   // confirmación VISIBLE: saldó su cuenta
+        View.toast('✓ ' + nom + ' pagó ' + Util.peso(totalDe(pid)), 'ok');
         // Si este pago SALDÓ la última deuda (saldoPendiente >0 → 0): cierra la ficha del asistente,
         // COLAPSA la sección Asistentes y DESPLIEGA el Balance —el documento de cierre. Acordeones simétricos.
         const despues = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
@@ -525,20 +543,23 @@
         const eraPagado = !!asis.pagado;
         const antes = Store.select.informePrincipal(ap).saldoPendiente;
         A.setPagado(prm, pid, !eraPagado);
-        const nom = (Store.select.persona(pid) || {}).nombre || '';
-        if (eraPagado) View.toast(nom + ' queda debiendo');
-        else View.toast('✓ ' + nom + ' saldado', 'ok');
+        const nom = nomDe(pid, 'Alguien');
+        // Con la CIFRA: el riesgo del toque accidental en el Balance se asumió porque "avisa con toast";
+        // con el monto a la vista, el error se ve en el momento.
+        if (eraPagado) View.toast(nom + ' vuelve a deber ' + Util.peso(totalDe(pid)));
+        else View.toast('✓ ' + nom + ' pagó ' + Util.peso(totalDe(pid)), 'ok');
         const despues = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
         if (!eraPagado && antes > 0 && despues === 0) { ui.activaPid = null; ui.asisOpen = false; ui.balanceOpen = true; }
         rerender(); return;
       }
       case 'copiar-llave': {
         const llave = b.dataset.llave || '';
-        const ok = () => View.toast('Llave copiada');
+        const ok = () => View.toast('Llave copiada: ya podés pegarla en tu banco', 'ok');
+        const fallo = () => View.toast('No se pudo copiar. Tu llave: ' + llave);
         try {
-          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(llave).then(ok).catch(function () { View.toast(llave); });
-          else View.toast(llave);
-        } catch (e) { View.toast(llave); }
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(llave).then(ok).catch(fallo);
+          else fallo();
+        } catch (e) { fallo(); }
         return;
       }
 
@@ -567,7 +588,7 @@
         const nombre = (n && n.value || '').trim();
         if (!nombre) { View.toast('Escribí el nombre', 'err'); return; }
         A.addPersona({ nombre, estado: es ? es.value : 'ahorrador' });
-        View.toast('Persona agregada');
+        View.toast('Persona agregada'); enfocar('np-nombre');
         break;   // el form queda abierto (nuevaPersona) para sumar varias
       }
       // INVARIANTE #1: solo cambia el estado VIGENTE; NUNCA toca estadoEnEseMomento de asistencias pasadas.
@@ -695,6 +716,23 @@
 
   function init() {
     document.addEventListener('click', onClick);
+    // ENTER del teclado = el botón principal de la hoja (antes no hacía nada: había que cerrar el teclado para
+    // llegar al botón). Solo en los campos de alta, donde la acción es inequívoca.
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter' || !ev.target || ev.isComposing || ev.keyCode === 229) return;   // 229 = Safari confirmando IME
+      const id = ev.target.id || '';
+      // En el producto, Enter AVANZA (nombre → costo → venta) y solo agrega desde la venta: si agregara desde el
+      // nombre, el producto quedaría con precio $0.
+      const sig = { 'pn-emoji': 'pn-nombre', 'pn-nombre': 'pn-costo', 'pn-costo': 'pn-venta' }[id];
+      if (sig) { const n = document.getElementById(sig); if (n) { ev.preventDefault(); n.focus(); } return; }
+      const act = id === 'na-nombre' ? 'add-asis-nuevo'
+        : id === 'pn-venta' ? 'add-producto'
+        : id === 'llave-breb' ? 'guardar-llave-enviar'
+        : id === 'np-nombre' ? 'add-persona' : null;
+      if (!act) return;
+      const btn = document.querySelector(`#overlay [data-act="${act}"]`) || document.querySelector(`[data-act="${act}"]`);
+      if (btn) { ev.preventDefault(); btn.click(); }
+    });
     document.addEventListener('change', onChange);
     document.addEventListener('input', onInput);
     // Al salir de un input de texto en vivo (commitQuiet debounced), forzar el envío pendiente.

@@ -424,6 +424,16 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
   de una hoja no están anclados al fondo, están donde termine su cuerpo. Arriba solo vive el título → nunca tapa
   un control. *(Se usa una clase y no `:has()` por soporte.)*
 
+## Detalles de uso (mejoras mínimas, oct 2026)
+- **Altas sin cerrar el teclado:** "+ Nuevo" (asistente) y "Producto nuevo" enfocan el campo al abrir; tras agregar
+  un asistente el foco vuelve al nombre (la hoja sigue abierta para sumar más). **Enter = botón principal** en
+  asistente nuevo, llave Bre-B y alta de persona; en el **producto Enter AVANZA** nombre → costo → venta y solo
+  agrega desde la venta (si agregara desde el nombre quedaría a $0). Nombres de persona con `autocapitalize="words"`.
+- **Tamaños de toque:** "← Inicio", `.add-link` y los chips del wizard a `--tap-input` (44px); medían 28/36.
+- **Textos:** las confirmaciones de borrar NOMBRAN lo que se pierde; el aviso de pago trae la CIFRA ("✓ Beto pagó
+  $25.500" / "Beto vuelve a deber $25.500") —el riesgo del toque accidental en el Balance se asumió confiando en
+  ese aviso—; login en voseo; errores de código que dicen qué hacer; estados vacíos con el siguiente paso.
+
 ## Convenciones
 - Comentarios y nombres de dominio en español (persona, asistencia, primada, organizador, cover, abono, fondo, Tesorero).
 - IDs vía `Util.uid(prefix)`. Escapar texto de usuario con `Util.esc()` antes de inyectar HTML.

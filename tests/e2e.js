@@ -245,6 +245,16 @@ check('Orden estable: hay una fila por CADA producto del catálogo, consumido o 
 check('Los NO consumidos son la MISMA fila, en cero (.chip.has.cero con precio y − inerte)',
   !!q('.chip.has.cero .chip-precio') && q('.chip.has.cero .chip-minus').disabled === true);
 check('Ya NO existe la pastilla suelta de "disponible" (.chip sin .has)', !q('.chips-viva .chip:not(.has)'));
+// MEJORAS MÍNIMAS (oct 2026): Enter en las hojas de alta. En el producto, Enter AVANZA y solo agrega desde la venta.
+{
+  click(`[data-act="open-add-prod"][data-pid="${beto.id}"]`);
+  const enter = el => el.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  const nProd = prm().productos.length;
+  setVal('#pn-nombre', 'Agua Cristal');
+  enter(q('#pn-nombre'));
+  check('Enter en el nombre del producto NO lo crea (pasaría con precio $0)', prm().productos.length === nProd && !q('#overlay').hidden);
+  click('[data-act="close-overlay"]');
+}
 // PRODUCTO NUEVO desde la ficha (fricción reportada, oct 2026): agregar asistentes era obvio, agregar productos
 // solo existía en ⚙ Configurar. Ahora la ficha de la persona lleva "+ Producto nuevo": crea y le apunta 1.
 check('Ficha: lleva "+ Producto nuevo" al pie de la rejilla', !!q(`[data-act="open-add-prod"][data-pid="${beto.id}"]`));
@@ -754,6 +764,7 @@ check('Balance: el check refleja el estado (Beto pagado → .on)', payBal(beto.i
 check('Balance: el anfitrión NO lleva check (está auto-saldado)', !payBal(ana.id));
 // Des-marcar DESDE el Balance: vuelve a deber y la cabecera de Cobro lo dice.
 click(payBal(beto.id));
+check('El aviso de pago trae la cifra ("vuelve a deber $X")', /vuelve a deber \$/.test(q('#toast').textContent));
 check('Un toque en el Balance DES-marca el pago (vuelve a deber)',
   prm().asistencias.find(x => x.personaId === beto.id).pagado === false
   && Store.select.informePrincipal(prm()).saldoPendiente > 0);
