@@ -244,8 +244,9 @@ El JS vive en módulos separados. **Respetar la separación es la regla #1.**
     idéntico al de Ajustes de la app en el home y no se distinguían. Patrón "Info del grupo" de WhatsApp: lo que es
     de algo se abre tocando ese algo. El engranaje vive SOLO en el home = Ajustes de la app.)*
   - **Cuerpo:** **Lista viva** (Consumos, Modelo 3) **+ panel de Balance** debajo (mismo scroll, subordinado). Un chip
-    **"Balance ▲/▼"** lo despliega/colapsa (`toggle-balance-panel`, `ui.balanceOpen`). Default por estado: ABIERTA =
-    colapsado; CERRADA = desplegado (documento final). Reusa `balancePrimada()` (resumen ejecutivo, state-aware).
+    **"Balance ▲/▼"** lo despliega/colapsa (`toggle-balance-panel`, `ui.balanceOpen`). Default por FASE (`faseCobro`): en curso =
+    colapsado; CERRADA **o abierta con su día YA PASADO** = desplegado y Asistentes plegado (oct 2026: casi nunca se
+    cierra esa noche y al otro día lo que toca es cobrar; sin día o el mismo día sigue siendo fiesta en curso). Reusa `balancePrimada()` (resumen ejecutivo, state-aware).
   - **Balance = RESUMEN EJECUTIVO para el Tesorero (DESIGN.md §2.11.1.a):** al abrir el panel se ve TODO de una
     (SIN acordeón interno — el viejo `toggle-balance`/`ui.balance` se ELIMINÓ). El motor (`informePrincipal` + selectores)
     calcula TODO con las identidades, pero el body **solo MUESTRA lo accionable**, en este orden: **1) HÉROE Ganancia**

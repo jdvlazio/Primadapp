@@ -1331,6 +1331,21 @@ section('Detalle: el nombre de la primada configura; el engranaje es solo de Aju
   check('En el home el engranaje abre Ajustes', !!q('#topbar [data-act="open-ajustes"]'));
 }
 
+section('Al otro día de la primada (abierta) se abre en Balance, no en Asistentes');
+{
+  const hoy = window.Util.currentDate();
+  const ayer = (() => { const d = new Date(hoy + 'T12:00:00'); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+  const pa = Store.select.activePrimada();
+  Store.actions.setFecha(pa.id, ayer);
+  irHome(); entrarDetalle(pa.id);
+  check('Día pasado y abierta: Balance desplegado', balanceVisible());
+  check('…y Asistentes plegado', !asisVisible());
+  Store.actions.setFecha(pa.id, hoy);
+  irHome(); entrarDetalle(pa.id);
+  check('El mismo día: Asistentes desplegado, Balance plegado', asisVisible() && !balanceVisible());
+  irHome();
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`E2E: ${pass} pasaron, ${fail} fallaron`);

@@ -722,9 +722,16 @@
   // ¿La sección Asistentes está desplegada? SIMÉTRICA al Balance (acordeón): null = default por estado
   // (abierta→abierto para operar, cerrada→colapsado: el documento es el Balance); bool = el usuario lo
   // fijó a mano con el encabezado tocable. Al pagar el ÚLTIMO deudor, el controller la colapsa y abre Balance.
+  // Fase de COBRO: cerrada, o abierta pero su día YA PASÓ (casi nunca se cierra esa noche; al otro día lo que
+  // toca es cobrar, oct 2026). Sin día o el mismo día = fiesta en curso. Solo decide qué acordeón se despliega.
+  function faseCobro(p) {
+    if (!p) return false;
+    if (p.estado === 'cerrada') return true;
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(p.fecha || '')) && p.fecha < Util.currentDate();
+  }
   function asisAbierto(p, ui) {
     if (ui && ui.asisOpen != null) return !!ui.asisOpen;
-    return !(p && p.estado === 'cerrada');
+    return !faseCobro(p);
   }
   function primadaDetalle(p, ui) {
     // CTA contextual para CERRAR (P5 lote visual): NO vive en Configuración. Aparece como banner arriba
@@ -1069,7 +1076,7 @@
   // ¿El panel de Balance está desplegado? null = default por estado (cerrada→sí, abierta→no); bool = manual.
   function balanceAbierto(p, ui) {
     if (ui && ui.balanceOpen != null) return !!ui.balanceOpen;
-    return !!(p && p.estado === 'cerrada');
+    return faseCobro(p);
   }
   function detalleBody(state, ui) {
     const activa = S().activePrimada();
