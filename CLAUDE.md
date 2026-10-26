@@ -670,6 +670,16 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
   `llave` ("🔑 Llave Bre-B de {Anfitrión}") con **"Guardar y enviar"** y **"Enviar sin llave"**. Se guarda en la
   **primada** (`setLlavePrimada`, snapshot `pago.breB`) **y en la ficha del anfitrión** (`setBreBPersona` → RPC
   `set_llave_persona`), así no se la vuelve a pedir en sus próximas primadas. Se acepta aun con la cuenta cerrada.
+- **"IGUAL QUE {LA ANTERIOR}" EN EL ASISTENTE (oct 2026).** El paso 1 ofrece copiar la primada más reciente con
+  gente (`primadaAnterior`): sus productos con precios y sus asistentes ya marcados, en UNA pantalla "Revisá y creá"
+  (anfitrión —se elige, rota cada mes—, chips de asistentes, resumen de productos, mes/día). `createPrimada({asistentes})`
+  los mete en un solo commit con su estado vigente como snapshot. NO copia organizadores (se asignan en Configurar).
+- **LA CUENTA DE CADA PERSONA (oct 2026).** "Por cobrar" del home suma una sublista **"Por persona"**
+  (`deudoresPorPersona`) → hoja `cuenta` (`cuentaDe`): lo que debe en cada primada, la llave Bre-B del anfitrión de
+  CADA una, "Ya pagué" por primada y "Enviar cuenta de cobro" con un link `?cuenta=<id>` que abre esa hoja (el
+  parámetro se limpia al aplicarlo). Mismo universo que `deudasPendientes` (sin la activa abierta) → la fila y la
+  hoja dicen la misma cifra, y no se ofrece "Ya pagué" sobre una cuenta que sigue creciendo. Solo INFORMA y
+  autosirve al deudor; marcar pagos como anfitrión sigue siendo en el Balance.
 - **CERRAR LA CUENTA SE PUEDE SIEMPRE, DESDE EL DETALLE (auditoría de producto, sep 2026).** El único cerrar
   del detalle era el banner verde **"Todos pagaron · Cerrar primada"**, que exige `saldoPendiente === 0` → **con
   deuda no había forma de cerrar sin volver al home**. El caso real del anfitrión a la 1 a.m. es el CONTRARIO

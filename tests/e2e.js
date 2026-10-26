@@ -1284,6 +1284,42 @@ Store.actions.seleccionarPrimada(fut); entrarDetalle(fut); abrirConfig();
 check('Primada futura: NO aparece la sección histórica', !q('.cfg-hist'));
 click('[data-act="close-overlay"]');
 
+/* ---------- "Como la anterior" + la cuenta de cada persona ---------- */
+section('Wizard › Como {la anterior} · Home › Por persona › cuenta');
+{
+  Store.actions.replaceState(null);
+  const an = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+  const ca = Store.actions.addPersona({ nombre: 'Caro', estado: 'ahorrador' });
+  const be = Store.actions.addPersona({ nombre: 'Beto', estado: 'invitado' });
+  Store.actions.setBreBPersona && Store.actions.setBreBPersona(an, 'ana@bre-b');
+  const p1 = Store.actions.createPrimada({ principalId: an, organizadores: [an], mesContable: '2026-08', asistentes: [be, ca] });
+  const P = id => Store.select.state().primadas.find(x => x.id === id);
+  Store.actions.changeItem(p1, be, P(p1).productos[0].id, 2);
+  Store.actions.cerrarPrimada(p1);
+  irHome();
+  click('[data-act="new-primada"]');
+  check('Paso 1 ofrece "Igual que Ana"', /Igual que Ana/.test(q('#overlay').textContent) && !!q('[data-act="wz-como"]'));
+  click('[data-act="wz-como"]');
+  check('Revisá y creá: una sola pantalla', /Revisá y creá/.test(q('#overlay').textContent));
+  check('Asistentes de la anterior ya marcados', q('#overlay').querySelectorAll('[data-act="wz-toggle-inv"].on').length === 3);
+  setVal('#wz-principal', ca);
+  click(`[data-act="wz-toggle-inv"][data-pid="${an}"]`);   // Ana no viene
+  click('[data-act="wz-crear"]');
+  const nueva = Store.select.activePrimada();
+  check('Creada con Caro de anfitrión', nueva.organizadorPrincipalId === ca);
+  check('Entra Beto, no Ana', nueva.asistencias.some(a => a.personaId === be) && !nueva.asistencias.some(a => a.personaId === an));
+  check('Mismos productos que la anterior', nueva.productos.length === P(p1).productos.length);
+  irHome();
+  check('Por cobrar › Por persona lista a Beto', !!q(`#screen [data-act="open-cuenta"][data-pid="${be}"]`));
+  click(`[data-act="open-cuenta"][data-pid="${be}"]`);
+  check('La cuenta muestra la llave del anfitrión de esa primada', /ana@bre-b/.test(q('#overlay').textContent));
+  check('Y el botón Enviar cuenta de cobro', !!q('[data-act="enviar-cuenta"]'));
+  click(`[data-act="cuenta-pagado"][data-id="${p1}"]`);
+  check('Ya pagué saca esa primada de la cuenta', !q(`[data-act="cuenta-pagado"][data-id="${p1}"]`));
+  check('Sin más deuda cerrada: Todo cobrado', /Todo cobrado/.test(q('#overlay').textContent));
+  click('[data-act="close-overlay"]');
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`E2E: ${pass} pasaron, ${fail} fallaron`);

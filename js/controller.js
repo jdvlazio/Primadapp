@@ -23,7 +23,7 @@
     const prods = (CONFIG.defaultProducts || []).map(p => ({ emoji: p.emoji, nombre: p.nombre, costoNeto: p.costoNeto, precioVenta: p.precioVenta }));
     // Por defecto: mes ACTUAL, SIN día (el caso común — se programa el mes, el día se agrega después).
     const mes = Util.currentMonth ? Util.currentMonth() : (Util.mesDeFecha && Util.currentDate ? Util.mesDeFecha(Util.currentDate()) : '');
-    return { paso: 1, principalId: '', coorg: [], productos: prods, fecha: '', mesContable: mes };
+    return { paso: 1, principalId: '', coorg: [], productos: prods, fecha: '', mesContable: mes, invitar: [], candidatos: [] };
   }
 
   // Vuelca los inputs del paso actual del wizard al estado ui.wizard (antes de avanzar/crear).
@@ -31,7 +31,7 @@
   function wzSync() {
     const w = ui.wizard; if (!w) return;
     const val = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
-    if (w.paso === 1) { const p = val('wz-principal'); if (p !== undefined) w.principalId = p; }
+    if (w.paso === 1 || w.paso === 'rev') { const p = val('wz-principal'); if (p !== undefined) w.principalId = p; }
     if (w.paso === 2) {
       document.querySelectorAll('[data-wz]').forEach(el => {
         const i = Number(el.dataset.i), campo = el.dataset.wz; if (!w.productos[i]) return;
@@ -40,7 +40,7 @@
         if (campo === 'emoji') w.productos[i].emojiManual = (el.dataset.auto === '0');
       });
     }
-    if (w.paso === 3) {
+    if (w.paso === 3 || w.paso === 'rev') {
       const m = val('wz-mes'), d = val('wz-dia');
       if (m !== undefined && /^\d{4}-\d{2}$/.test(m)) w.mesContable = m;
       // día OPCIONAL: compone w.fecha = mes-día (1–31) o '' (sin día)
@@ -82,14 +82,17 @@
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
     'add-asistencia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus',
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'toggle-pagado', 'add-persona', 'set-estado-persona',
-    'set-estado-momento', 'borrar-mi-cuenta', 'add-asis-nuevo', 'guardar-llave-enviar',
+    'set-estado-momento', 'borrar-mi-cuenta', 'add-asis-nuevo', 'guardar-llave-enviar', 'cuenta-pagado',
   ]);
   // Ventana corta tras un cambio de persona en el que la lista se movió: descarta consumos accidentales.
   let bloqueoConsumoHasta = 0;
+  // ?cuenta=<personaId> del link personal: se lee UNA vez al cargar y se aplica tras hidratar.
+  let cuentaDelLink = null;
+  try { cuentaDelLink = new URLSearchParams(location.search).get('cuenta'); } catch (_) {}
   function backendOn() { return !!(Auth && Auth.enabled()); }     // hay backend Supabase (RLS es la frontera real)
   // Acciones que vale la pena REPETIR tras iniciar sesión: frecuentes, de un toque y sin confirmación.
   // Las destructivas (cerrar/borrar) NO se repiten solas: el usuario vuelve a pedirlas a conciencia.
-  const REPETIBLES = { 'item-plus': 'apuntar', 'item-minus': 'apuntar', 'toggle-pagado': 'marcar pagos', 'add-asistencia': 'agregar asistentes' };
+  const REPETIBLES = { 'item-plus': 'apuntar', 'item-minus': 'apuntar', 'toggle-pagado': 'marcar pagos', 'add-asistencia': 'agregar asistentes', 'cuenta-pagado': 'marcar pagos' };
   // El login saltaba MUDO ("Entrar · Te enviamos un código") y además se COMÍA el toque: el anfitrión tocaba
   // 🍺 + en la fiesta, veía una pantalla de correo sin explicación y, al volver, la cerveza no estaba apuntada
   // (auditoría de producto, sep 2026). Ahora la hoja dice a qué venía y el toque se reanuda solo.
@@ -101,6 +104,7 @@
     return a ? Store.select.totalAsistencia(ap, a) : 0;
   }
   function pedirLogin(b, act) {
+    ui.overlayPrevio = ui.overlay;   // la hoja de cuenta vuelve tras entrar (su "Ya pagué" se reanuda ahí)
     ui.overlay = 'login'; ui.loginEstado = 'form';
     ui.loginMotivo = REPETIBLES[act] || null;
     // El intento se guarda como SELECTOR, no como nodo: tras el login la app recarga y re-renderiza, así que
@@ -340,7 +344,29 @@
       case 'new-primada':   ui.wizard = nuevoWizard(); rerender(); return;
       // Cancelar/crear cierran el wizard Y el gear que lo lanzó → vuelven a la app (no quedan en el gear).
       case 'wz-cancelar':   ui.wizard = null; ui.overlay = null; rerender(); return;
-      case 'wz-atras':      if (ui.wizard && ui.wizard.paso > 1) ui.wizard.paso--; rerender(); return;
+      case 'wz-atras': {
+        const w = ui.wizard; if (!w) return;
+        // Desde "Revisá y creá" se vuelve al paso 1 y se suelta lo copiado (empezar de cero es otra cosa).
+        if (w.paso === 'rev') { wzSync(); w.paso = 1; w.productos = nuevoWizard().productos; w.invitar = []; w.candidatos = []; w.coorg = []; }
+        else if (w.paso > 1) w.paso--;
+        rerender(); return;
+      }
+      // "Como {la anterior}": copia sus productos (con precios) y marca a sus asistentes → una sola pantalla.
+      case 'wz-como': {
+        const w = ui.wizard; const ant = Store.select.primadaAnterior(); if (!w || !ant) return;
+        wzSync();
+        w.productos = (ant.productos || []).map(x => ({ emoji: x.emoji, nombre: x.nombre, costoNeto: x.costoNeto, precioVenta: x.precioVenta, emojiManual: true }));
+        w.candidatos = (ant.asistencias || []).map(a => a.personaId).filter(id => Store.select.persona(id));
+        w.invitar = w.candidatos.slice(); w.coorg = [];
+        w.paso = 'rev'; rerender(); return;
+      }
+      case 'wz-toggle-inv': {
+        const w = ui.wizard; if (!w) return;
+        wzSync();
+        const i = w.invitar.indexOf(pid);
+        if (i >= 0) w.invitar.splice(i, 1); else w.invitar.push(pid);
+        rerender(); return;
+      }
       case 'wz-toggle-coorg': {
         const w = ui.wizard; if (!w) return;
         const i = w.coorg.indexOf(pid);
@@ -369,8 +395,14 @@
       case 'wz-crear': {
         const w = ui.wizard; if (!w) return;
         wzSync();
+        if (w.paso === 'rev') {
+          if (!w.principalId) { View.toast('Elegí el anfitrión', 'err'); return; }
+          const per = Store.select.persona(w.principalId);
+          if (!per || per.estado !== 'ahorrador') { View.toast('El anfitrión debe ser ahorrador', 'err'); return; }
+        }
         try {
           const id = A.createPrimada({
+            asistentes: w.paso === 'rev' ? w.invitar.slice() : [],
             principalId: w.principalId,
             organizadores: [w.principalId].concat(w.coorg),
             productos: w.productos.filter(p => (p.nombre || '').trim()),
@@ -551,6 +583,31 @@
         const despues = Store.select.informePrincipal(Store.select.activePrimada()).saldoPendiente;
         if (!eraPagado && antes > 0 && despues === 0) { ui.activaPid = null; ui.asisOpen = false; ui.balanceOpen = true; }
         rerender(); return;
+      }
+      // ----- La cuenta de UNA persona (todas sus primadas) -----
+      case 'open-cuenta':   ui.overlay = 'cuenta'; ui.cuentaPid = pid; rerender(); return;
+      case 'cuenta-pagado': {
+        const p = (Store.select.state().primadas || []).find(x => x.id === id);
+        const a = p && (p.asistencias || []).find(x => x.personaId === pid);
+        if (!a) return;
+        const monto = Store.select.totalAsistencia(p, a);
+        A.setPagado(id, pid, true);
+        View.toast('✓ ' + nomDe(pid, 'Alguien') + ' pagó ' + Util.peso(monto), 'ok');
+        rerender(); return;
+      }
+      // Link PERSONAL: abre esta misma hoja en el teléfono de quien debe, sin buscar nada.
+      case 'enviar-cuenta': {
+        const filas = Store.select.cuentaDe(pid);
+        const total = filas.reduce((t, x) => t + x.saldo, 0);
+        const url = location.origin + location.pathname + '?cuenta=' + encodeURIComponent(pid);
+        const text = nomDe(pid, '') + ', tu cuenta de La Primada: ' + Util.peso(total) + '. Tocá el link para ver el detalle y pagar.';
+        const copiar = () => {
+          try { navigator.clipboard.writeText(text + '\n' + url).then(() => View.toast('Link copiado', 'ok')).catch(() => View.toast(url)); }
+          catch (_) { View.toast(url); }
+        };
+        if (navigator.share) navigator.share({ title: 'La Primada', text, url }).catch(err => { if (!err || err.name !== 'AbortError') copiar(); });
+        else copiar();
+        return;
       }
       case 'copiar-llave': {
         const llave = b.dataset.llave || '';
@@ -759,6 +816,9 @@
     await new Promise(function (r) { setTimeout(r, 650); });
     await Store.load();                        // hidrata el AppState desde Api (async)
     resetBalancePanel();                       // panel de balance: default por estado de la primada cargada
+    // Link personal (?cuenta=<id>): abre la cuenta de esa persona encima del home.
+    if (cuentaDelLink && Store.select.persona(cuentaDelLink)) { ui.overlay = 'cuenta'; ui.cuentaPid = cuentaDelLink; cuentaDelLink = null;
+      try { history.replaceState(history.state, '', location.pathname); } catch (_) {} }
     rerender();
     try { root.__appReady = true; } catch (_) {}   // señal para los tests (la app terminó de bootear)
     // App lista → cerrar el splash (idempotente; respeta el min-display; tiene su propio fallback a 6s).
@@ -786,7 +846,7 @@
         sesionActiva = !!session;
         cargarMiEmail();                        // para la presencia ("quién está apuntando")
         if (View.renderAuthButton) View.renderAuthButton(sesionActiva ? 'in' : 'out');
-        if (ui.overlay === 'login' && sesionActiva) ui.overlay = null;   // cerrar la hoja al iniciar sesión
+        if (ui.overlay === 'login' && sesionActiva) ui.overlay = ui.overlayPrevio === 'cuenta' ? 'cuenta' : null;   // cerrar la hoja al iniciar sesión
         appIniciada = false;
         // Recargar y, YA con los datos frescos pintados, repetir el toque que disparó el login.
         Promise.resolve(iniciarApp()).then(() => { if (sesionActiva) reanudarIntento(); });

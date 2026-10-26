@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20261026-063508-9eb882c">
+<meta name="build" content="20261026-065415-394ac6e">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -187,6 +187,23 @@
   .cobrar-name{font-size:14px;font-weight:700}
   .cobrar-quien{font-size:12px;color:var(--ink-soft)}
   .cobrar-monto{flex:none;min-width:84px;text-align:right;font-weight:700;font-size:14px;color:var(--amber);font-variant-numeric:tabular-nums}
+  .cobrar-sub{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-top:var(--space-3)}
+  /* Cuenta de una persona (home › Por persona, y el link ?cuenta=) */
+  .cuenta-tot{display:flex;flex-direction:column;gap:2px;margin-bottom:var(--space-4)}
+  .cuenta-tot .home-sub{margin:0}
+  .cuenta-tot b{font-size:28px;font-weight:800;color:var(--amber);font-variant-numeric:tabular-nums}
+  .cuenta-prm{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3) 0;border-top:1px solid var(--line)}
+  .cuenta-prm-head b.debe{color:var(--amber);font-variant-numeric:tabular-nums}
+  .cuenta-prm > .mini{align-self:flex-start;min-height:var(--tap-input)}
+  .cuenta-ok{display:flex;align-items:center;gap:var(--space-2);color:var(--accent);font-weight:700;padding:var(--space-4) 0}
+  /* Wizard › "Como {la anterior}" */
+  .wz-como{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--accent);border-radius:var(--radius-md)}
+  .wz-como-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .wz-o{text-align:center;margin:var(--space-3) 0}
+  .wz-como .mini,.wz-nav .mini{min-height:var(--tap-input)}
+  .wz-hint{margin-bottom:var(--space-2)}
+  .wz-prods{line-height:1.6}
+  .wz-chips .chip .icon{width:14px;height:14px}
   .add-link{display:inline-flex;align-items:center;gap:var(--space-1);min-height:var(--tap-input);background:transparent;border:none;cursor:pointer;color:var(--accent);font-family:inherit;font-weight:700;font-size:14px;padding:var(--space-1) var(--space-2)}
   .add-link:active{opacity:.6}
   /* punto de estado discreto (sin badge con borde) */
@@ -939,13 +956,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20261026-063508-9eb882c"></script>
-  <script src="js/util.js?v=20261026-063508-9eb882c"></script>
-  <script src="js/api.js?v=20261026-063508-9eb882c"></script>
-  <script src="js/auth.js?v=20261026-063508-9eb882c"></script>
-  <script src="js/store.js?v=20261026-063508-9eb882c"></script>
-  <script src="js/view.js?v=20261026-063508-9eb882c"></script>
-  <script src="js/controller.js?v=20261026-063508-9eb882c"></script>
+  <script src="js/config.js?v=20261026-065415-394ac6e"></script>
+  <script src="js/util.js?v=20261026-065415-394ac6e"></script>
+  <script src="js/api.js?v=20261026-065415-394ac6e"></script>
+  <script src="js/auth.js?v=20261026-065415-394ac6e"></script>
+  <script src="js/store.js?v=20261026-065415-394ac6e"></script>
+  <script src="js/view.js?v=20261026-065415-394ac6e"></script>
+  <script src="js/controller.js?v=20261026-065415-394ac6e"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).

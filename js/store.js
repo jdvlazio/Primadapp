@@ -544,6 +544,38 @@
         .sort((a, b) => String(mesAncla(b.primada)).localeCompare(String(mesAncla(a.primada))));
     },
     deudaTotal() { return select.deudasPendientes().reduce((t, x) => t + x.saldo, 0); },
+    // LA MISMA DEUDA, POR PERSONA: quién debe cuánto sumando todas las primadas (mismo universo que
+    // deudasPendientes → la suma cuadra con deudaTotal). De mayor a menor deuda.
+    deudoresPorPersona() {
+      const acc = {};
+      select.deudasPendientes().forEach(({ deudores }) => deudores.forEach(d => {
+        const x = acc[d.personaId] || (acc[d.personaId] = { personaId: d.personaId, total: 0, n: 0 });
+        x.total += d.saldo; x.n++;
+      }));
+      return Object.keys(acc).map(k => acc[k]).sort((a, b) => b.total - a.total);
+    },
+    // LA CUENTA DE UNA PERSONA: lo que debe en cada primada (con su anfitrión). Mismo universo que
+    // deudasPendientes (sin la activa ABIERTA): así la fila del home y la hoja dicen la misma cifra, y no se
+    // ofrece "Ya pagué" sobre una cuenta que sigue creciendo (pago binario: escondería lo apuntado después).
+    cuentaDe(personaId) {
+      return (state.primadas || [])
+        .filter(p => !select.primadaIncompleta(p) && p.organizadorPrincipalId !== personaId)
+        .filter(p => !(p.id === state.activePrimadaId && p.estado === 'abierta'))
+        .map(p => {
+          const a = (p.asistencias || []).find(x => x.personaId === personaId);
+          return a ? { primada: p, asistencia: a, saldo: select.saldoDe(p, a) } : null;
+        })
+        .filter(x => x && x.saldo > 0)
+        .sort((a, b) => String(mesAncla(b.primada)).localeCompare(String(mesAncla(a.primada))));
+    },
+    // La primada más reciente (por mes y día): base del "Como {primada}" del asistente de creación.
+    // Solo las que tienen gente además del anfitrión (una futura recién creada no sirve de molde).
+    primadaAnterior() {
+      const ps = (state.primadas || []).filter(p => (p.asistencias || []).length > 1);
+      if (!ps.length) return null;
+      const k = p => String(mesAncla(p)) + '|' + String(p.fecha || '');
+      return ps.sort((a, b) => k(b).localeCompare(k(a)))[0];
+    },
 
     primadaIncompleta(primada) { return primada.organizadorPrincipalId == null; },
     // Nombre automático: "Primada {N1} + {N2}" con el PRIMER token del nombre de cada persona.
@@ -714,7 +746,7 @@
     removeDefaultProducto(id) { state.settings.defaultProducts = state.settings.defaultProducts.filter(p => p.id !== id); commit({ kind: 'settings' }); },
 
     // ----- ciclo de primada -----
-    createPrimada({ fecha, mesContable, organizadores, principalId, nombre, productos } = {}) {
+    createPrimada({ fecha, mesContable, organizadores, principalId, nombre, productos, asistentes } = {}) {
       organizadores = Array.isArray(organizadores) ? organizadores.slice() : [];
       if (principalId && !organizadores.includes(principalId)) organizadores.unshift(principalId);
       // INVARIANTE #2: el principal debe ser ahorrador (estado vigente al crear → snapshot ahorrador).
@@ -741,6 +773,13 @@
           coverExonerado: false,
           pagado: false,
         };
+      });
+      // "Como {primada anterior}": entran de una los asistentes marcados (rol asistente, estado VIGENTE como
+      // snapshot). Un solo commit: crear + 11 addAsistencia eran 12 escrituras de la misma fila.
+      (Array.isArray(asistentes) ? asistentes : []).forEach(pid => {
+        if (organizadores.includes(pid) || asistencias.some(a => a.personaId === pid)) return;
+        const per = select.persona(pid); if (!per) return;
+        asistencias.push({ personaId: pid, estadoEnEseMomento: normEstado(per.estado), rol: 'asistente', coverExonerado: false, pagado: false });
       });
       const prm = {
         id: Util.uid('prm'),

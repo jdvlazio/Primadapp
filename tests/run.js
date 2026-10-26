@@ -978,6 +978,41 @@ section('setLlavePrimada: guarda la llave en el snapshot de la primada, aun cerr
   check('Vacía = null', pp().pago.breB === null);
 }
 
+/* ---------- Cuenta por persona + "Como la anterior" ---------- */
+section('deudoresPorPersona / cuentaDe / primadaAnterior / createPrimada({asistentes})');
+{
+  Store.actions.replaceState(null);
+  const an = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+  const ca = Store.actions.addPersona({ nombre: 'Caro', estado: 'ahorrador' });
+  const be = Store.actions.addPersona({ nombre: 'Beto', estado: 'invitado' });
+  const di = Store.actions.addPersona({ nombre: 'Diego', estado: 'ahorrador' });
+  const P = id => Store.select.state().primadas.find(x => x.id === id);
+  const p1 = Store.actions.createPrimada({ principalId: an, organizadores: [an], mesContable: '2026-08', asistentes: [be, di, an] });
+  check('asistentes entran como asistente (sin duplicar al anfitrión)', P(p1).asistencias.length === 3 && P(p1).asistencias.filter(a => a.rol === 'asistente').length === 2);
+  check('asistente toma su estado vigente como snapshot', P(p1).asistencias.find(a => a.personaId === be).estadoEnEseMomento === 'invitado');
+  const pr1 = P(p1).productos[0].id;
+  Store.actions.changeItem(p1, be, pr1, 1); Store.actions.cerrarPrimada(p1);
+  const p2 = Store.actions.createPrimada({ principalId: ca, organizadores: [ca], mesContable: '2026-09', asistentes: [be] });
+  Store.actions.changeItem(p2, be, P(p2).productos[0].id, 2); Store.actions.cerrarPrimada(p2);
+  const pp = Store.select.deudoresPorPersona();
+  const beto = pp.find(x => x.personaId === be);
+  check('Beto debe en 2 primadas', beto && beto.n === 2);
+  check('Por persona suma igual que deudaTotal', pp.reduce((t, x) => t + x.total, 0) === Store.select.deudaTotal());
+  check('Ordenado de mayor a menor', pp.every((x, i) => i === 0 || pp[i - 1].total >= x.total));
+  const cu = Store.select.cuentaDe(be);
+  check('cuentaDe: 2 primadas, la más reciente primero', cu.length === 2 && cu[0].primada.id === p2);
+  check('cuentaDe total = deudoresPorPersona total', cu.reduce((t, x) => t + x.saldo, 0) === beto.total);
+  check('El anfitrión no tiene cuenta propia', Store.select.cuentaDe(an).length === 0);
+  // La activa ABIERTA entra en la cuenta personal (marcada en curso) aunque no en Por cobrar.
+  const p3 = Store.actions.createPrimada({ principalId: an, organizadores: [an], mesContable: '2026-10', asistentes: [be] });
+  Store.actions.changeItem(p3, be, P(p3).productos[0].id, 1);
+  const cu3 = Store.select.cuentaDe(be);
+  check('Activa abierta NO entra (misma cifra que el home)', cu3.length === 2 && cu3.reduce((t, x) => t + x.saldo, 0) === Store.select.deudoresPorPersona().find(x => x.personaId === be).total);
+  Store.actions.setPagado(p1, be, true);
+  check('Pagar una primada la saca de su cuenta', Store.select.cuentaDe(be).length === 1);
+  check('primadaAnterior = la de mes más reciente', Store.select.primadaAnterior().id === p3);
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);

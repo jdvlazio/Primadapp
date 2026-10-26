@@ -966,9 +966,51 @@
         <span class="cobrar-monto">${$peso(saldo)}</span>
       </button>`;
     };
+    // La MISMA deuda agrupada por persona: tocar abre su cuenta (lo que debe en cada primada + llave).
+    const porPersona = S().deudoresPorPersona().map(d => `<button class="cobrar-fila" data-act="open-cuenta" data-pid="${d.personaId}">
+        <span class="cobrar-id"><span class="cobrar-name">${e(nombrePersona(d.personaId))}</span><span class="cobrar-quien">${d.n === 1 ? '1 primada' : d.n + ' primadas'}</span></span>
+        <span class="cobrar-monto">${$peso(d.total)}</span>
+      </button>`).join('');
     return `<div class="cobrar-card">
       <div class="cobrar-head"><span class="home-sub">Por cobrar</span><b class="cobrar-tot">${$peso(S().deudaTotal())}</b></div>
       <div class="cobrar-list">${filas.map(fila).join('')}</div>
+      <div class="cobrar-sub">Por persona</div>
+      <div class="cobrar-list">${porPersona}</div>
+    </div>`;
+  }
+
+  // LA CUENTA DE UNA PERSONA — lo que debe en cada primada, a quién y con qué llave. Es la misma hoja que
+  // abre el link personal (?cuenta=<id>): el que debe la mira para pagar; "Ya pagué" se autosirve igual
+  // que en la hoja Pagar. El anfitrión cambia por primada, así que cada bloque trae SU llave.
+  function cuentaSheet(state, ui) {
+    const pid = ui && ui.cuentaPid;
+    const per = pid && S().persona(pid);
+    const head = (t) => `<div class="sheet-head"><div class="sheet-title">${t}</div>
+      <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>`;
+    if (!per) return `<div class="sheet">${head('Cuenta')}<div class="empty-soft">Sin datos</div></div>`;
+    const filas = S().cuentaDe(pid);
+    if (!filas.length) return `<div class="sheet">${head(e(per.nombre))}<div class="sheet-body"><div class="cuenta-ok">${icon('check')}Todo cobrado</div></div></div>`;
+    const total = filas.reduce((t, x) => t + x.saldo, 0);
+    const bloque = ({ primada: p, asistencia: a, saldo }) => {
+      const llave = llaveDe(p);
+      const prin = nombrePersona(p.organizadorPrincipalId);
+      const cuando = p.fecha ? Util.diaMes(p.fecha) : Util.monthName(p.mesContable);
+      return `<div class="cuenta-prm">
+        <div class="bal-row cuenta-prm-head"><span><b>${e(nombreCorto(p.nombre))}</b> <span class="hist-mes">${e(cuando)}</span></span><b class="debe">${$peso(saldo)}</b></div>
+        ${desgloseHTML(p, a, 'bal-row', 'pagar-desglose')}
+        ${llave ? `<div class="pagar-to">Bre-B de <b>${e(prin)}</b></div><div class="pagar-llave"><span class="pagar-llave-val breb-val">${e(llave)}</span>
+            <button class="mini ghost" data-act="copiar-llave" data-llave="${e(llave)}">${icon('copy')}Copiar</button></div>`
+          : `<div class="muted small">${e(prin)} aún no tiene llave Bre-B.</div>`}
+        <button class="mini" data-act="cuenta-pagado" data-pid="${pid}" data-id="${p.id}">${icon('check')}Ya pagué</button>
+      </div>`;
+    };
+    return `<div class="sheet full">${head(e(per.nombre))}
+      <div class="sheet-body">
+        <div class="cuenta-tot"><span class="home-sub">Debe</span><b>${$peso(total)}</b>
+          <span class="muted small">${filas.length === 1 ? 'en 1 primada' : 'en ' + filas.length + ' primadas'}</span></div>
+        ${filas.map(bloque).join('')}
+        <button class="btn cobro-cta" data-act="enviar-cuenta" data-pid="${pid}">${icon('share-2')}Enviar cuenta de cobro</button>
+      </div>
     </div>`;
   }
 
@@ -1331,7 +1373,16 @@
       const on = w.coorg.indexOf(p.id) >= 0;
       return `<button class="chip ${on ? 'on' : ''}" data-act="wz-toggle-coorg" data-pid="${p.id}">${e(p.nombre)} <i>${cap(p.estado)}</i></button>`;
     }).join('');
+    // ATAJO "Como {la anterior}": casi toda primada repite la gente y los productos de la última.
+    const ant = S().primadaAnterior();
+    const como = ant && (ant.productos || []).length ? `<div class="wz-como">
+        <span class="wz-como-id"><b>Igual que ${e(nombreCorto(ant.nombre))}</b>
+          <span class="muted small">${(ant.asistencias || []).length} asistentes · ${ant.productos.length} productos</span></span>
+        <button class="mini" data-act="wz-como">Copiar</button>
+      </div>
+      <div class="muted small wz-o">o empezá de cero</div>` : '';
     return `<div class="wz-step">
+      ${como}
       <label class="fld"><span>Anfitrión</span>${opcionPrincipal}</label>
       <div class="sub">Co-organizadores</div>
       <div class="chips wz-chips">${chips || '<span class="muted small">Sin personas</span>'}</div>
@@ -1372,8 +1423,46 @@
     </div>`;
   }
 
+  // "Como {la anterior}" en UNA pantalla: anfitrión (cambia cada mes), asistentes de la anterior ya
+  // marcados (tocar quita), productos con sus precios (resumen) y fecha. Crear sale de aquí mismo.
+  function wizardRevisar(state, w) {
+    const ahorradores = S().ahorradores();
+    const sel = `<select class="sel" id="wz-principal"><option value="">—</option>
+      ${ahorradores.map(p => `<option value="${p.id}" ${w.principalId === p.id ? 'selected' : ''}>${e(p.nombre)}</option>`).join('')}</select>`;
+    const chips = (w.candidatos || []).filter(id => id !== w.principalId && S().persona(id)).map(id => {
+      const per = S().persona(id), on = w.invitar.indexOf(id) >= 0;
+      return `<button class="chip ${on ? 'on' : ''}" data-act="wz-toggle-inv" data-pid="${id}" aria-pressed="${on}">${on ? icon('check', 'sm') : ''}${e(per.nombre)} <i>${cap(per.estado)}</i></button>`;
+    }).join('');
+    const prods = w.productos.map(x => `${x.emoji ? x.emoji + ' ' : ''}${e(x.nombre)}`).join(' · ');
+    const dia = (/^\d{4}-\d{2}-(\d{2})$/.exec(String(w.fecha)) || [])[1] || '';
+    return `<div class="wz-step">
+      <label class="fld"><span>Anfitrión</span>${sel}</label>
+      <div class="sub">Asistentes</div>
+      <div class="muted small wz-hint">Tocá a quien no viene para quitarlo. En la fiesta se puede agregar gente; los co-organizadores se asignan en Configurar.</div>
+      <div class="chips wz-chips">${chips || '<span class="muted small">Sin personas</span>'}</div>
+      <div class="sub">Productos · ${w.productos.length}</div>
+      <div class="small wz-prods">${prods}</div>
+      <div class="muted small">Con los mismos precios. Se ajustan después en Configurar.</div>
+      <div class="sub">Fecha</div>
+      <div class="grid2">
+        <label class="fld"><span>Mes</span><input class="ti" type="month" id="wz-mes" value="${e(w.mesContable)}"></label>
+        <label class="fld"><span>Día</span><input class="ti" type="number" min="1" max="31" inputmode="numeric" placeholder="—" id="wz-dia" value="${dia}"></label>
+      </div>
+    </div>`;
+  }
+
   function wizardSheet(state, ui) {
     const w = ui.wizard;
+    if (w.paso === 'rev') {
+      return `<div class="sheet full wz">
+        <div class="sheet-head"><div class="wz-steps"></div>
+          <button class="gear" data-act="wz-cancelar" aria-label="Cerrar">${icon('x')}</button></div>
+        <div class="wz-title">Revisá y creá</div>
+        <div class="sheet-body">${wizardRevisar(state, w)}</div>
+        <div class="wz-nav"><button class="mini ghost" data-act="wz-atras">Atrás</button>
+          <button class="btn" data-act="wz-crear">${icon('plus-circle')}Crear primada</button></div>
+      </div>`;
+    }
     const titulos = ['Organizadores', 'Productos', 'Fecha'];
     const cuerpo = w.paso === 1 ? wizardPaso1(state, w) : (w.paso === 2 ? wizardPaso2(state, w) : wizardPaso3(state, w));
     const stepper = [1, 2, 3].map(n => `<span class="wz-dot ${n === w.paso ? 'on' : ''} ${n < w.paso ? 'done' : ''}">${n}</span>`).join('<span class="wz-line"></span>');
@@ -1459,6 +1548,7 @@
     if (ui.wizard)                                              els.overlay.innerHTML = wizardSheet(state, ui);
     else if (ui.overlay === 'login')                           els.overlay.innerHTML = loginSheet(state, ui);
     else if (ui.overlay === 'pagar')                           els.overlay.innerHTML = pagarSheet(state, ui);
+    else if (ui.overlay === 'cuenta')                          els.overlay.innerHTML = cuentaSheet(state, ui);
     else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
     else if (ui.overlay === 'primada-menu')                    els.overlay.innerHTML = primadaMenuSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
