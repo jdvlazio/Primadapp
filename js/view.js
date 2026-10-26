@@ -494,7 +494,13 @@
     const auditBtn = consumidos.length
       ? `<button class="xmini aud-btn ${auditOpen ? 'on' : ''}" data-act="toggle-auditoria" data-pid="${a.personaId}" aria-expanded="${auditOpen ? 'true' : 'false'}" aria-label="Detalle por evento">${icon('info', 'sm')}</button>`
       : '';
-    return `<div class="chips-viva">${chipsCons}${chipsDisp}${vacio}</div>${auditBtn}${auditOpen ? auditoriaPanel(p, a, ui) : ''}`;
+    // PRODUCTO NUEVO desde la ficha (fricción reportada en primadas reales, oct 2026): agregar un ASISTENTE
+    // era obvio ("+ Agregar" a la vista) pero agregar un PRODUCTO solo existía escondido en ⚙ Configurar ›
+    // Productos. El caso real es "alguien pide algo que no estaba en la lista": se resuelve desde la ficha de
+    // ESA persona, y el producto se crea y se le apunta en el mismo gesto. Va al pie de la rejilla, así que
+    // no mueve nada de lo que ya está (orden estable: el producto nuevo entra al final del catálogo).
+    const addProd = `<button class="add-link add-prod" data-act="open-add-prod" data-pid="${a.personaId}">${icon('plus-circle')}Producto nuevo</button>`;
+    return `<div class="chips-viva">${chipsCons}${chipsDisp}${vacio}</div>${addProd}${auditBtn}${auditOpen ? auditoriaPanel(p, a, ui) : ''}`;
   }
 
   // Panel de AUDITORÍA (colapsado tras el ⓘ): cada consumo con su HORA + producto + QUIÉN lo apuntó
@@ -603,6 +609,28 @@
 
   // Hoja simple "Agregar asistente": lista del directorio (los que NO están aún). Tocar uno lo
   // agrega y queda abierta para sumar varios. "Nueva persona" NO vive aquí: enlace a Personas.
+  // Hoja "Producto nuevo" abierta desde la ficha de una persona: mismo formulario que Configurar › Productos
+  // (mismos ids pn-*, así hereda la autosugerencia de emoji), pero el botón CREA y APUNTA 1 a esa persona.
+  function addProdSheet(state, ui) {
+    const p = S().activePrimada();
+    const pid = ui && ui.addProdPid;
+    const nom = pid ? nombrePersona(pid) : '';
+    const head = `<div class="sheet-head"><div class="sheet-title">Producto nuevo</div>
+      <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>`;
+    if (!p || p.estado === 'cerrada') return `<div class="sheet">${head}<div class="empty-soft">La cuenta está cerrada</div></div>`;
+    return `<div class="sheet">${head}
+      <div class="sheet-body prod-new">
+        ${prodIdInput('', '', 'id="pn-emoji"', 'id="pn-nombre"', false)}
+        <div class="prod-new-bot">
+          <label class="prodrow-f"><span>costo</span><input class="ti num" id="pn-costo" type="number" min="0" step="500" inputmode="numeric" aria-label="Costo neto"></label>
+          <label class="prodrow-f"><span>venta</span><input class="ti num" id="pn-venta" type="number" min="0" step="500" inputmode="numeric" aria-label="Precio de venta"></label>
+        </div>
+        <button class="btn" data-act="add-producto" data-pid="${pid || ''}">${icon('plus-circle')}${nom ? `Agregar y apuntar 1 a ${e(nom)}` : 'Agregar'}</button>
+        <div class="alta-hint">Queda en los productos de esta primada para todos.</div>
+      </div>
+    </div>`;
+  }
+
   function addAsisSheet(state, ui) {
     const p = S().activePrimada();
     if (!p) return `<div class="sheet full"><div class="sheet-head"><div class="sheet-title">Agregar asistente</div>
@@ -1387,6 +1415,7 @@
     else if (ui.overlay === 'config-primada')                  els.overlay.innerHTML = configPrimadaSheet(state, ui);
     else if (ui.overlay === 'primada-menu')                    els.overlay.innerHTML = primadaMenuSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
+    else if (ui.overlay === 'add-prod')                        els.overlay.innerHTML = addProdSheet(state, ui);
     else if (ui.overlay === 'exonerar')                        els.overlay.innerHTML = exonerarSheet(state, ui);
     else if (ui.overlay === 'ajustes' || ui.overlay === 'personas') els.overlay.innerHTML = ajustesSheet(state, ui);
     else                                                        els.overlay.innerHTML = '';

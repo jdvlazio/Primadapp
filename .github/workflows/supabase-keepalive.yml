@@ -1,0 +1,33 @@
+# Mantiene despierto el proyecto Supabase (tier gratis).
+#
+# Supabase PAUSA los proyectos gratuitos tras ~7 días sin actividad. La Primada se usa intensamente un día al
+# mes (la primada) y casi nada el resto: sin esto, la app amanecía pausada justo cuando se necesitaba.
+# Cada 2 días hace UNA lectura anónima (la misma que hace cualquiera que abre el link: RLS abre SELECT a anon)
+# contra la API REST. Con margen de sobra sobre los 7 días aunque una corrida falle.
+#
+# La anon key es PÚBLICA por diseño (ya viaja en js/config.js); nunca usar acá la service_role.
+# Ojo: GitHub desactiva los workflows programados si el repo pasa 60 días sin commits. Si eso pasa, llega un
+# correo de GitHub; se reactiva desde la pestaña Actions con un clic.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '17 13 */2 * *'   # cada 2 días, 13:17 UTC (8:17 a. m. en Colombia)
+  workflow_dispatch: {}       # botón "Run workflow" para probarlo a mano
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lectura anónima a la API de Supabase
+        env:
+          SUPABASE_URL: https://iaxlefbmtgowtusghwkz.supabase.co
+          SUPABASE_ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlheGxlZmJtdGdvd3R1c2dod2t6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyOTU2NDgsImV4cCI6MjA5NTg3MTY0OH0.grK-ZTUCTQbo9GMUo1o6U2y6FDODcpwtfjK_7tct95c
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 20 \
+            "$SUPABASE_URL/rest/v1/settings?select=*&limit=1" \
+            -H "apikey: $SUPABASE_ANON" -H "Authorization: Bearer $SUPABASE_ANON")
+          echo "Supabase respondió $code"
+          # Si falla, el workflow queda en rojo y GitHub avisa por correo: señal de que el proyecto se pausó.
+          test "$code" = "200"

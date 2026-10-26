@@ -796,6 +796,7 @@
       if (dup) throw new Error('El emoji ' + np.emoji + ' ya lo usa "' + dup.nombre + '" — elegí otro');
       p.productos.push(np);   // v6: sin items que inicializar; las cantidades viven en consumos[]
       commit({ kind: 'primada', id: primadaId });
+      return np.id;           // el alta desde la ficha de una persona apunta enseguida a ese producto
     },
     setPreciosProducto(primadaId, prodId, { costoNeto, precioVenta } = {}) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;

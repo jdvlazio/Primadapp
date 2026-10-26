@@ -245,6 +245,28 @@ check('Orden estable: hay una fila por CADA producto del catálogo, consumido o 
 check('Los NO consumidos son la MISMA fila, en cero (.chip.has.cero con precio y − inerte)',
   !!q('.chip.has.cero .chip-precio') && q('.chip.has.cero .chip-minus').disabled === true);
 check('Ya NO existe la pastilla suelta de "disponible" (.chip sin .has)', !q('.chips-viva .chip:not(.has)'));
+// PRODUCTO NUEVO desde la ficha (fricción reportada, oct 2026): agregar asistentes era obvio, agregar productos
+// solo existía en ⚙ Configurar. Ahora la ficha de la persona lleva "+ Producto nuevo": crea y le apunta 1.
+check('Ficha: lleva "+ Producto nuevo" al pie de la rejilla', !!q(`[data-act="open-add-prod"][data-pid="${beto.id}"]`));
+{
+  const nProdAntes = prm().productos.length;
+  click(`[data-act="open-add-prod"][data-pid="${beto.id}"]`);
+  check('Producto nuevo: abre la hoja con el botón que nombra a quién se le apunta',
+    !q('#overlay').hidden && new RegExp('Agregar y apuntar 1 a ' + beto.nombre).test(q('#overlay').innerHTML));
+  setVal('#pn-nombre', 'Michelada');
+  setVal('#pn-emoji', '🍹');
+  setVal('#pn-costo', '3000');
+  setVal('#pn-venta', '8000');
+  click('#overlay [data-act="add-producto"]');
+  const mich = prm().productos.find(x => x.nombre === 'Michelada');
+  check('Producto nuevo: se crea en la primada', !!mich && prm().productos.length === nProdAntes + 1);
+  eq('Producto nuevo: queda apuntado 1 a la persona de la ficha', Store.select.cantidadDe(prm(), prm().asistencias.find(x => x.personaId === beto.id), mich), 1);
+  check('Producto nuevo: la hoja se cierra y el producto entra AL FINAL (no mueve la rejilla)',
+    q('#overlay').hidden && prm().productos[prm().productos.length - 1].id === mich.id);
+  // limpieza: se saca para no alterar los totales del resto del flujo
+  Store.actions.changeItem(prm().id, beto.id, mich.id, -1);
+  Store.actions.removeProducto(prm().id, mich.id);
+}
 // ANCLA DE SCROLL al cambiar de persona: la ficha anterior se colapsa (~716px con 11 productos) y la fila que
 // tocaste saltaba hacia ARRIBA bajo el dedo (medido: 202px y 360px). La Vista compensa el scroll.
 check('View.anclarFila existe y tolera datos faltantes (no rompe sin scroller)',

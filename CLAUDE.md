@@ -91,6 +91,12 @@ saldoPendiente     = recaudadoTeorico − recaudadoReal         // = Σ saldos d
 **Por qué.** Los datos deben **persistir entre dispositivos y navegadores**; localStorage no alcanza. **Arrancamos limpio
 en Supabase — NO se migra localStorage** (los datos de prueba no tienen valor real).
 
+> ⚠️ **PAUSA POR INACTIVIDAD (tier gratis) — resuelta con un keep-alive.** Supabase pausa los proyectos gratuitos tras
+> ~7 días sin actividad, y La Primada se usa un día al mes. `.github/workflows/supabase-keepalive.yml` hace **una
+> lectura anónima cada 2 días** (la misma que hace quien abre el link) contra la API REST. Si falla queda en rojo y
+> GitHub avisa por correo. GitHub **desactiva los workflows programados tras 60 días sin commits**: si llega ese
+> correo, se reactiva desde la pestaña Actions. Se prueba a mano con "Run workflow".
+
 **Stack.** **Supabase** (PostgreSQL + Auth + RLS), tier gratis. **SDK por CDN** (no npm en producción), igual que las fuentes.
 **GitHub Pages sigue sirviendo el frontend sin cambios.** Free tier durmiente es **aceptable**: La Primada se usa intensamente
 alrededor de cada primada mensual, no a diario.
@@ -600,6 +606,13 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
   **estado EN ESE MOMENTO por asistente** (`setEstadoEnEseMomento` corrige el snapshot histórico de una asistencia —
   p.ej. alguien que era invitado y hoy es ahorrador; respeta INV#2, **no toca el directorio** → INV#1 intacta). UI:
   sección **"Cómo fue en su momento"** en Configurar, visible SOLO si `mesContable < Util.currentMonth()` (mes pasado).
+- **PRODUCTO NUEVO DESDE LA FICHA DE UNA PERSONA (fricción en primadas reales, oct 2026).** Agregar un asistente
+  era obvio ("+ Agregar" a la vista), pero agregar un producto solo existía escondido en ⚙ Configurar › Productos.
+  El caso real es "alguien pide algo que no estaba": la ficha de esa persona lleva **"+ Producto nuevo"** al pie de
+  la rejilla → hoja `addProdSheet` (mismo formulario y mismos ids `pn-*` que Configurar, hereda la autosugerencia
+  de emoji) cuyo botón dice **"Agregar y apuntar 1 a {persona}"**: crea el producto y le apunta 1 en el mismo
+  gesto (`addProducto` ahora **devuelve el id**). El producto entra **al final del catálogo** → no mueve la rejilla.
+  Configurar › Productos sigue igual (ahí se edita precio/costo y se agrega sin apuntar).
 - **ALTA EN LÍNEA DE UN ASISTENTE NUEVO — el default es INVITADO (auditoría de producto, sep 2026).** Agregar
   a alguien que no está en el directorio costaba **9 toques y 3 pantallas** (hoja → Ajustes → alta → volver),
   en el momento de **mayor presión** del anfitrión (alguien parado al frente pidiendo cerveza). Peor: el form

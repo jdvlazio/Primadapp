@@ -384,6 +384,8 @@
 
       // ----- asistencias -----
       // "+ Agregar" abre la hoja simple del directorio (overlay 'add-asis').
+      // Producto nuevo desde la ficha de una persona (hoja 'add-prod'): crea el producto y le apunta 1.
+      case 'open-add-prod': ui.overlay = 'add-prod'; ui.addProdPid = pid || null; rerender(); setTimeout(() => { const n = document.getElementById('pn-nombre'); if (n) n.focus(); }, 50); return;
       case 'open-add-asis': ui.overlay = 'add-asis'; ui.nuevoAsis = false; ui.nuevoAsisNombre = ''; ui.nuevoAsisEstado = 'invitado'; rerender(); return;
       // ALTA EN LÍNEA de alguien que no está en el directorio, SIN salir de la hoja (antes: 9 toques y 3
       // pantallas hasta Ajustes). Default INVITADO: el que llega de sorpresa casi siempre lo es, y marcarlo
@@ -464,7 +466,16 @@
         const precioVenta = Number((document.getElementById('pn-venta') || {}).value) || 0;
         if (!nombre) { View.toast('Escribí el nombre', 'err'); return; }
         try {
-          A.addProducto(prm, { nombre, emoji: emoji || '•', costoNeto, precioVenta });
+          const nuevoId = A.addProducto(prm, { nombre, emoji: emoji || '•', costoNeto, precioVenta });
+          // Desde la ficha de una persona: además de crearlo, se le APUNTA 1 (es a lo que se abrió la hoja).
+          if (pid && nuevoId) {
+            ui.overlay = null; ui.addProdPid = null;
+            A.changeItem(prm, pid, nuevoId, +1);
+            rerender();
+            View.flashConsumo(pid, nuevoId);
+            View.toast(nombre + ' agregado · 1 a ' + ((Store.select.persona(pid) || {}).nombre || ''), 'ok');
+            return;
+          }
           View.toast('Producto agregado');
         } catch (err) { View.toast(err && err.message ? err.message : 'No se pudo agregar', 'err'); }
         break;
