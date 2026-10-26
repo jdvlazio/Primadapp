@@ -420,6 +420,27 @@ check('Enviar cuenta: botón primario bajo el chip de Balance, fuera del panel',
   !!q('.balance-dock > .cobro-cta[data-act="compartir-informe"]') && !q('.balance-panel [data-act="compartir-informe"]'));
 check('Enviar cuenta: con deuda dice "Enviar cuenta de cobro" (sin repetir el monto del chip)',
   /Enviar cuenta de cobro/.test(q('.cobro-cta').textContent) && !/\$/.test(q('.cobro-cta').textContent));
+// PEDIR LA LLAVE ANTES DE ENVIAR: con deuda y sin llave Bre-B en ningún lado, "Enviar cuenta de cobro" primero
+// pide la llave (hoja 'llave') y la guarda en la PRIMADA (el directorio solo lo edita el admin).
+{
+  const prevPago = prm().pago.breB, prevPer = Store.select.persona(ana.id).breB;
+  prm().pago.breB = null; Store.actions.setBreBPersona(ana.id, '');
+  click('.cobro-cta');
+  check('Sin llave y con deuda: enviar abre primero la hoja que pide la llave',
+    !q('#overlay').hidden && !!q('#llave-breb') && /Llave Bre-B de/.test(q('#overlay').innerHTML));
+  click('[data-act="guardar-llave-enviar"]');
+  check('Llave vacía: no guarda y avisa', !q('#overlay').hidden && !prm().pago.breB);
+  setVal('#llave-breb', '3001234567');
+  click('[data-act="guardar-llave-enviar"]');
+  check('Guardar y enviar: la llave queda en la primada y la hoja se cierra',
+    prm().pago.breB === '3001234567' && q('#overlay').hidden);
+  check('…y el informe ya sale con esa llave', /informe-breb-val">3001234567/.test(window.View.informeTemplateHTML(prm())));
+  prm().pago.breB = prevPago || null; Store.actions.setBreBPersona(ana.id, prevPer || '');
+  if (window.View.llaveDe(prm())) {
+    click('.cobro-cta');
+    check('Con llave cargada: enviar NO pide nada', q('#overlay').hidden);
+  }
+}
 check('Cerrar la cuenta: separado y explicado (.cerrar-zona con su frase)',
   !!q('.balance-panel .cerrar-zona .cerrar-hint') && /Cerrar congela los consumos/.test(q('.cerrar-zona').textContent));
 check('Informe ABIERTA: la nota dice "Cuenta al …" (ya no "Provisional")',

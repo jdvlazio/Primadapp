@@ -104,6 +104,30 @@
     return `${dia} · ${hora}`;
   }
 
+  // La llave que usa una primada: el snapshot de la primada y, si no hay, la de la persona anfitriona vigente.
+  function llaveDe(p) {
+    if (!p) return '';
+    const pid = p.organizadorPrincipalId;
+    return ((p.pago && p.pago.breB) || (pid ? (S().persona(pid) || {}).breB : null) || '').toString().trim();
+  }
+
+  // Hoja que pide la llave Bre-B ANTES de enviar la cuenta (solo aparece si alguien debe y no hay llave).
+  function llaveSheet(state, ui) {
+    const p = S().activePrimada();
+    const anf = p && p.organizadorPrincipalId ? nombrePersona(p.organizadorPrincipalId) : 'el anfitrión';
+    return `<div class="sheet">
+      <div class="sheet-head"><div class="sheet-title">🔑 Llave Bre-B de ${e(anf)}</div>
+        <button class="gear" data-act="close-overlay" aria-label="Cerrar">${icon('x')}</button></div>
+      <div class="sheet-body llave-body">
+        <p class="muted small">Va en la cuenta de cobro para que cada quien pague directo, sin preguntar.</p>
+        <input class="ti" id="llave-breb" placeholder="Celular, correo o llave" autocomplete="off" maxlength="80" aria-label="Llave Bre-B">
+        <button class="btn" data-act="guardar-llave-enviar">${icon('share-2')}Guardar y enviar</button>
+        <button class="btn ghost" data-act="enviar-sin-llave">Enviar sin llave</button>
+        <div class="alta-hint">Se guarda en esta primada.</div>
+      </div>
+    </div>`;
+  }
+
   function informeTemplateHTML(p) {
     const sel = S();
     const inf = sel.informePrincipal(p);
@@ -1439,6 +1463,7 @@
     else if (ui.overlay === 'primada-menu')                    els.overlay.innerHTML = primadaMenuSheet(state, ui);
     else if (ui.overlay === 'add-asis')                        els.overlay.innerHTML = addAsisSheet(state, ui);
     else if (ui.overlay === 'add-prod')                        els.overlay.innerHTML = addProdSheet(state, ui);
+    else if (ui.overlay === 'llave')                           els.overlay.innerHTML = llaveSheet(state, ui);
     else if (ui.overlay === 'exonerar')                        els.overlay.innerHTML = exonerarSheet(state, ui);
     else if (ui.overlay === 'ajustes' || ui.overlay === 'personas') els.overlay.innerHTML = ajustesSheet(state, ui);
     else                                                        els.overlay.innerHTML = '';
@@ -1654,6 +1679,6 @@
     return true;
   }
 
-  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML, actualizarCoverGrupo, flashConsumo, anclarFila };
+  root.View = { cache, render, showAppChrome, renderAuthButton, renderSync, balanceAbierto, asisAbierto, toast, shareInforme, informeTemplateHTML, actualizarCoverGrupo, flashConsumo, anclarFila, llaveDe };
   if (typeof module !== 'undefined' && module.exports) module.exports = { View: root.View };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -961,6 +961,23 @@ section('deudasPendientes: la plata que falta por entrar, en cualquier primada (
   check('Las INCOMPLETAS (sin anfitrión) no entran', Store.select.deudasPendientes().length === 0);
 }
 
+/* ---------- Llave Bre-B de la primada (se pide al enviar la cuenta) ---------- */
+section('setLlavePrimada: guarda la llave en el snapshot de la primada, aun cerrada');
+{
+  Store.actions.replaceState(null);
+  const an = Store.actions.addPersona({ nombre: 'Ana', estado: 'ahorrador' });
+  const lp = Store.actions.createPrimada({ principalId: an, organizadores: [an], mesContable: '2026-10' });
+  const pp = () => Store.select.state().primadas.find(x => x.id === lp);
+  Store.actions.setLlavePrimada(lp, '  ana@bre-b  ');
+  check('Guarda recortada en pago.breB', pp().pago.breB === 'ana@bre-b');
+  check('No toca la ficha de la persona', !Store.select.persona(an).breB);
+  Store.actions.cerrarPrimada(lp);
+  Store.actions.setLlavePrimada(lp, '300');
+  check('Se puede cambiar con la cuenta CERRADA (es para cobrar)', pp().pago.breB === '300');
+  Store.actions.setLlavePrimada(lp, '');
+  check('Vacía = null', pp().pago.breB === null);
+}
+
 /* ---------- Resumen ---------- */
 console.log(`\n${'='.repeat(50)}`);
 console.log(`Resultado: ${pass} pasaron, ${fail} fallaron`);

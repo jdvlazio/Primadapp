@@ -358,7 +358,7 @@ Consumo   { id, personaId, productoId, cantidad:1, apuntadoPor, createdAt }   //
 - **`actions` (mutan + invariantes):** personas (`addPersona`, `setEstadoPersona`, `renombrarPersona`, `setBreBPersona`);
   settings (`setCover`, `upsertDefaultProducto`, `removeDefaultProducto`); ciclo de primada (`createPrimada`,
   `seleccionarPrimada`, `renombrarPrimada`, `setFecha`, `setMesContable`, `cerrarPrimada`, `reabrirPrimada`, `borrarPrimada`);
-  productos de la primada (`addProducto`, `setPreciosProducto`, `setIdProducto` (renombrar/emoji sin borrar — snapshot local, consumos van por id), `setAportadoPor`, `removeProducto`);
+  productos de la primada (`addProducto`, `setPreciosProducto`, `setIdProducto` (renombrar/emoji sin borrar — snapshot local, consumos van por id), `setLlavePrimada` (llave Bre-B del snapshot `pago.breB`), `setAportadoPor`, `removeProducto`);
   asistencias (`addAsistencia`, `removeAsistencia`, `setRol`, `toggleCoverExonerado`, `changeItem`);
   registro histórico de primadas pasadas (`setCoverPrimada` (cover propio + flag `coverPropio`), `setEstadoEnEseMomento`
   (corrige el snapshot histórico de una asistencia — respeta INV#2, no toca el directorio → INV#1 intacta));
@@ -652,6 +652,12 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
   nota de una abierta pasó de "Provisional — se confirma al cerrar" (se leía "todavía no paguen") a **"Cuenta al
   sáb 25 oct · 9:40 p. m."** (y en la app, el héroe dice **"Cuenta en curso · se puede cobrar ya"**) (`cuentaAhora()`, el momento en que se genera). No vuelve a la topbar: ahí se
   tocaba sin querer mientras se operaba.
+- **LA LLAVE SE PIDE ANTES DE ENVIAR LA CUENTA (oct 2026).** Si alguien debe y el anfitrión **no tiene llave
+  Bre-B** (ni en la primada ni en su ficha, `View.llaveDe`), tocar "Enviar cuenta de cobro" abre primero la hoja
+  `llave` ("🔑 Llave Bre-B de {Anfitrión}") con **"Guardar y enviar"** y **"Enviar sin llave"**. Se guarda con
+  `setLlavePrimada` en el **snapshot de la primada** (`pago.breB`), NO en la persona: el directorio solo lo edita
+  el admin (RLS) y la primada la escribe cualquier autenticado; se acepta aun con la cuenta cerrada. Para que
+  quede en primadas futuras, el admin la carga en la ficha de la persona (Ajustes).
 - **CERRAR LA CUENTA SE PUEDE SIEMPRE, DESDE EL DETALLE (auditoría de producto, sep 2026).** El único cerrar
   del detalle era el banner verde **"Todos pagaron · Cerrar primada"**, que exige `saldoPendiente === 0` → **con
   deuda no había forma de cerrar sin volver al home**. El caso real del anfitrión a la 1 a.m. es el CONTRARIO

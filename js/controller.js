@@ -82,7 +82,7 @@
     'new-primada', 'wz-crear', 'cerrar-primada', 'reabrir-primada', 'borrar-primada',
     'add-asistencia', 'hacer-principal', 'remove-asistencia', 'toggle-exonerado', 'item-plus', 'item-minus',
     'remove-producto', 'add-producto', 'marcar-pagado', 'set-no-pagado', 'toggle-pagado', 'add-persona', 'set-estado-persona',
-    'set-estado-momento', 'borrar-mi-cuenta', 'add-asis-nuevo',
+    'set-estado-momento', 'borrar-mi-cuenta', 'add-asis-nuevo', 'guardar-llave-enviar',
   ]);
   // Ventana corta tras un cambio de persona en el que la lista se movió: descarta consumos accidentales.
   let bloqueoConsumoHasta = 0;
@@ -302,7 +302,23 @@
       case 'toggle-asis-panel':    ui.asisOpen = !View.asisAbierto(Store.select.activePrimada(), ui); rerender(); return;
 
       // ----- compartir informe como imagen (PNG → share sheet / descarga): I/O de vista, NO escritura -----
-      case 'compartir-informe': { const p = Store.select.activePrimada(); if (p && View.shareInforme) View.shareInforme(p); return; }
+      // ENVIAR LA CUENTA: si alguien debe y el anfitrión NO tiene llave Bre-B (ni en la primada ni en su ficha),
+      // primero se la pide: una cuenta de cobro sin llave obliga a cada deudor a preguntar a dónde pagar.
+      case 'compartir-informe': {
+        const p = Store.select.activePrimada(); if (!p || !View.shareInforme) return;
+        const inf = Store.select.informePrincipal(p);
+        if (!inf.incompleta && inf.saldoPendiente > 0 && !View.llaveDe(p)) { ui.overlay = 'llave'; rerender(); setTimeout(() => { const i = document.getElementById('llave-breb'); if (i) i.focus(); }, 50); return; }
+        View.shareInforme(p); return;
+      }
+      case 'guardar-llave-enviar': {
+        const inp = document.getElementById('llave-breb');
+        const v = ((inp && inp.value) || '').trim();
+        if (!v) { View.toast('Escribí la llave', 'err'); return; }
+        A.setLlavePrimada(prm, v);
+        ui.overlay = null; rerender();
+        View.shareInforme(Store.select.activePrimada()); return;
+      }
+      case 'enviar-sin-llave': { ui.overlay = null; rerender(); View.shareInforme(Store.select.activePrimada()); return; }
 
       // ----- wizard "Nueva primada" (3 pasos, estado efímero en ui.wizard) — ÚNICO punto de creación -----
       // "Nueva primada" (ÚNICO punto de creación, vive en el gear › Primadas) abre el wizard SOBRE el gear.

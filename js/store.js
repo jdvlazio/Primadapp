@@ -798,6 +798,16 @@
       commit({ kind: 'primada', id: primadaId });
       return np.id;           // el alta desde la ficha de una persona apunta enseguida a ese producto
     },
+    // Llave Bre-B de ESTA primada (snapshot `pago.breB`, la que el informe usa primero). Se pide al enviar la
+    // cuenta si falta. Se guarda en la PRIMADA y no en la persona: el directorio solo lo edita el admin (RLS),
+    // mientras que la primada la puede escribir cualquier autenticado. Se acepta también con la cuenta CERRADA
+    // (es para cobrar, y los pagos siguen después de cerrar — INV#4).
+    setLlavePrimada(primadaId, breB) {
+      const p = findPrimada(primadaId); if (!p) return;
+      const v = String(breB == null ? '' : breB).trim();
+      p.pago = Object.assign({}, p.pago, { breB: v || null });
+      commit({ kind: 'primada', id: primadaId });
+    },
     setPreciosProducto(primadaId, prodId, { costoNeto, precioVenta } = {}) {
       const p = findPrimada(primadaId); if (!p || p.estado === 'cerrada') return;
       const prod = p.productos.find(x => x.id === prodId); if (!prod) return;
