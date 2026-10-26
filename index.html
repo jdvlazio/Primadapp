@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Primadapp">
 <!-- build de ESTE HTML (sellado por scripts/stamp-sw.js). Verdad de tierra de qué versión corre:
      el check de versión compara version.json contra ESTO (no contra localStorage, que podía mentir). -->
-<meta name="build" content="20261025-211230-cc6d7fe">
+<meta name="build" content="20261025-211726-d3ce4dd">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -937,13 +937,13 @@
   <!-- ?v=__BUILD__ lo estampa scripts/stamp-sw.js (hook pre-commit), sincronizado con CACHE_VERSION.
        En iOS WKWebView el HTML recarga fresco pero el .js puede servirse del HTTP cache si la URL no
        cambia; el ?v= fuerza una URL distinta por build → cada deploy trae el código nuevo. -->
-  <script src="js/config.js?v=20261025-211230-cc6d7fe"></script>
-  <script src="js/util.js?v=20261025-211230-cc6d7fe"></script>
-  <script src="js/api.js?v=20261025-211230-cc6d7fe"></script>
-  <script src="js/auth.js?v=20261025-211230-cc6d7fe"></script>
-  <script src="js/store.js?v=20261025-211230-cc6d7fe"></script>
-  <script src="js/view.js?v=20261025-211230-cc6d7fe"></script>
-  <script src="js/controller.js?v=20261025-211230-cc6d7fe"></script>
+  <script src="js/config.js?v=20261025-211726-d3ce4dd"></script>
+  <script src="js/util.js?v=20261025-211726-d3ce4dd"></script>
+  <script src="js/api.js?v=20261025-211726-d3ce4dd"></script>
+  <script src="js/auth.js?v=20261025-211726-d3ce4dd"></script>
+  <script src="js/store.js?v=20261025-211726-d3ce4dd"></script>
+  <script src="js/view.js?v=20261025-211726-d3ce4dd"></script>
+  <script src="js/controller.js?v=20261025-211726-d3ce4dd"></script>
 
   <!-- PWA + propagación de versión (modelo de Otrofestiv) — fuerza la versión nueva en iOS SIN
        depender solo del SW (WKWebView lo termina entre sesiones, su controllerchange es flaky).
@@ -987,12 +987,8 @@
             if (server !== BUILD) {
               // El HTML que corre NO es el del servidor → recargar para traerlo. Compara contra el build
               // INCRUSTADO (no localStorage) → se autosana cuando el reload trae el HTML nuevo (no se atasca).
-              var tries = +(sessionStorage.getItem(TRY) || 0);
-              if (tries < 3) {           // tope por sesión: si el CDN aún sirve viejo, sin loop infinito
-                sessionStorage.setItem(TRY, tries + 1);
-                reloading = true;
-                location.reload();
-              }
+              pendiente = true;
+              aplicarSiSeguro();
             } else {
               sessionStorage.removeItem(TRY);   // ya corremos la versión del servidor
             }
@@ -1010,6 +1006,39 @@
 
       // (El posicionamiento de la tabbar lo resuelve --app-height arriba: .app a la altura real del
       //  viewport y la barra como hijo flex al fondo. No hace falta tocar la barra aquí.)
+
+      // ACTUALIZAR CON LA APP ABIERTA (oct 2026). Antes solo se chequeaba al abrir y al volver de background:
+      // un teléfono con la app EN PANTALLA (típico en plena primada) nunca se enteraba de un deploy. Ahora se
+      // chequea cada 2 min mientras está visible, pero la recarga se APLICA solo cuando es SEGURO: sin hoja
+      // abierta, sin un campo con foco y tras 15 s sin tocar la pantalla. Así nunca recarga a mitad de un toque
+      // ni borra lo que alguien está escribiendo. Los consumos ya están guardados (Supabase + cola offline en
+      // localStorage), así que recargar no pierde datos; solo se pierde qué persona estaba desplegada.
+      var pendiente = false, ultimoToque = Date.now();
+      ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+        document.addEventListener(ev, function () { ultimoToque = Date.now(); }, { passive: true, capture: true });
+      });
+      function aplicarSiSeguro() {
+        if (!pendiente || reloading) return;
+        var tries = +(sessionStorage.getItem(TRY) || 0);
+        if (tries >= 3) return;       // tope por sesión: si el CDN aún sirve viejo, sin loop infinito
+        var oculto = document.visibilityState !== 'visible';
+        var ov = document.getElementById('overlay');
+        var a = document.activeElement;
+        var escribiendo = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+        var seguro = oculto || ((!ov || ov.hidden) && !escribiendo && Date.now() - ultimoToque > 15000);
+        if (!seguro) return;          // se reintenta en el próximo tick
+        sessionStorage.setItem(TRY, tries + 1);
+        reloading = true;
+        location.reload();
+      }
+      if (typeof fetch === 'function' && BUILD) {
+        setInterval(function () {
+          if (document.visibilityState !== 'visible') return;
+          if (pendiente) aplicarSiSeguro(); else checkVersion();
+        }, 120000);
+        setInterval(aplicarSiSeguro, 5000);   // si ya hay versión nueva, aplicarla apenas sea seguro
+        window.addEventListener('online', checkVersion);
+      }
 
       checkVersion();                               // 1) cold start
       document.addEventListener('visibilitychange', function () {   // 1+3) volver de background

@@ -533,7 +533,11 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
   ⚠️ El hook vive en `.git/hooks/` (no se versiona): tras un clon nuevo, recrearlo o correr `node scripts/stamp-sw.js` antes de commitear.
 - **Propagación de versión (modelo Otrofestiv):** `version.json` + `<meta name="build">` sellados cada deploy; la app compara
   el build INCRUSTADO (no `localStorage`, que podía "mentir") contra `version.json` no-store al abrir/volver de background → reload
-  duro si difiere. ⚙ **Ajustes muestra el build vigente** para confirmar a ojo qué versión corre en el celular.
+  duro si difiere. **Con la app ABIERTA (oct 2026):** además chequea cada 2 min mientras está visible (y al volver
+  la red), pero la recarga se aplica **solo cuando es segura** —sin hoja abierta, sin campo con foco y tras 15 s sin
+  tocar la pantalla—; si no, reintenta cada 5 s. Antes un teléfono con la app en pantalla (típico en plena
+  primada) nunca tomaba un deploy. Recargar no pierde datos (Supabase + cola offline); solo se pierde la
+  persona desplegada. Verificado simulando un build nuevo: recarga sola en reposo y NO recarga con un campo enfocado. ⚙ **Ajustes muestra el build vigente** para confirmar a ojo qué versión corre en el celular.
 - **Cold-start en iOS PWA — alto fiable (RESUELTO):** el fix nació por la tabbar "muy arriba" al lanzar; con la IA
   list→detalle **ya NO hay tab bar**, pero el principio del alto se conserva. CAUSA: en PWA standalone el viewport no está
   asentado en el cold-start → `100dvh`, `position:fixed;bottom:0` y hasta `window.innerHeight` dan un alto CORTO. FIX:
