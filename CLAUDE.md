@@ -525,8 +525,10 @@ alguien lo paga** (con el anfitrión solo, o todos exonerados, anunciaba un cove
 - Flujo MVC (cuando haya UI): test e2e con `jsdom` por clics reales, re-consultando nodos tras cada render.
 - **Tests con fecha: NUNCA hardcodear un mes/año.** Derivar lo esperado del dato (`Util.monthYear(p.mesContable)`),
   no de una cadena fija: un `/Junio 2026/` pasa verde solo mientras el reloj esté en ese mes y estalla al cambiar.
-- ⚠️ **TRAMPA DEL ENTORNO — iCloud expulsa `node_modules`.** El repo vive en `~/Documents`, que iCloud Drive
-  sincroniza; con "Optimizar almacenamiento" macOS deja archivos **`dataless`** (0 bytes reales, ver `ls -lO`).
+- ⚠️ **TRAMPA DEL ENTORNO — iCloud (RESUELTA moviendo el repo, oct 2026).** El repo vive en **`~/Developer/la-primada`**,
+  FUERA de iCloud. **No clonarlo en `~/Documents` ni `~/Desktop`:** iCloud Drive los sincroniza y, con "Optimizar
+  almacenamiento", macOS deja archivos **`dataless`** (0 bytes reales, ver `ls -lO`). Al pasar a un Mac nuevo
+  (30 oct 2026) iCloud bajó solo 6 de 37 archivos del repo; se clonó limpio desde GitHub. Historia del síntoma:
   Al `require()` uno, Node **se cuelga para siempre esperando la descarga** — sin error y sin salida: el síntoma
   es `node tests/e2e.js` colgado ANTES del primer test (fue `form-data`, dependencia de `jsdom`). **NO es un bug
   del código.** Arreglo: `rm -rf node_modules && npm install` (es devDependency, no toca producción). Antes de
