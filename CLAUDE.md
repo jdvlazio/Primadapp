@@ -91,11 +91,16 @@ saldoPendiente     = recaudadoTeorico − recaudadoReal         // = Σ saldos d
 **Por qué.** Los datos deben **persistir entre dispositivos y navegadores**; localStorage no alcanza. **Arrancamos limpio
 en Supabase — NO se migra localStorage** (los datos de prueba no tienen valor real).
 
-> ⚠️ **PAUSA POR INACTIVIDAD (tier gratis) — resuelta con un keep-alive.** Supabase pausa los proyectos gratuitos tras
-> ~7 días sin actividad, y La Primada se usa un día al mes. `.github/workflows/supabase-keepalive.yml` hace **una
-> lectura anónima cada 2 días** (la misma que hace quien abre el link) contra la API REST. Si falla queda en rojo y
-> GitHub avisa por correo. GitHub **desactiva los workflows programados tras 60 días sin commits**: si llega ese
-> correo, se reactiva desde la pestaña Actions. Se prueba a mano con "Run workflow".
+> ⚠️ **PAUSA POR INACTIVIDAD (tier gratis) — keep-alive que ESCRIBE y se auto-repara (nov 2026).** Supabase pausa los
+> proyectos gratuitos por inactividad, y La Primada se usa un día al mes. Hasta nov 2026 la Action hacía **una lectura
+> anónima cada 2 días** y **el 18 nov el proyecto amaneció pausado igual** (la lectura del 17 respondió 200): leer no
+> cuenta como actividad y la regla exacta de Supabase no es pública. Hoy `.github/workflows/supabase-keepalive.yml`
+> corre **a diario** y hace dos cosas: **(1)** si el proyecto está `INACTIVE`, lo **reactiva** por la API de gestión
+> (secreto `SUPABASE_ACCESS_TOKEN`, token personal de Supabase) y deja el job **en rojo** para que llegue correo;
+> **(2)** **escribe un latido** con la RPC `keepalive_latido()` (`supabase/keepalive.sql`: tabla `keepalive` de una
+> fila, RLS sin políticas, función SECURITY DEFINER ejecutable por anon que solo actualiza la hora). Si aun así se
+> repite la pausa, la salida definitiva es el plan Pro (no pausa). GitHub **desactiva los workflows programados tras
+> 60 días sin commits**: si llega ese correo, se reactiva desde la pestaña Actions. Se prueba a mano con "Run workflow".
 
 **Stack.** **Supabase** (PostgreSQL + Auth + RLS), tier gratis. **SDK por CDN** (no npm en producción), igual que las fuentes.
 **GitHub Pages sigue sirviendo el frontend sin cambios.** Free tier durmiente es **aceptable**: La Primada se usa intensamente
